@@ -5,15 +5,120 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
-model Test {
-  id   Int    @id @default(autoincrement())
-  name String
+// All enums
+enum TripStatus{
+  PLANNED
+  ACTIVE
+  CLOSED
 }
+
+enum ExpenseCategory{
+  FUEL
+  TOLL
+  POLICE
+  LOADING
+  UNLOADING
+  REPAIR
+  OTHER
+}
+
+enum PaymentMode{
+  CASH
+  UPI
+  BANK
+}
+
+enum PaymentType{
+  ADVANCE 
+  SETTLEMENT
+}
+
+//Models 
+model Payment{
+  id String @id @default (uuid())
+  tripId String
+
+  amount Float
+  type PaymentType 
+  mode PaymentMode
+
+  paymentDate DateTime
+
+  note String? 
+  createdAt DateTime @default(now())
+
+  trip  Trip @relation(fields:[tripId],references:[id])
+}
+
+
+model Expense{
+
+  id String @id @default(uuid())
+  tripId String
+
+  category ExpenseCategory
+  amount Float
+  expenseDate DateTime
+
+  note String?
+  billUrl String?
+  createdAt DateTime @default(now())
+
+  trip Trip @relation(fields:[tripId],references:[id])
+}
+
+
+model Trip{
+  id String @id @default(uuid())
+  truckId String
+
+  source String 
+  destination String
+
+  estimatedQty Float? 
+  actualQty Float? 
+  ratePerUnit Float? 
+
+  startDate DateTime? 
+  endDate DateTime?
+
+  status TripStatus @default(PLANNED)
+  createdAt DateTime @default(now())
+
+  truck Truck @relation(fields:[truckId],references:[id])
+  expenses  Expense[]
+  payments Payment[]
+ 
+}
+
+model Company{
+  id String @id @default(uuid())
+  name String 
+  isInternal Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  trucks Truck[]
+
+}
+
+
+
+model Truck{
+  id String @id @default(uuid())
+  numberPlate String @unique
+  companyId String
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields:[companyId],references:[id])
+  trips Trip[]
+}
+
+
