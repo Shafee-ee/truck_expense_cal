@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  engineType="binary"
 }
 
 datasource db {
@@ -59,21 +60,6 @@ model Payment{
 }
 
 
-model Expense{
-
-  id String @id @default(uuid())
-  tripId String
-
-  category ExpenseCategory
-  amount Float
-  expenseDate DateTime
-
-  note String?
-  billUrl String?
-  createdAt DateTime @default(now())
-
-  trip Trip @relation(fields:[tripId],references:[id])
-}
 
 
 model Trip{
@@ -121,4 +107,16 @@ model Truck{
   trips Trip[]
 }
 
+model Expense {
+  id          String   @id @default(uuid())
+  tripId      String
+  category    ExpenseCategory
+  amount      Float
+  expenseDate DateTime
+  note        String?
+
+  billPath    String?  
+
+  trip        Trip     @relation(fields: [tripId], references: [id])
+}
 

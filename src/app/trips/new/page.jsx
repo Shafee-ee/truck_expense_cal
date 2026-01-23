@@ -1,5 +1,6 @@
 export const runtime = "nodejs"
 
+
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 
@@ -33,13 +34,13 @@ export default async function NewTripPage() {
     })
 
     return (
-        <div className='p-6 max-w-xl'>
+        <div className='p-6 bg-blue-50'>
             <h1 className='text-2xl font-bold mb-4'>
                 Create Trip
             </h1>
 
-            <form action={createTrip} className='space-y-4'>
-                <div>
+            <form action={createTrip} className='space-y-4  '>
+                <div >
                     <label className='block text-sm font-medium'>Truck</label>
                     <select name="truckId" required className="border p-2 w-full">
                         <option value="">Select Truck</option>
@@ -60,7 +61,7 @@ export default async function NewTripPage() {
 
                 <div>
                     <label className="block text-sm font-medium">Destination</label>
-                    <input name="destination" required className='borer p-2 w-full' />
+                    <input name="destination" required className='border p-2 w-full' />
                 </div>
 
                 <div>
