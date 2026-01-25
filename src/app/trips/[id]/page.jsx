@@ -44,11 +44,17 @@ export default async function TripDetailPage(props) {
         0
     )
 
+    function assertTripIsEditable() {
+        if (trip.status === 'CLOSED') {
+            throw new Error('Trip is closed and cannot be modified');
+        }
+    }
+
     const balance = revenue - totalExpenses;
 
     async function startTrip() {
         'use server'
-
+        assertTripIsEditable()
         await prisma.trip.update({
             where: { id: id },
             data: {
@@ -65,12 +71,20 @@ export default async function TripDetailPage(props) {
         'use server'
 
         await prisma.trip.update({
-            where: { id: id },
+            where: { id },
             data: {
                 status: 'CLOSED',
                 endDate: new Date(),
+
+                closedAt: new Date(),
+                closedBy: 'operator', // placeholder, auth comes later
+
+                finalRevenue: revenue,
+                finalExpenses: totalExpenses,
+                finalBalance: balance,
             },
         })
+
 
         revalidatePath(`/trips/${id}`)
         revalidatePath('/trips')
@@ -78,6 +92,9 @@ export default async function TripDetailPage(props) {
 
     async function addExpense(formData) {
         'use server'
+
+        assertTripIsEditable()
+
 
         const category = formData.get('category')
         const amount = Number(formData.get('amount'))
@@ -118,6 +135,9 @@ export default async function TripDetailPage(props) {
     async function replaceBill(formData) {
         'use server'
 
+        assertTripIsEditable()
+
+
         const expenseId = formData.get('expenseId')
         const file = formData.get('bill')
 
@@ -155,8 +175,12 @@ export default async function TripDetailPage(props) {
             <div className="space-y-1">
                 <div><strong>Truck:</strong> {trip.truck.numberPlate}</div>
                 <div><strong>Route:</strong> {trip.source} → {trip.destination}</div>
-                <div><strong>Status:</strong> {trip.status}</div>
-                <div><strong>Start:</strong> {trip.startDate ? new Date(trip.startDate).toLocaleDateString() : '-'}</div>
+                <div>
+                    <strong>Status:</strong>{' '}
+                    <span className={trip.status === 'CLOSED' ? 'text-red-600 font-semibold' : ''}>
+                        {trip.status}
+                    </span>
+                </div>                <div><strong>Start:</strong> {trip.startDate ? new Date(trip.startDate).toLocaleDateString() : '-'}</div>
                 <div><strong>End:</strong> {trip.endDate ? new Date(trip.endDate).toLocaleDateString() : '-'}</div>
             </div>
 
@@ -185,12 +209,33 @@ export default async function TripDetailPage(props) {
 
 
                 {trip.status === 'ACTIVE' && (
-                    <form action={closeTrip}>
-                        <button className="bg-red-600 text-white px-4 py-2">
-                            Close Trip
-                        </button>
-                    </form>
+                    <details className="border p-4 rounded">
+                        <summary className="cursor-pointer font-semibold text-red-600">
+                            Review & Close Trip
+                        </summary>
+
+                        <div className="mt-4 space-y-3 text-sm">
+                            <p className="text-red-600 font-semibold">
+                                This action is final. Once closed, this trip cannot be edited.
+                            </p>
+
+                            <ul className="list-disc pl-5 space-y-1">
+                                <li>Truck is correct</li>
+                                <li>Route is correct</li>
+                                <li>All expenses are entered</li>
+                                <li>All bills are uploaded</li>
+                                <li>Revenue and balance look correct</li>
+                            </ul>
+
+                            <form action={closeTrip}>
+                                <button className="mt-3 bg-red-600 text-white px-4 py-2">
+                                    Confirm & Close Trip
+                                </button>
+                            </form>
+                        </div>
+                    </details>
                 )}
+
             </div>
 
             {trip.status === 'ACTIVE' && (
@@ -275,19 +320,21 @@ export default async function TripDetailPage(props) {
                                                         </a>
                                                     )}
 
-                                                    <form action={replaceBill} className="inline">
-                                                        <input type="hidden" name="expenseId" value={e.id} />
-                                                        <input
-                                                            type="file"
-                                                            name="bill"
-                                                            accept="image/*,application/pdf"
-                                                            className="text-xs"
-                                                            required
-                                                        />
-                                                        <button className="ml-1 text-xs underline">
-                                                            Replace
-                                                        </button>
-                                                    </form>
+                                                    {trip.status === 'ACTIVE' && (
+                                                        <form action={replaceBill} className="inline">
+                                                            <input type="hidden" name="expenseId" value={e.id} />
+                                                            <input
+                                                                type="file"
+                                                                name="bill"
+                                                                accept="image/*,application/pdf"
+                                                                className="text-xs"
+                                                                required
+                                                            />
+                                                            <button className="ml-1 text-xs underline">
+                                                                Replace
+                                                            </button>
+                                                        </form>
+                                                    )}
                                                 </td>
                                             </tr>
                                         )

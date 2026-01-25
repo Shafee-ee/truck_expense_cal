@@ -60,31 +60,6 @@ model Payment{
 }
 
 
-
-
-model Trip{
-  id String @id @default(uuid())
-  truckId String
-
-  source String 
-  destination String
-
-  estimatedQty Float? 
-  actualQty Float? 
-  ratePerUnit Float? 
-
-  startDate DateTime? 
-  endDate DateTime?
-
-  status TripStatus @default(PLANNED)
-  createdAt DateTime @default(now())
-
-  truck Truck @relation(fields:[truckId],references:[id])
-  expenses  Expense[]
-  payments Payment[]
- 
-}
-
 model Company{
   id String @id @default(uuid())
   name String 
@@ -94,8 +69,6 @@ model Company{
   trucks Truck[]
 
 }
-
-
 
 model Truck{
   id String @id @default(uuid())
@@ -118,5 +91,35 @@ model Expense {
   billPath    String?  
 
   trip        Trip     @relation(fields: [tripId], references: [id])
+}
+
+model Trip {
+  id String @id @default(uuid())
+  truckId String
+
+  source String
+  destination String
+
+  estimatedQty Float?
+  actualQty Float?
+  ratePerUnit Float?
+
+  startDate DateTime?
+  endDate   DateTime?
+
+  status TripStatus @default(PLANNED)
+
+  //frozen values (added)
+  finalRevenue  Float?
+  finalExpenses Float?
+  finalBalance  Float?
+  closedAt DateTime? 
+  closedBy String?
+
+  createdAt DateTime @default(now())
+
+  truck Truck @relation(fields:[truckId],references:[id])
+  expenses  Expense[]
+  payments Payment[]
 }
 
