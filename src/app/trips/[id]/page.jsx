@@ -65,10 +65,34 @@ export default async function TripDetailPage(props) {
         revalidatePath('/trips')
     }
 
+    async function addPayment(formData) {
+        'use server'
+        assertTripIsEditable()
 
+        await prisma.payment.create({
+            data: {
+                tripId: id,
+                amount: Number(formData.get('amount')),
+                type: formData.get('type'),
+                mode: formData.get('mode'),
+                paymentDate: new Date(),
+                note: formData.get('note') || null,
+            }
+        })
+        revalidatePath(`/trips/${id}`)
+    }
 
     async function closeTrip() {
         'use server'
+
+        // HARD VALIDATION (4.4)
+        if (trip.expenses.length === 0) {
+            throw new Error('Cannot close trip without expenses');
+        }
+
+        if (!revenue || revenue <= 0) {
+            throw new Error('Cannot close trip without valid revenue');
+        }
 
         await prisma.trip.update({
             where: { id },
@@ -77,7 +101,7 @@ export default async function TripDetailPage(props) {
                 endDate: new Date(),
 
                 closedAt: new Date(),
-                closedBy: 'operator', // placeholder, auth comes later
+                closedBy: 'operator', // placeholder
 
                 finalRevenue: revenue,
                 finalExpenses: totalExpenses,
@@ -85,10 +109,10 @@ export default async function TripDetailPage(props) {
             },
         })
 
-
         revalidatePath(`/trips/${id}`)
         revalidatePath('/trips')
     }
+
 
     async function addExpense(formData) {
         'use server'
@@ -349,6 +373,58 @@ export default async function TripDetailPage(props) {
 
                 </div>
             )}
+
+            {trip.status === 'CLOSED' && (
+                <div className="pt-6 border-t bg-gray-50 p-4 rounded">
+                    <h2 className="font-semibold text-red-700 mb-2">
+                        Trip Certified & Locked
+                    </h2>
+
+                    <div className="text-sm space-y-1">
+                        <div>
+                            <strong>Certified On:</strong>{' '}
+                            {trip.closedAt
+                                ? new Date(trip.closedAt).toLocaleString()
+                                : '-'}
+                        </div>
+
+                        <div>
+                            <strong>Certified By:</strong>{' '}
+                            {trip.closedBy || '—'}
+                        </div>
+
+                        <hr className="my-2" />
+
+                        <div>
+                            <strong>Final Revenue:</strong>{' '}
+                            ₹{trip.finalRevenue?.toFixed(0)}
+                        </div>
+
+                        <div>
+                            <strong>Final Expenses:</strong>{' '}
+                            ₹{trip.finalExpenses?.toFixed(0)}
+                        </div>
+
+                        <div>
+                            <strong>Final Balance:</strong>{' '}
+                            <span
+                                className={
+                                    trip.finalBalance >= 0
+                                        ? 'text-green-700'
+                                        : 'text-red-700'
+                                }
+                            >
+                                ₹{trip.finalBalance?.toFixed(0)}
+                            </span>
+                        </div>
+
+                        <p className="text-xs text-gray-600 mt-2">
+                            This trip is locked. No further changes are permitted.
+                        </p>
+                    </div>
+                </div>
+            )}
+
 
 
         </div>

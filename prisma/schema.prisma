@@ -109,17 +109,18 @@ model Trip {
 
   status TripStatus @default(PLANNED)
 
-  //frozen values (added)
+  closedAt DateTime?
+  closedBy String?
+
   finalRevenue  Float?
   finalExpenses Float?
   finalBalance  Float?
-  closedAt DateTime? 
-  closedBy String?
 
   createdAt DateTime @default(now())
 
   truck Truck @relation(fields:[truckId],references:[id])
-  expenses  Expense[]
+  expenses Expense[]
   payments Payment[]
 }
+
 
