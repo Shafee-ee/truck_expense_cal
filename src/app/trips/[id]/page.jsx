@@ -44,6 +44,14 @@ export default async function TripDetailPage(props) {
         0
     )
 
+    const totalPayments = trip.payments.reduce(
+        (sum, p) => sum + p.amount,
+        0
+    )
+
+    const outstanding = revenue - totalPayments
+
+
     function assertTripIsEditable() {
         if (trip.status === 'CLOSED') {
             throw new Error('Trip is closed and cannot be modified');
@@ -65,22 +73,7 @@ export default async function TripDetailPage(props) {
         revalidatePath('/trips')
     }
 
-    async function addPayment(formData) {
-        'use server'
-        assertTripIsEditable()
 
-        await prisma.payment.create({
-            data: {
-                tripId: id,
-                amount: Number(formData.get('amount')),
-                type: formData.get('type'),
-                mode: formData.get('mode'),
-                paymentDate: new Date(),
-                note: formData.get('note') || null,
-            }
-        })
-        revalidatePath(`/trips/${id}`)
-    }
 
     async function closeTrip() {
         'use server'
@@ -93,6 +86,13 @@ export default async function TripDetailPage(props) {
         if (!revenue || revenue <= 0) {
             throw new Error('Cannot close trip without valid revenue');
         }
+
+        if (outstanding > 0) {
+            throw new Error(
+                `Cannot close trip. ₹${outstanding.toFixed(0)} still outstanding.`
+            );
+        }
+
 
         await prisma.trip.update({
             where: { id },
@@ -190,8 +190,30 @@ export default async function TripDetailPage(props) {
         })
     }
 
+    async function addPayment(formData) {
+        'use server'
+
+        assertTripIsEditable()
+
+        await prisma.payment.create({
+            data: {
+                tripId: id,
+                amount: Number(formData.get('amount')),
+                type: formData.get('type'),
+                mode: formData.get('mode'),
+                paymentDate: new Date(),
+                note: formData.get('note') || null,
+            },
+        })
+
+        revalidatePath(`/trips/${id}`)
+    }
+
+
     return (
         <div className="p-6 space-y-4">
+
+            {/*Trip detail and status*/}
             <h1 className="text-2xl font-bold">
                 Trip Details
             </h1>
@@ -210,6 +232,8 @@ export default async function TripDetailPage(props) {
 
             <hr />
 
+
+            {/* Trip financial summary*/}
             <div className="space-y-1">
                 <div><strong>Revenue:</strong> ₹{revenue.toFixed(0)}</div>
                 <div><strong>Expenses:</strong> ₹{totalExpenses.toFixed(0)}</div>
@@ -221,6 +245,29 @@ export default async function TripDetailPage(props) {
                 </div>
             </div>
 
+            <hr />
+
+            {/*Payments and outstanding amount summary*/}
+
+            <div className="space-y-1">
+                <div><strong>Total Paid:</strong> ₹{totalPayments.toFixed(0)}</div>
+                <div>
+                    <strong>Outstanding:</strong>{' '}
+                    <span
+                        className={
+                            outstanding > 0
+                                ? 'text-red-600'
+                                : outstanding < 0
+                                    ? 'text-orange-600'
+                                    : 'text-green-600'
+                        }
+                    >
+                        ₹{outstanding.toFixed(0)}
+                    </span>
+                </div>
+            </div>
+
+            {/*Trip Lifecyle Action*/}
             <div className="pt-4">
                 {trip.status === 'PLANNED' && (
                     <form action={startTrip}>
@@ -261,7 +308,7 @@ export default async function TripDetailPage(props) {
                 )}
 
             </div>
-
+            {/*expense management for ACTIVE trip*/}
             {trip.status === 'ACTIVE' && (
                 <div className="pt-6 border-t">
                     <h2 className="font-semibold mb-2">Add Expense</h2>
@@ -374,6 +421,83 @@ export default async function TripDetailPage(props) {
                 </div>
             )}
 
+            {/* add expense*/}
+            {trip.status === 'ACTIVE' && (
+                <div className="pt-6 border-t">
+                    <h2 className="font-semibold mb-2">Record Payment</h2>
+
+                    <form action={addPayment} className="space-y-2 max-w-sm">
+                        <input
+                            name="amount"
+                            type="number"
+                            step="0.01"
+                            placeholder="Amount"
+                            className="border p-2 w-full"
+                            required
+                        />
+
+                        <select name="type" className="border p-2 w-full" required>
+                            <option value="">Payment Type</option>
+                            <option value="ADVANCE">Advance</option>
+                            <option value="SETTLEMENT">Settlement</option>
+                        </select>
+
+                        <select name="mode" className="border p-2 w-full" required>
+                            <option value="">Payment Mode</option>
+                            <option value="CASH">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="BANK">Bank</option>
+                        </select>
+
+                        <input
+                            name="note"
+                            placeholder="Note (optional)"
+                            className="border p-2 w-full"
+                        />
+
+                        <button className="bg-black text-white px-4 py-2">
+                            Add Payment
+                        </button>
+                    </form>
+                </div>
+            )}
+
+            {/*Payment List / cash flow*/}
+            {trip.payments.length > 0 && (
+                <div className="pt-6 border-t">
+                    <h2 className="font-semibold mb-2">Payments</h2>
+
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b">
+                                <th className="text-left py-1">Date</th>
+                                <th className="text-left py-1">Type</th>
+                                <th className="text-left py-1">Mode</th>
+                                <th className="text-right py-1">Amount</th>
+                                <th className="text-left py-1">Note</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {trip.payments.map(p => (
+                                <tr key={p.id} className="border-b">
+                                    <td className="py-1">
+                                        {new Date(p.paymentDate).toLocaleDateString()}
+                                    </td>
+                                    <td className="py-1">{p.type}</td>
+                                    <td className="py-1">{p.mode}</td>
+                                    <td className="py-1 text-right">₹{p.amount}</td>
+                                    <td className="py-1">{p.note || '-'}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+
+
+            {/*Closed trip audit {read only}*/}
             {trip.status === 'CLOSED' && (
                 <div className="pt-6 border-t bg-gray-50 p-4 rounded">
                     <h2 className="font-semibold text-red-700 mb-2">
