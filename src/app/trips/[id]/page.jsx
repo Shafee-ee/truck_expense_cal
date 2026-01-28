@@ -545,6 +545,11 @@ export default async function TripDetailPage(props) {
                         <p className="text-xs text-gray-600 mt-2">
                             This trip is locked. No further changes are permitted.
                         </p>
+
+
+                        <p className="text-xs text-gray-600 mt-2">
+                            This trip is locked. No further changes are permitted.
+                        </p>
                     </div>
                 </div>
             )}
