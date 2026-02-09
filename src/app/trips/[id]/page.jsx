@@ -52,29 +52,44 @@ export default async function TripDetailPage(props) {
     const outstanding = revenue - totalPayments
 
 
-    function assertTripIsEditable() {
-        if (trip.status === 'CLOSED') {
-            throw new Error('Trip is closed and cannot be modified');
+    // check if trip is editable
+    async function assertTripIsEditable(id) {
+        'use server'
+
+        console.log('assert Trip is editable id:', id)
+        const freshTrip = await prisma.trip.findUnique({
+            where: { id },
+            select: { status: true },
+        })
+
+        if (!freshTrip || freshTrip.status === 'CLOSED') {
+            throw new Error('Trip is closed and cannot be modified')
         }
     }
+
 
     const balance = revenue - totalExpenses;
 
     async function startTrip() {
         'use server'
-        assertTripIsEditable()
+
+        await assertTripIsEditable(id)
+
         await prisma.trip.update({
-            where: { id: id },
+            where: { id },
             data: {
                 status: 'ACTIVE',
                 startDate: new Date(),
             },
         })
+
+        revalidatePath(`/trips/${id}`)
         revalidatePath('/trips')
     }
 
 
 
+    //close trip
     async function closeTrip() {
         'use server'
 
@@ -114,39 +129,57 @@ export default async function TripDetailPage(props) {
     }
 
 
+    // add expense
     async function addExpense(formData) {
         'use server'
 
-        assertTripIsEditable()
+        const tripId = formData.get('tripId')
+        if (!tripId) {
+            throw new Error('Trip ID missing')
+        }
 
+        await assertTripIsEditable(tripId)
 
         const category = formData.get('category')
         const amount = Number(formData.get('amount'))
         const note = formData.get('note') || null
         const file = formData.get('bill')
 
+        console.log({
+            hasFile: !!file,
+            fileType: file?.constructor?.name,
+            fileSize: file?.size,
+            fileName: file?.name,
+        })
+
         if (!amount || amount <= 0) return
 
         let billPath = null
 
         if (file && file.size > 0) {
+            const bytes = await file.arrayBuffer()
+            const buffer = Buffer.from(bytes)
+
             const fileExt = file.name.split('.').pop()
-            const fileName = `${id}/${crypto.randomUUID()}.${fileExt}`
+            const fileName = `${tripId}/${crypto.randomUUID()}.${fileExt}`
 
             const { error } = await supabase.storage
                 .from('bills')
-                .upload(fileName, file, {
+                .upload(fileName, buffer, {
                     contentType: file.type,
                 })
 
-            if (!error) {
-                billPath = fileName
+            if (error) {
+                console.error('Supabase upload error:', error)
+                throw new Error('Bill upload failed')
             }
+
+            billPath = fileName
         }
 
         await prisma.expense.create({
             data: {
-                tripId: id,
+                tripId,
                 category,
                 amount,
                 expenseDate: new Date(),
@@ -154,33 +187,35 @@ export default async function TripDetailPage(props) {
                 billPath,
             },
         })
+
+        revalidatePath(`/trips/${tripId}`)
     }
 
+
+    //replace bill
     async function replaceBill(formData) {
         'use server'
 
-        assertTripIsEditable()
+        const tripId = formData.get('tripId')
+        if (!tripId) throw new Error('Trip ID missing')
 
+        await assertTripIsEditable(tripId)
 
         const expenseId = formData.get('expenseId')
         const file = formData.get('bill')
-
         if (!file || file.size === 0) return
 
         const expense = await prisma.expense.findUnique({
             where: { id: expenseId }
         })
-
         if (!expense) return
 
         const fileExt = file.name.split('.').pop()
-        const fileName = `${expense.tripId}/${crypto.randomUUID()}.${fileExt}`
+        const fileName = `${tripId}/${crypto.randomUUID()}.${fileExt}`
 
         const { error } = await supabase.storage
             .from('bills')
-            .upload(fileName, file, {
-                contentType: file.type,
-            })
+            .upload(fileName, file, { contentType: file.type })
 
         if (error) return
 
@@ -188,16 +223,22 @@ export default async function TripDetailPage(props) {
             where: { id: expenseId },
             data: { billPath: fileName }
         })
+
+        revalidatePath(`/trips/${tripId}`)
     }
 
+    //add payment
     async function addPayment(formData) {
         'use server'
 
-        assertTripIsEditable()
+        const tripId = formData.get('tripId')
+        if (!tripId) throw new Error('Trip ID missing')
+
+        await assertTripIsEditable(tripId)
 
         await prisma.payment.create({
             data: {
-                tripId: id,
+                tripId,
                 amount: Number(formData.get('amount')),
                 type: formData.get('type'),
                 mode: formData.get('mode'),
@@ -206,8 +247,30 @@ export default async function TripDetailPage(props) {
             },
         })
 
-        revalidatePath(`/trips/${id}`)
+        revalidatePath(`/trips/${tripId}`)
     }
+
+    // Delete expense
+    async function deleteExpense(formData) {
+        'use server'
+
+        const tripId = formData.get('tripId')
+        const expenseId = formData.get('expenseId')
+
+        if (!tripId || !expenseId) {
+            throw new Error('Missing identifiers')
+        }
+
+        await assertTripIsEditable(tripId)
+
+        await prisma.expense.delete({
+            where: { id: expenseId }
+        })
+
+        revalidatePath(`/trips/${tripId}`)
+    }
+
+
 
 
     return (
@@ -313,7 +376,11 @@ export default async function TripDetailPage(props) {
                 <div className="pt-6 border-t">
                     <h2 className="font-semibold mb-2">Add Expense</h2>
 
-                    <form action={addExpense} className="space-y-2 max-w-sm">
+                    <form action={addExpense}
+
+                        encType='multipart/form-data'
+                        className="space-y-2 max-w-sm">
+                        <input type="hidden" name="tripId" value={id} />
                         <select name="category" className="border p-2 w-full" required>
                             <option value="">Select Category</option>
                             <option value="FUEL">Fuel</option>
@@ -392,21 +459,35 @@ export default async function TripDetailPage(props) {
                                                     )}
 
                                                     {trip.status === 'ACTIVE' && (
-                                                        <form action={replaceBill} className="inline">
-                                                            <input type="hidden" name="expenseId" value={e.id} />
-                                                            <input
-                                                                type="file"
-                                                                name="bill"
-                                                                accept="image/*,application/pdf"
-                                                                className="text-xs"
-                                                                required
-                                                            />
-                                                            <button className="ml-1 text-xs underline">
-                                                                Replace
-                                                            </button>
-                                                        </form>
+                                                        <>
+                                                            <form action={replaceBill}
+                                                                encType='multipart/formdata'
+                                                                className="inline">
+                                                                <input type="hidden" name="tripId" value={id} />
+                                                                <input type="hidden" name="expenseId" value={e.id} />
+                                                                <input
+                                                                    type="file"
+                                                                    name="bill"
+                                                                    accept="image/*,application/pdf"
+                                                                    className="text-xs"
+                                                                    required
+                                                                />
+                                                                <button className="ml-1 text-xs underline">
+                                                                    Replace
+                                                                </button>
+                                                            </form>
+
+                                                            <form action={deleteExpense} className="inline ml-2">
+                                                                <input type="hidden" name="tripId" value={id} />
+                                                                <input type="hidden" name="expenseId" value={e.id} />
+                                                                <button className="text-xs text-red-600 underline">
+                                                                    Delete
+                                                                </button>
+                                                            </form>
+                                                        </>
                                                     )}
                                                 </td>
+
                                             </tr>
                                         )
                                     }))}
@@ -427,6 +508,8 @@ export default async function TripDetailPage(props) {
                     <h2 className="font-semibold mb-2">Record Payment</h2>
 
                     <form action={addPayment} className="space-y-2 max-w-sm">
+                        <input type="hidden" name="tripId" value={id} />
+
                         <input
                             name="amount"
                             type="number"
@@ -547,12 +630,7 @@ export default async function TripDetailPage(props) {
                         </p>
 
 
-                        <p className="text-xs text-gray-600 mt-2">
-                            This trip is locked. No further changes are permitted.
-                        </p>
-                        <p className="text-xs text-gray-600 mt-2">
-                            This trip is locked. No further changes are permitted.
-                        </p>
+
 
                     </div>
                 </div>

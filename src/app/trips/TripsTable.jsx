@@ -41,7 +41,7 @@ export default function TripsTable({ trips }) {
                         <td className="py-2">{trip.status}</td>
                         <td className="py-2">
                             {trip.startDate
-                                ? new Date(trip.startDate).toLocaleDateString()
+                                ? new Date(trip.startDate).toISOString().slice(0, 10)
                                 : '-'}
                         </td>
                         <td className={`py-2 ${getResultClass(trip.result)}`}>
