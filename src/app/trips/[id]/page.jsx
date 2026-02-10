@@ -18,7 +18,6 @@ async function getSignedUrl(path) {
 
     return data?.signedUrl || null
 }
-
 export default async function TripDetailPage(props) {
     const { id } = await props.params
 
@@ -126,6 +125,30 @@ export default async function TripDetailPage(props) {
 
         revalidatePath(`/trips/${id}`)
         revalidatePath('/trips')
+    }
+
+    //update actual quantity
+    async function updateActualQty(formData) {
+        'use server'
+
+        const tripId = formData.get('tripId')
+        const actualQty = Number(formData.get('actualQty'))
+
+        if (!tripId) throw new Error('Trip ID missing')
+        if (!actualQty || actualQty <= 0) {
+            throw new Error('Actual quantity must be greater than 0')
+        }
+
+        await assertTripIsEditable(tripId)
+
+        await prisma.trip.update({
+            where: { id: tripId },
+            data: {
+                actualQty,
+            },
+        })
+
+        revalidatePath(`/trips/${tripId}`)
     }
 
 
@@ -310,6 +333,31 @@ export default async function TripDetailPage(props) {
 
             <hr />
 
+            {trip.status === 'ACTIVE' && (
+                <div className="pt-4 border-t">
+                    <h2 className="font-semibold mb-2">Actual Quantity</h2>
+
+                    <form action={updateActualQty} className="space-y-2 max-w-sm">
+                        <input type="hidden" name="tripId" value={id} />
+
+                        <input
+                            name="actualQty"
+                            type="number"
+                            step="0.01"
+                            defaultValue={trip.actualQty ?? ''}
+                            placeholder="Enter actual quantity"
+                            className="border p-2 w-full"
+                            required
+                        />
+
+                        <button className="bg-black text-white px-4 py-2">
+                            Update Quantity
+                        </button>
+                    </form>
+                </div>
+            )}
+
+
             {/*Payments and outstanding amount summary*/}
 
             <div className="space-y-1">
@@ -378,7 +426,6 @@ export default async function TripDetailPage(props) {
 
                     <form action={addExpense}
 
-                        encType='multipart/form-data'
                         className="space-y-2 max-w-sm">
                         <input type="hidden" name="tripId" value={id} />
                         <select name="category" className="border p-2 w-full" required>
@@ -461,7 +508,6 @@ export default async function TripDetailPage(props) {
                                                     {trip.status === 'ACTIVE' && (
                                                         <>
                                                             <form action={replaceBill}
-                                                                encType='multipart/formdata'
                                                                 className="inline">
                                                                 <input type="hidden" name="tripId" value={id} />
                                                                 <input type="hidden" name="expenseId" value={e.id} />
