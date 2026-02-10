@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -48,7 +49,12 @@ export default async function TripDetailPage(props) {
         0
     )
 
-    const outstanding = revenue - totalPayments
+
+    const outstanding = revenue - totalPayments;
+    const hasRevenue = trip.actualQty && trip.actualQty > 0;
+    const hasOutstanding = outstanding > 0;
+    const canClose = hasRevenue && !hasOutstanding && trip.expenses.length > 0;
+
 
 
     // check if trip is editable
@@ -92,31 +98,60 @@ export default async function TripDetailPage(props) {
     async function closeTrip() {
         'use server'
 
-        // HARD VALIDATION (4.4)
-        if (trip.expenses.length === 0) {
-            throw new Error('Cannot close trip without expenses');
+        const freshTrip = await prisma.trip.findUnique({
+            where: { id },
+            include: {
+                expenses: true,
+                payments: true,
+            },
+        })
+
+        if (!freshTrip) {
+            throw new Error('Trip not found')
         }
 
-        if (!revenue || revenue <= 0) {
-            throw new Error('Cannot close trip without valid revenue');
+        const revenue =
+            (freshTrip.actualQty || 0) * (freshTrip.ratePerUnit || 0)
+
+        const totalExpenses = freshTrip.expenses.reduce(
+            (sum, e) => sum + e.amount,
+            0
+        )
+
+        console.log({
+            actualQty: freshTrip.actualQty,
+            ratePerUnit: freshTrip.ratePerUnit,
+        })
+
+        const totalPayments = freshTrip.payments.reduce(
+            (sum, p) => sum + p.amount,
+            0
+        )
+
+        const outstanding = revenue - totalPayments
+        const balance = revenue - totalExpenses
+
+        if (freshTrip.expenses.length === 0) {
+            throw new Error('Cannot close trip without expenses')
+        }
+
+        if (revenue <= 0) {
+            throw new Error('Cannot close trip without valid revenue')
         }
 
         if (outstanding > 0) {
             throw new Error(
                 `Cannot close trip. ₹${outstanding.toFixed(0)} still outstanding.`
-            );
+            )
         }
-
 
         await prisma.trip.update({
             where: { id },
             data: {
                 status: 'CLOSED',
                 endDate: new Date(),
-
                 closedAt: new Date(),
                 closedBy: 'operator', // placeholder
-
                 finalRevenue: revenue,
                 finalExpenses: totalExpenses,
                 finalBalance: balance,
@@ -126,6 +161,7 @@ export default async function TripDetailPage(props) {
         revalidatePath(`/trips/${id}`)
         revalidatePath('/trips')
     }
+
 
     //update actual quantity
     async function updateActualQty(formData) {
@@ -297,7 +333,16 @@ export default async function TripDetailPage(props) {
 
 
     return (
-        <div className="p-6 space-y-4">
+        <div className="p-10 space-y-4 bg-gray-200">
+
+            <div className="mb-4">
+                <Link href="/trips">
+                    <button className="text-sm bg-blue-200 p-2 hover:bg-blue-300">
+                        ← Back to Trips
+                    </button>
+                </Link>
+            </div>
+
 
             {/*Trip detail and status*/}
             <h1 className="text-2xl font-bold">
@@ -397,8 +442,8 @@ export default async function TripDetailPage(props) {
                         </summary>
 
                         <div className="mt-4 space-y-3 text-sm">
-                            <p className="text-red-600 font-semibold">
-                                This action is final. Once closed, this trip cannot be edited.
+                            <p className="text-gray-600 font-semibold ">
+                                Note: This action is final. Once closed, this trip cannot be edited.
                             </p>
 
                             <ul className="list-disc pl-5 space-y-1">
@@ -409,9 +454,29 @@ export default async function TripDetailPage(props) {
                                 <li>Revenue and balance look correct</li>
                             </ul>
 
+                            {!hasRevenue && (
+                                <p className="text-red-600 font-semibold">
+                                    Cannot close trip: Actual quantity is missing, so revenue is 0.
+                                </p>
+                            )}
+
+                            {hasOutstanding && (
+                                <p className="text-red-600 font-semibold">
+                                    Cannot close trip- ₹{outstanding.toFixed(0)} is still outstanding.
+                                </p>
+                            )}
+
+
                             <form action={closeTrip}>
-                                <button className="mt-3 bg-red-600 text-white px-4 py-2">
-                                    Confirm & Close Trip
+                                <button
+                                    disabled={!canClose}
+                                    className={`mt-3 px-4 py-2 text white ${canClose
+                                        ? 'bg-red-600'
+                                        : 'bg-gray-400 cursor-not-allowed'
+                                        }`}
+
+                                >
+                                    Confirm & close
                                 </button>
                             </form>
                         </div>
