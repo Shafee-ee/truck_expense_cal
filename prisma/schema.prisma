@@ -1,27 +1,83 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
-  engineType="binary"
+  provider   = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
   provider = "postgresql"
-    url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
-// All enums
-enum TripStatus{
+model Payment {
+  id          String      @id @default(uuid())
+  tripId      String
+  amount      Float
+  mode        PaymentMode
+  note        String?
+  createdAt   DateTime    @default(now())
+  paymentDate DateTime
+  type        PaymentType
+  trip        Trip        @relation(fields: [tripId], references: [id])
+}
+
+model Company {
+  id         String   @id @default(uuid())
+  name       String
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  trucks     Truck[]
+}
+
+model Truck {
+  id             String   @id @default(uuid())
+  numberPlate    String   @unique
+  companyId      String
+  createdAt      DateTime @default(now())
+  dailyFixedCost Float?
+  trips          Trip[]
+  company        Company  @relation(fields: [companyId], references: [id])
+}
+
+model Expense {
+  id          String          @id @default(uuid())
+  tripId      String
+  category    ExpenseCategory
+  amount      Float
+  note        String?
+  expenseDate DateTime
+  billPath    String?
+  trip        Trip            @relation(fields: [tripId], references: [id])
+}
+
+model Trip {
+  id            String     @id @default(uuid())
+  truckId       String
+  source        String
+  destination   String
+  estimatedQty  Float?
+  actualQty     Float?
+  ratePerUnit   Float?
+  startDate     DateTime?
+  endDate       DateTime?
+  status        TripStatus @default(PLANNED)
+  createdAt     DateTime   @default(now())
+  finalBalance  Float?
+  finalExpenses Float?
+  finalRevenue  Float?
+  closedAt      DateTime?
+  closedBy      String?
+  expenses      Expense[]
+  payments      Payment[]
+  truck         Truck      @relation(fields: [truckId], references: [id])
+}
+
+enum TripStatus {
   PLANNED
   ACTIVE
   CLOSED
 }
 
-enum ExpenseCategory{
+enum ExpenseCategory {
   FUEL
   TOLL
   POLICE
@@ -31,96 +87,13 @@ enum ExpenseCategory{
   OTHER
 }
 
-enum PaymentMode{
+enum PaymentMode {
   CASH
   UPI
   BANK
 }
 
-enum PaymentType{
-  ADVANCE 
+enum PaymentType {
+  ADVANCE
   SETTLEMENT
 }
-
-//Models 
-model Payment{
-  id String @id @default (uuid())
-  tripId String
-
-  amount Float
-  type PaymentType 
-  mode PaymentMode
-
-  paymentDate DateTime
-
-  note String? 
-  createdAt DateTime @default(now())
-
-  trip  Trip @relation(fields:[tripId],references:[id])
-}
-
-
-model Company{
-  id String @id @default(uuid())
-  name String 
-  isInternal Boolean @default(false)
-  createdAt DateTime @default(now())
-
-  trucks Truck[]
-
-}
-
-model Truck{
-  id String @id @default(uuid())
-  numberPlate String @unique
-  companyId String
-  createdAt DateTime @default(now())
-
-  company Company @relation(fields:[companyId],references:[id])
-  trips Trip[]
-}
-
-model Expense {
-  id          String   @id @default(uuid())
-  tripId      String
-  category    ExpenseCategory
-  amount      Float
-  expenseDate DateTime
-  note        String?
-
-  billPath    String?  
-
-  trip        Trip     @relation(fields: [tripId], references: [id])
-}
-
-model Trip {
-  id String @id @default(uuid())
-  truckId String
-
-  source String
-  destination String
-
-  estimatedQty Float?
-  actualQty Float?
-  ratePerUnit Float?
-
-  startDate DateTime?
-  endDate   DateTime?
-
-  status TripStatus @default(PLANNED)
-
-  closedAt DateTime?
-  closedBy String?
-
-  finalRevenue  Float?
-  finalExpenses Float?
-  finalBalance  Float?
-
-  createdAt DateTime @default(now())
-
-  truck Truck @relation(fields:[truckId],references:[id])
-  expenses Expense[]
-  payments Payment[]
-}
-
-

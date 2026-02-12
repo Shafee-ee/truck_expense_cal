@@ -10,7 +10,8 @@ export default async function DashboardPage() {
             <h1 className="text-2xl font-semibold">Dashboard</h1>
             <h2>Active Trips: {data.statusStrip.activeTrips}</h2>
             <h2>Cash Deployed: {data.statusStrip.cashDeployed}</h2>
-            <pre>{JSON.stringify(data, null, 2)}</pre>
+            <h2>Operational Profit (This Month): ₹{data.operationalProfit}</h2>
+
         </div>
     );
 }

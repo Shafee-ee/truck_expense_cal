@@ -24,6 +24,12 @@ async function createTruck(formData) {
         })
     }
 
+    const dailyFixedCost = Number(formData.get('dailyFixedCost'))
+    if (!dailyFixedCost || dailyFixedCost <= 0) {
+        throw new Error('Daily fixed cost must be greater than 0')
+    }
+
+
     //create truck
 
     try {
@@ -31,7 +37,9 @@ async function createTruck(formData) {
             data: {
                 numberPlate,
                 companyId: company.id,
+                dailyFixedCost,
             }
+
         })
     } catch (err) {
         throw new Error('Truck with this number plate already exists')
@@ -56,6 +64,15 @@ export default function NewTruckPage() {
                         placeholder='TN09AB1234'
                         className='border p-2 w-full'
                         required />
+
+                    <input
+                        name="dailyFixedCost"
+                        type="number"
+                        step="0.01"
+                        placeholder="Daily Fixed Cost"
+                        className="mt-4 border p-2 w-full"
+                        required
+                    />
                 </div>
 
                 <button className='bg-black text-white px-4 py-2'>
