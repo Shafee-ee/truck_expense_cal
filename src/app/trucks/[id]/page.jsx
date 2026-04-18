@@ -22,9 +22,12 @@ async function updateFixedCost(formData) {
     redirect('/trips')
 }
 
-export default async function EditTruckPage(props) {
+export default async function EditTruckPag(props) {
 
-    const { id } = props.params;
+    const params = await props.params
+    const id = params.id
+    console.log('Truck ID:', id)
+
     const truck = await prisma.truck.findUnique({
         where: { id },
     })

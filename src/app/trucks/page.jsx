@@ -25,14 +25,19 @@ export default async function TrucksPage() {
                 </thead>
                 <tbody>
                     {trucks.map((truck) => (
-                        <tr key={truck.id} className='border-b'>
-                            <td className='py-2 text-right'>
+                        <tr key={truck.id} className="border-b">
+                            <td className="py-2">
+                                {truck.numberPlate}
+                            </td>
+
+                            <td className="py-2 ">
                                 ₹{truck.dailyFixedCost ?? 0}
                             </td>
-                            <td className='py-2 text-right'>
+
+                            <td className="py-2 ">
                                 <Link
                                     href={`/trucks/${truck.id}`}
-                                    className='text-blue-600 underline'
+                                    className="text-blue-600 underline"
                                 >
                                     Edit
                                 </Link>
@@ -40,6 +45,7 @@ export default async function TrucksPage() {
                         </tr>
                     ))}
                 </tbody>
+
             </table>
 
             <div className='mt-4'>

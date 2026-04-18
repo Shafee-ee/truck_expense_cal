@@ -9,9 +9,16 @@ export default function HomePage() {
             <div className="mt-4">
                 <a
                     href="/trips"
-                    className="text-blue-600 underline"
+                    className="text-black bg-green-300 hover:bg-green-500 px-4 py-2 mr-2"
                 >
-                    Go to Trips
+                    🛣️ Go to Trips
+                </a>
+
+                <a
+                    href="/trucks"
+                    className="text-black bg-green-300  hover:bg-green-500 px-4 py-2 "
+                >
+                    🚚 Go to trucks
                 </a>
             </div>
         </div>
