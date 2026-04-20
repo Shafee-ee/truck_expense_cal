@@ -63,6 +63,7 @@ export async function GET() {
     },
     include: {
       expenses: true,
+      payments: true,
     },
   });
 
@@ -72,8 +73,10 @@ export async function GET() {
   // Top active trips by expense
   const topActiveTrips = activeTripsData
     .map((trip) => {
-      const totalExpense = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
-
+      const totalExpense = (trip.expenses ?? []).reduce(
+        (sum, e) => sum + e.amount,
+        0,
+      );
       return {
         id: trip.id,
         source: trip.source,
@@ -84,9 +87,28 @@ export async function GET() {
     .sort((a, b) => b.totalExpense - a.totalExpense)
     .slice(0, 3);
 
+  // Outstanding amount from active trips
+  const outstandingAmount = activeTripsData.reduce((sum, trip) => {
+    const quantity =
+      trip.status === "CLOSED"
+        ? (trip.actualQty ?? 0)
+        : (trip.estimatedQty ?? 0);
+    const revenue = quantity * (trip.ratePerUnit || 0);
+    const totalPayments = (trip.payments ?? []).reduce(
+      (pSum, p) => pSum + p.amount,
+      0,
+    );
+    const outstanding = revenue - totalPayments;
+
+    return sum + (outstanding > 0 ? outstanding : 0);
+  }, 0);
+
   // cash deployed = sum of all expenses in active trips
   const cashDeployed = activeTripsData.reduce((sum, trip) => {
-    const tripExpense = trip.expenses.reduce((tSum, e) => tSum + e.amount, 0);
+    const tripExpense = (trip.expenses ?? []).reduce(
+      (tSum, e) => tSum + e.amount,
+      0,
+    );
     return sum + tripExpense;
   }, 0);
 
@@ -104,6 +126,7 @@ export async function GET() {
     statusStrip: {
       activeTrips,
       cashDeployed,
+      outstandingAmount,
     },
     lossTrips,
     topActiveTrips,

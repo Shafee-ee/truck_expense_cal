@@ -34,7 +34,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Secondary cards */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded shadow">
             <p className="text-sm text-gray-500">Operational Profit</p>
             <p className="text-xl font-bold">
@@ -55,7 +55,7 @@ export default async function DashboardPage() {
       <div className="space-y-4 border-t pt-6">
         <h2 className="text-lg font-semibold">Live Operations</h2>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div className="bg-white p-4 rounded shadow">
             <p className="text-sm text-gray-500">Active Trips</p>
             <p className="text-xl font-bold">
@@ -69,6 +69,13 @@ export default async function DashboardPage() {
               ₹{formatCurrency(data.statusStrip?.cashDeployed ?? 0)}
             </p>
           </div>
+
+          <div className="bg-white p-4 rounded shadow">
+            <p className="text-sm text-gray-500">Outstanding (Receivable)</p>
+            <p className="text-xl font-bold text-blue-600">
+              ₹{formatCurrency(data.statusStrip?.outstandingAmount ?? 0)}
+            </p>
+          </div>
         </div>
 
         {(data.statusStrip?.cashDeployed ?? 0) > 500000 && (
@@ -76,7 +83,15 @@ export default async function DashboardPage() {
             High cash locked in active trips
           </p>
         )}
+
+        {(data.statusStrip?.outstandingAmount ?? 0) <
+          (data.statusStrip?.cashDeployed ?? 0) * 0.5 && (
+          <p className="text-xs text-red-500 mt-1">
+            Revenue too low compared to expenses
+          </p>
+        )}
       </div>
+      {/*outstanding */}
 
       {/* TOP ACTIVE TRIPS */}
       <div className="space-y-4 border-t pt-6">
