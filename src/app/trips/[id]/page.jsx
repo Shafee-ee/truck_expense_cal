@@ -72,6 +72,22 @@ export default async function TripDetailPage(props) {
 
   const balance = revenue - totalExpenses;
 
+  let tripDays = 0;
+  let fixedCost = 0;
+  let trueProfit = null;
+
+  if (trip.startDate && trip.endDate) {
+    const start = new Date(trip.startDate);
+    const end = new Date(trip.endDate);
+
+    const diffInMs = Math.max(0, end - start);
+    tripDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24)) || 1;
+
+    fixedCost = tripDays * (trip.truck?.dailyFixedCost || 0);
+
+    trueProfit = balance - fixedCost;
+  }
+
   async function startTrip() {
     "use server";
 
@@ -377,6 +393,27 @@ export default async function TripDetailPage(props) {
           </span>
         </div>
       </div>
+
+      {trip.status === "CLOSED" && trueProfit !== null && (
+        <div className="mt-2 text-sm">
+          <div>
+            <strong>Duration:</strong> {tripDays} day(s)
+          </div>
+
+          <div>
+            <strong>Fixed Cost:</strong> ₹{fixedCost.toFixed(0)}
+          </div>
+
+          <div>
+            <strong>True Profit:</strong>{" "}
+            <span
+              className={trueProfit >= 0 ? "text-green-600" : "text-red-600"}
+            >
+              ₹{trueProfit.toFixed(0)}
+            </span>
+          </div>
+        </div>
+      )}
 
       <hr />
 
