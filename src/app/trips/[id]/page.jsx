@@ -81,6 +81,7 @@ export default async function TripDetailPage(props) {
     const end = new Date(trip.endDate);
 
     const diffInMs = Math.max(0, end - start);
+    
     tripDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24)) || 1;
 
     fixedCost = tripDays * (trip.truck?.dailyFixedCost || 0);
