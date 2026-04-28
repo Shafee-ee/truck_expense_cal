@@ -28,7 +28,9 @@ export default async function DashboardPage() {
           {/* Insight */}
           {(data.trueNetProfit ?? 0) < 0 && (
             <p className="text-sm text-red-500 mt-2">
-              Loss driven by fixed costs. No profitable closed trips yet.
+              {(data.operationalProfit ?? 0) < 0
+                ? "Trips are running at a loss (expenses exceed revenue)"
+                : "Trips are profitable, but fixed costs are too high"}
             </p>
           )}
         </div>
@@ -53,16 +55,9 @@ export default async function DashboardPage() {
 
       {/* OPERATIONS SECTION */}
       <div className="space-y-4 border-t pt-6">
-        <h2 className="text-lg font-semibold">Live Operations</h2>
+        <h2 className="text-lg font-semibold">Cash Position</h2>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded shadow">
-            <p className="text-sm text-gray-500">Active Trips</p>
-            <p className="text-xl font-bold">
-              {data.statusStrip?.activeTrips ?? 0}
-            </p>
-          </div>
-
+        <div className="grid grid-cols-2 gap-4">
           <div className="bg-white p-4 rounded shadow">
             <p className="text-sm text-gray-500">Cash Deployed</p>
             <p className="text-xl font-bold">
@@ -78,41 +73,47 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {(data.statusStrip?.cashDeployed ?? 0) > 500000 && (
-          <p className="text-xs text-orange-500 mt-1">
-            High cash locked in active trips
-          </p>
-        )}
+        {(() => {
+          const cashDeployed = data.statusStrip?.cashDeployed ?? 0;
+          const outstanding = data.statusStrip?.outstandingAmount ?? 0;
+          const netProfit = data.trueNetProfit ?? 0;
 
-        {(data.statusStrip?.outstandingAmount ?? 0) <
-          (data.statusStrip?.cashDeployed ?? 0) * 0.5 && (
-          <p className="text-xs text-red-500 mt-1">
-            Revenue too low compared to expenses
-          </p>
-        )}
-      </div>
-      {/*outstanding */}
+          // 🔴 Highest priority — combined risk
+          if (netProfit < 0 && cashDeployed > outstanding) {
+            return (
+              <p className="text-sm text-red-600 mt-2 font-semibold">
+                Loss + cash outflow → high risk situation
+              </p>
+            );
+          }
 
-      {/* TOP ACTIVE TRIPS */}
-      <div className="space-y-4 border-t pt-6">
-        <h2 className="text-lg font-semibold">Top Active Trips (By Expense)</h2>
+          if (netProfit > 0 && cashDeployed > outstanding) {
+            return (
+              <p className="text-sm text-orange-600 mt-2 font-semibold">
+                Profitable but cash flow is weak
+              </p>
+            );
+          }
 
-        {data.topActiveTrips?.length === 0 ? (
-          <p className="text-sm text-gray-500">No active trips</p>
-        ) : (
-          <div className="bg-white rounded shadow">
-            {data.topActiveTrips?.map((trip) => (
-              <div key={trip.id} className="flex justify-between p-3 border-b">
-                <span className="text-gray-700 capitalize">
-                  {trip.source} → {trip.destination}
-                </span>
-                <span className="font-semibold">
-                  ₹{formatCurrency(trip.totalExpense ?? 0)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+          // 🟠 Secondary insights
+          if (cashDeployed > outstanding) {
+            return (
+              <p className="text-sm text-red-500 mt-2">
+                More cash is going out than coming in
+              </p>
+            );
+          }
+
+          if (outstanding < cashDeployed * 0.5) {
+            return (
+              <p className="text-sm text-orange-500 mt-2">
+                Collections are weak compared to expenses
+              </p>
+            );
+          }
+
+          return null;
+        })()}
       </div>
 
       {/* LOSS TRIPS */}
@@ -134,6 +135,28 @@ export default async function DashboardPage() {
                 </span>
                 <span className="text-red-600 font-semibold">
                   -₹{formatCurrency(Math.abs(trip.finalBalance ?? 0))}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* TOP ACTIVE TRIPS */}
+      <div className="space-y-4 border-t pt-6">
+        <h2 className="text-lg font-semibold">Top Active Trips (By Expense)</h2>
+
+        {data.topActiveTrips?.length === 0 ? (
+          <p className="text-sm text-gray-500">No active trips</p>
+        ) : (
+          <div className="bg-white rounded shadow">
+            {data.topActiveTrips?.map((trip) => (
+              <div key={trip.id} className="flex justify-between p-3 border-b">
+                <span className="text-gray-700 capitalize">
+                  {trip.source} → {trip.destination}
+                </span>
+                <span className="font-semibold">
+                  ₹{formatCurrency(trip.totalExpense ?? 0)}
                 </span>
               </div>
             ))}
