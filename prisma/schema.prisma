@@ -97,3 +97,11 @@ enum PaymentType {
   ADVANCE
   SETTLEMENT
 }
+
+model TruckMaintenance{
+  id String @id @dwfault(uuid())
+  truckNumber String 
+  month String 
+  totalCost Float
+  CreatedAt DateTime @dwfault(now())
+}

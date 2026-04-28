@@ -78,7 +78,7 @@ export default async function DashboardPage() {
           const outstanding = data.statusStrip?.outstandingAmount ?? 0;
           const netProfit = data.trueNetProfit ?? 0;
 
-          // 🔴 Highest priority — combined risk
+          // 🔴 Primary risks
           if (netProfit < 0 && cashDeployed > outstanding) {
             return (
               <p className="text-sm text-red-600 mt-2 font-semibold">
@@ -95,15 +95,7 @@ export default async function DashboardPage() {
             );
           }
 
-          // 🟠 Secondary insights
-          if (cashDeployed > outstanding) {
-            return (
-              <p className="text-sm text-red-500 mt-2">
-                More cash is going out than coming in
-              </p>
-            );
-          }
-
+          // 🟠 Secondary
           if (outstanding < cashDeployed * 0.5) {
             return (
               <p className="text-sm text-orange-500 mt-2">
