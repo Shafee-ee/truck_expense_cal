@@ -98,10 +98,12 @@ enum PaymentType {
   SETTLEMENT
 }
 
-model TruckMaintenance{
-  id String @id @dwfault(uuid())
-  truckNumber String 
-  month String 
-  totalCost Float
-  CreatedAt DateTime @dwfault(now())
+model TruckMaintenance {
+  id          String   @id @default(uuid())
+  truckNumber String
+  month       String
+  totalCost   Float
+  createdAt   DateTime @default(now())
+
+  @@unique([truckNumber, month])
 }
