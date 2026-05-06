@@ -4,24 +4,23 @@ import { NextResponse } from "next/server";
 export async function GET() {
   const now = new Date();
 
-  const trucks = await prisma.truck.findMany({
-    select: { dailyFixedCost: true },
-  });
-
-  const daysInMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-  ).getDate();
-
-  const fixedCost = trucks.reduce(
-    (sum, t) => sum + (t.dailyFixedCost || 0) * daysInMonth,
-    0,
-  );
-
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const maintenance = await prisma.truckMaintenance.findMany({
+    where: {
+      month: "2026-03",
+    },
+  });
+
+  const fixedCost = maintenance.reduce((sum, m) => sum + m.totalCost, 0);
+
+  const maintenanceMap = {};
+
+  maintenance.forEach((m) => {
+    maintenanceMap[m.truckNumber] = m.totalCost;
+  });
 
   const closedTrips = await prisma.trip.findMany({
     where: {
@@ -33,6 +32,19 @@ export async function GET() {
     },
     select: {
       finalBalance: true,
+    },
+  });
+
+  const closedTripsWithTruck = await prisma.trip.findMany({
+    where: {
+      status: "CLOSED",
+      closedAt: {
+        gte: startOfMonth,
+        lt: startOfNextMonth,
+      },
+    },
+    include: {
+      truck: true,
     },
   });
 
@@ -87,6 +99,33 @@ export async function GET() {
     .sort((a, b) => b.totalExpense - a.totalExpense)
     .slice(0, 3);
 
+  //truck profit map
+  const truckProfitMap = {};
+
+  closedTripsWithTruck.forEach((trip) => {
+    const truckNumber = trip.truck.numberPlate;
+
+    if (!truckProfitMap[truckNumber]) {
+      truckProfitMap[truckNumber] = 0;
+    }
+
+    truckProfitMap[truckNumber] += trip.finalBalance || 0;
+  });
+
+  //truck profitability
+  const truckProfitability = Object.entries(truckProfitMap).map(
+    ([truckNumber, tripProfit]) => {
+      const maintenanceCost = maintenanceMap[truckNumber] || 0;
+
+      return {
+        truckNumber,
+        tripProfit,
+        maintenanceCost,
+        netProfit: tripProfit - maintenanceCost,
+      };
+    },
+  );
+
   // Outstanding amount from active trips
   const outstandingAmount = activeTripsData.reduce((sum, trip) => {
     const quantity =
@@ -123,6 +162,8 @@ export async function GET() {
     operationalProfit,
     fixedCost,
     trueNetProfit,
+    truckProfitability,
+
     statusStrip: {
       activeTrips,
       cashDeployed,

@@ -134,6 +134,44 @@ export default async function DashboardPage() {
         )}
       </div>
 
+      {/* TRUCK PROFITABILITY */}
+      <div className="space-y-4 border-t pt-6">
+        <h2 className="text-lg font-semibold">Truck Profitability</h2>
+
+        {data.truckProfitability?.length === 0 ? (
+          <p className="text-sm text-gray-500">No truck profitability data</p>
+        ) : (
+          <div className="bg-white rounded shadow">
+            {data.truckProfitability.map((truck) => (
+              <div
+                key={truck.truckNumber}
+                className="flex justify-between p-4 border-b"
+              >
+                <div>
+                  <p className="font-semibold">{truck.truckNumber}</p>
+
+                  <p className="text-sm text-gray-500">
+                    Trip Profit: ₹{formatCurrency(truck.tripProfit)}
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    Maintenance: ₹{formatCurrency(truck.maintenanceCost)}
+                  </p>
+                </div>
+
+                <div
+                  className={`font-bold text-lg ${
+                    truck.netProfit >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  ₹{formatCurrency(truck.netProfit)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* TOP ACTIVE TRIPS */}
       <div className="space-y-4 border-t pt-6">
         <h2 className="text-lg font-semibold">Top Active Trips (By Expense)</h2>
