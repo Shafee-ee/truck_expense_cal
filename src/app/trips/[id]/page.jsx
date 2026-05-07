@@ -72,23 +72,6 @@ export default async function TripDetailPage(props) {
 
   const balance = revenue - totalExpenses;
 
-  let tripDays = 0;
-  let fixedCost = 0;
-  let trueProfit = null;
-
-  if (trip.startDate && trip.endDate) {
-    const start = new Date(trip.startDate);
-    const end = new Date(trip.endDate);
-
-    const diffInMs = Math.max(0, end - start);
-    
-    tripDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24)) || 1;
-
-    fixedCost = tripDays * (trip.truck?.dailyFixedCost || 0);
-
-    trueProfit = balance - fixedCost;
-  }
-
   async function startTrip() {
     "use server";
 
@@ -346,10 +329,8 @@ export default async function TripDetailPage(props) {
           </button>
         </Link>
       </div>
-
       {/*Trip detail and status*/}
       <h1 className="text-2xl font-bold">Trip Details</h1>
-
       <div className="space-y-1">
         <div>
           <strong>Truck:</strong> {trip.truck.numberPlate}
@@ -376,9 +357,7 @@ export default async function TripDetailPage(props) {
           {trip.endDate ? new Date(trip.endDate).toLocaleDateString() : "-"}
         </div>
       </div>
-
       <hr />
-
       {/* Trip financial summary*/}
       <div className="space-y-1">
         <div>
@@ -395,29 +374,7 @@ export default async function TripDetailPage(props) {
         </div>
       </div>
 
-      {trip.status === "CLOSED" && trueProfit !== null && (
-        <div className="mt-2 text-sm">
-          <div>
-            <strong>Duration:</strong> {tripDays} day(s)
-          </div>
-
-          <div>
-            <strong>Fixed Cost:</strong> ₹{fixedCost.toFixed(0)}
-          </div>
-
-          <div>
-            <strong>True Profit:</strong>{" "}
-            <span
-              className={trueProfit >= 0 ? "text-green-600" : "text-red-600"}
-            >
-              ₹{trueProfit.toFixed(0)}
-            </span>
-          </div>
-        </div>
-      )}
-
       <hr />
-
       {trip.status === "ACTIVE" && (
         <div className="pt-4 border-t">
           <h2 className="font-semibold mb-2">Actual Quantity</h2>
@@ -441,9 +398,7 @@ export default async function TripDetailPage(props) {
           </form>
         </div>
       )}
-
       {/*Payments and outstanding amount summary*/}
-
       <div className="space-y-1">
         <div>
           <strong>Total Paid:</strong> ₹{totalPayments.toFixed(0)}
@@ -463,7 +418,6 @@ export default async function TripDetailPage(props) {
           </span>
         </div>
       </div>
-
       {/*Trip Lifecyle Action*/}
       <div className="pt-4">
         {trip.status === "PLANNED" && (
@@ -527,18 +481,48 @@ export default async function TripDetailPage(props) {
         <div className="pt-6 border-t">
           <h2 className="font-semibold mb-2">Add Expense</h2>
 
+          {Object.keys(expensesBreakdown).length > 0 && (
+            <div className="bg-white p-4 rounded border mb-4">
+              <h3 className="font-semibold mb-2">Running Expense Totals</h3>
+
+              <div className="space-y-1 text-sm">
+                {Object.entries(expensesBreakdown).map(([category, amount]) => (
+                  <div key={category} className="flex justify-between">
+                    <span>{category}</span>
+
+                    <span>₹{amount.toFixed(0)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <form action={addExpense} className="space-y-2 max-w-sm">
             <input type="hidden" name="tripId" value={id} />
-            <select name="category" className="border p-2 w-full" required>
-              <option value="">Select Category</option>
-              <option value="FUEL">Fuel</option>
-              <option value="TOLL">Toll</option>
-              <option value="POLICE">Police</option>
-              <option value="LOADING">Loading</option>
-              <option value="UNLOADING">Unloading</option>
-              <option value="REPAIR">Repair</option>
-              <option value="OTHER">Other</option>
-            </select>
+            <input
+              id="expense-category"
+              name="category"
+              placeholder="Category (ex: FUEL)"
+              className="border p-2 w-full"
+              required
+            />
+
+            <div className="flex gap-2 flex-wrap">
+              {["FUEL", "TOLL", "POLICE", "LOADING", "UNLOADING", "REPAIR"].map(
+                (cat) => (
+                  <button
+                    type="button"
+                    key={cat}
+                    className="bg-gray-300 px-2 py-1 text-sm rounded"
+                    onClick={() => {
+                      document.getElementById("expense-category").value = cat;
+                    }}
+                  >
+                    {cat}
+                  </button>
+                ),
+              )}
+            </div>
 
             <input
               name="amount"
@@ -597,6 +581,11 @@ export default async function TripDetailPage(props) {
                           <td className="py-1 text-right">₹{e.amount}</td>
                           <td className="py-1">{e.note || "-"}</td>
                           <td className="py-1">
+                            {!signedUrl && (
+                              <span className="text-xs text-red-500 mr-2">
+                                No Bill
+                              </span>
+                            )}
                             {signedUrl && (
                               <a
                                 href={signedUrl}
@@ -615,20 +604,25 @@ export default async function TripDetailPage(props) {
                                     name="tripId"
                                     value={id}
                                   />
+
                                   <input
                                     type="hidden"
                                     name="expenseId"
                                     value={e.id}
                                   />
+                                  <label className="text-xs underline cursor-pointer mr-2">
+                                    Replace Bill
+                                  </label>
+
                                   <input
                                     type="file"
                                     name="bill"
                                     accept="image/*,application/pdf"
                                     className="text-xs"
-                                    required
                                   />
-                                  <button className="ml-1 text-xs underline">
-                                    Replace
+
+                                  <button className="text-xs underline">
+                                    Upload
                                   </button>
                                 </form>
 
@@ -663,7 +657,6 @@ export default async function TripDetailPage(props) {
           )}
         </div>
       )}
-
       {/* add expense*/}
       {trip.status === "ACTIVE" && (
         <div className="pt-6 border-t">
@@ -706,7 +699,6 @@ export default async function TripDetailPage(props) {
           </form>
         </div>
       )}
-
       {/*Payment List / cash flow*/}
       {trip.payments.length > 0 && (
         <div className="pt-6 border-t">
@@ -739,7 +731,6 @@ export default async function TripDetailPage(props) {
           </table>
         </div>
       )}
-
       {/*Closed trip audit {read only}*/}
       {trip.status === "CLOSED" && (
         <div className="pt-6 border-t bg-gray-50 p-4 rounded">
@@ -781,21 +772,6 @@ export default async function TripDetailPage(props) {
             <p className="text-xs text-gray-600 mt-2">
               This trip is locked. No further changes are permitted.
             </p>
-          </div>
-        </div>
-      )}
-
-      {Object.keys(expensesBreakdown).length > 0 && (
-        <div className="pt-6 border-t">
-          <h2 className="font-semibold mb-2">Expense Breakdown</h2>
-
-          <div className="space-y-1 text-sm">
-            {Object.entries(expensesBreakdown).map(([category, amount]) => (
-              <div key={category} className="flex justify-between">
-                <span>{category}</span>₹{amount}(
-                {((amount / totalExpenses) * 100).toFixed(0)}%)
-              </div>
-            ))}
           </div>
         </div>
       )}
