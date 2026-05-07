@@ -103,6 +103,7 @@ model TruckMaintenance {
   truckNumber String
   month       String
   totalCost   Float
+  note String?
   createdAt   DateTime @default(now())
 
   @@unique([truckNumber, month])

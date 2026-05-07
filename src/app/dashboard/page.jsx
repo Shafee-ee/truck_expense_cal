@@ -8,23 +8,24 @@ export default async function DashboardPage() {
   const data = await res.json();
 
   return (
-    <div className="p-20 bg-gray-100 space-y-8">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-
+    <div className="max-w-7xl mx-auto space-y-8">
+      {" "}
       {/* MONEY SECTION */}
       <div className="space-y-4 border-t pt-6">
         <h2 className="text-lg font-semibold">Financial Summary</h2>
 
-        <div className="bg-white p-6 rounded shadow">
-          <p className="text-sm text-gray-500">Net Profit</p>
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm ">
+          {" "}
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+            Net Profit
+          </p>
           <p
-            className={`text-3xl font-bold ${
+            className={`text-5xl tracking-tight font-bold ${
               (data.trueNetProfit ?? 0) >= 0 ? "text-green-600" : "text-red-600"
             }`}
           >
             ₹{formatCurrency(data.trueNetProfit ?? 0)}
           </p>
-
           {/* Insight */}
           {(data.trueNetProfit ?? 0) < 0 && (
             <p className="text-sm text-red-500 mt-2">
@@ -52,7 +53,6 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
-
       {/* OPERATIONS SECTION */}
       <div className="space-y-4 border-t pt-6">
         <h2 className="text-lg font-semibold">Cash Position</h2>
@@ -107,7 +107,6 @@ export default async function DashboardPage() {
           return null;
         })()}
       </div>
-
       {/* LOSS TRIPS */}
       <div className="space-y-4 border-t pt-6">
         <h2 className="text-lg font-semibold text-red-600">
@@ -133,7 +132,6 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
-
       {/* TRUCK PROFITABILITY */}
       <div className="space-y-4 border-t pt-6">
         <h2 className="text-lg font-semibold">Truck Profitability</h2>
@@ -171,7 +169,6 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
-
       {/* TOP ACTIVE TRIPS */}
       <div className="space-y-4 border-t pt-6">
         <h2 className="text-lg font-semibold">Top Active Trips (By Expense)</h2>
