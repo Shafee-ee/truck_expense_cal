@@ -12,11 +12,12 @@ export default function RootLayout({ children }) {
       <body className="bg-[#f5f7fb] text-gray-900">
         <div className="flex min-h-screen">
           {/* SIDEBAR */}
-          <aside className="w-64 bg-[#071120] text-white flex flex-col border-r border-white/10">
+          <aside className="w-64 bg-gradient-to-b from-[#071120] to-[#0b1730] shadow-2xl text-white flex flex-col border-r border-white/10">
+            {" "}
             {/* LOGO */}
             <div className="px-6 py-8 border-b border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 flex font-2xl items-center justify-center font-bold text-white">
+                <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex font-2xl items-center justify-center font-bold text-amber-400">
                   L
                 </div>
 
@@ -29,7 +30,6 @@ export default function RootLayout({ children }) {
                 </div>
               </div>
             </div>
-
             {/* NAVIGATION */}
             <nav className="flex-1 p-4 space-y-2">
               <Link
@@ -39,8 +39,7 @@ export default function RootLayout({ children }) {
       px-4
       py-3
       rounded-xl
-      bg-amber-500/10
-      text-amber-400
+bg-gradient-to-r from-amber-500/25 to-transparent border border-amber-500/10 shadow-lg shadow-amber-500/10     text-amber-400
       font-medium
       "
               >
@@ -55,7 +54,7 @@ export default function RootLayout({ children }) {
       py-3
       rounded-xl
       text-gray-300
-      hover:bg-white/5
+      hover:bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm
       hover:text-white
       transition
       "
@@ -71,7 +70,7 @@ export default function RootLayout({ children }) {
       py-3
       rounded-xl
       text-gray-300
-      hover:bg-white/5
+      hover:bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm
       hover:text-white
       transition
       "
@@ -79,7 +78,6 @@ export default function RootLayout({ children }) {
                 Trucks
               </Link>
             </nav>
-
             {/* FOOTER */}
             <div className="p-4 border-t border-white/10">
               <div className="rounded-xl bg-white/5 p-4">
