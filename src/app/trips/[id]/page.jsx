@@ -7,6 +7,14 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
+import {
+  calculateRevenue,
+  calculateExpenses,
+  calculatePayments,
+  calculateOutstanding,
+  calculateBalance,
+} from "@/lib/finance";
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -35,9 +43,9 @@ export default async function TripDetailPage(props) {
 
   if (!trip) notFound();
 
-  const revenue = (trip.actualQty || 0) * (trip.ratePerUnit || 0);
+  const revenue = calculateRevenue(trip);
 
-  const totalExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalExpenses = calculateExpenses(trip.expenses);
 
   const expensesBreakdown = (trip.expenses ?? []).reduce((acc, curr) => {
     if (!acc[curr.category]) {
@@ -48,9 +56,9 @@ export default async function TripDetailPage(props) {
     return acc;
   }, {});
 
-  const totalPayments = trip.payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalPayments = calculatePayments(trip.payments);
 
-  const outstanding = revenue - totalPayments;
+  const outstanding = calculateOutstanding(revenue, trip.payments);
   const hasRevenue = trip.actualQty && trip.actualQty > 0;
   const hasOutstanding = outstanding > 0;
   const canClose = hasRevenue && !hasOutstanding && trip.expenses.length > 0;
@@ -65,17 +73,33 @@ export default async function TripDetailPage(props) {
       select: { status: true },
     });
 
-    if (!freshTrip || freshTrip.status === "CLOSED") {
-      throw new Error("Trip is closed and cannot be modified");
+    if (!freshTrip) {
+      throw new Error("Trip not found");
+    }
+
+    if (freshTrip.status !== "ACTIVE") {
+      throw new Error("Only ACTIVE trips can be modified");
     }
   }
 
-  const balance = revenue - totalExpenses;
+  const balance = calculateBalance(revenue, trip.expenses);
 
+  //startTrip
   async function startTrip() {
     "use server";
 
-    await assertTripIsEditable(id);
+    const freshTrip = await prisma.trip.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+
+    if (!freshTrip) {
+      throw new Error("Trip not found");
+    }
+
+    if (freshTrip.status !== "PLANNED") {
+      throw new Error("Only PLANNED trips can be started");
+    }
 
     await prisma.trip.update({
       where: { id },
@@ -105,26 +129,18 @@ export default async function TripDetailPage(props) {
       throw new Error("Trip not found");
     }
 
-    const revenue = (freshTrip.actualQty || 0) * (freshTrip.ratePerUnit || 0);
+    if (freshTrip.status !== "ACTIVE") {
+      throw new Error("Only ACTIVE trips can be closed");
+    }
+    const revenue = calculateRevenue(freshTrip);
 
-    const totalExpenses = freshTrip.expenses.reduce(
-      (sum, e) => sum + e.amount,
-      0,
-    );
+    const totalExpenses = calculateExpenses(freshTrip.expenses);
 
-    console.log({
-      actualQty: freshTrip.actualQty,
-      ratePerUnit: freshTrip.ratePerUnit,
-    });
+    const totalPayments = calculatePayments(freshTrip.payments);
 
-    const totalPayments = freshTrip.payments.reduce(
-      (sum, p) => sum + p.amount,
-      0,
-    );
+    const outstanding = calculateOutstanding(revenue, freshTrip.payments);
 
-    const outstanding = revenue - totalPayments;
-    const balance = revenue - totalExpenses;
-
+    const balance = calculateBalance(revenue, freshTrip.expenses);
     if (freshTrip.expenses.length === 0) {
       throw new Error("Cannot close trip without expenses");
     }
@@ -277,7 +293,7 @@ export default async function TripDetailPage(props) {
     revalidatePath(`/trips/${tripId}`);
   }
 
-  //add payment
+  //add payment just fixed
   async function addPayment(formData) {
     "use server";
 
@@ -286,10 +302,37 @@ export default async function TripDetailPage(props) {
 
     await assertTripIsEditable(tripId);
 
+    const freshTrip = await prisma.trip.findUnique({
+      where: { id: tripId },
+      include: {
+        payments: true,
+      },
+    });
+
+    if (!freshTrip) {
+      throw new Error("Trip not found");
+    }
+
+    const paymentAmount = Number(formData.get("amount"));
+
+    if (!paymentAmount || paymentAmount <= 0) {
+      throw new Error("Invalid payment amount");
+    }
+
+    const revenue = calculateRevenue(freshTrip);
+
+    const outstanding = calculateOutstanding(revenue, freshTrip.payments);
+
+    if (paymentAmount > outstanding) {
+      throw new Error(
+        `Payment exceeds outstanding balance of ₹${outstanding.toFixed(0)}`,
+      );
+    }
+
     await prisma.payment.create({
       data: {
         tripId,
-        amount: Number(formData.get("amount")),
+        amount: paymentAmount,
         type: formData.get("type"),
         mode: formData.get("mode"),
         paymentDate: new Date(),
