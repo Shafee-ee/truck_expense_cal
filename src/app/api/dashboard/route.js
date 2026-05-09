@@ -150,11 +150,7 @@ export async function GET() {
 
   // cash deployed = sum of all expenses in active trips
   const cashDeployed = activeTripsData.reduce((sum, trip) => {
-    const tripExpense = (trip.expenses ?? []).reduce(
-      (tSum, e) => tSum + e.amount,
-      0,
-    );
-    return sum + tripExpense;
+    return sum + calculateExpenses(trip.expenses);
   }, 0);
 
   const operationalProfit = closedTrips.reduce(

@@ -57,6 +57,7 @@ model Trip {
   estimatedQty  Float?
   actualQty     Float?
   ratePerUnit   Float?
+  grossAmount Float?
   startDate     DateTime?
   endDate       DateTime?
   status        TripStatus @default(PLANNED)

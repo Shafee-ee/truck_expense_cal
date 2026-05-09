@@ -409,6 +409,11 @@ export default async function TripDetailPage(props) {
       <div className="space-y-1">
         <div>
           <strong>Revenue:</strong> ₹{revenue.toFixed(0)}
+          {trip.grossAmount ? (
+            <span className="text-xs text-blue-600 ml-2">(Gross Amount)</span>
+          ) : (
+            <span className="text-xs text-gray-500 ml-2">(Qty × Rate)</span>
+          )}
         </div>
         <div>
           <strong>Expenses:</strong> ₹{totalExpenses.toFixed(0)}

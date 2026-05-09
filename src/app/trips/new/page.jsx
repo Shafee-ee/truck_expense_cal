@@ -12,6 +12,18 @@ export default async function NewTripPage() {
     const destination = formData.get("destination");
     const estimatedQty = Number(formData.get("estimatedQty")) || null;
     const ratePerUnit = Number(formData.get("ratePerUnit")) || null;
+    const grossAmount = Number(formData.get("grossAmount")) || null;
+    const calculatedRevenue = (estimatedQty || 0) * (ratePerUnit || 0);
+
+    if (
+      grossAmount &&
+      calculatedRevenue > 0 &&
+      grossAmount !== calculatedRevenue
+    ) {
+      console.warn(
+        `Gross Amount (${grossAmount}) differs from Qty × Rate (${calculatedRevenue})`,
+      );
+    }
 
     await prisma.trip.create({
       data: {
@@ -20,6 +32,7 @@ export default async function NewTripPage() {
         destination,
         estimatedQty,
         ratePerUnit,
+        grossAmount,
         status: "PLANNED",
       },
     });
@@ -108,6 +121,19 @@ export default async function NewTripPage() {
             step="0.01"
             className="border p-2 w-full"
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Gross Amount</label>
+
+          <input
+            name="grossAmount"
+            type="number"
+            step="0.01"
+            className="border p-2 w-full"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            If provided, Gross Amount overrides Qty × Rate calculations.
+          </p>
         </div>
 
         <button className="bg-black text-white px-4 py-2">Create Trip</button>

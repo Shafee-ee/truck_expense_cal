@@ -1,4 +1,8 @@
 export function calculateRevenue(trip) {
+  if (trip.grossAmount && trip.grossAmount > 0) {
+    return trip.grossAmount;
+  }
+
   return (trip.actualQty || 0) * (trip.ratePerUnit || 0);
 }
 
