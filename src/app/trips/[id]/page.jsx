@@ -43,10 +43,12 @@ export default async function TripDetailPage(props) {
 
   if (!trip) notFound();
 
-  const revenue = calculateRevenue(trip);
-
-  const totalExpenses = calculateExpenses(trip.expenses);
-
+  const revenue =
+    trip.status === "CLOSED" ? trip.finalRevenue || 0 : calculateRevenue(trip);
+  const totalExpenses =
+    trip.status === "CLOSED"
+      ? trip.finalExpenses || 0
+      : calculateExpenses(trip.expenses);
   const expensesBreakdown = (trip.expenses ?? []).reduce((acc, curr) => {
     if (!acc[curr.category]) {
       acc[curr.category] = 0;
@@ -82,8 +84,10 @@ export default async function TripDetailPage(props) {
     }
   }
 
-  const balance = calculateBalance(revenue, trip.expenses);
-
+  const balance =
+    trip.status === "CLOSED"
+      ? trip.finalBalance || 0
+      : calculateBalance(revenue, trip.expenses);
   //startTrip
   async function startTrip() {
     "use server";

@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import {
+  calculateRevenue,
+  calculateExpenses,
+  calculatePayments,
+  calculateOutstanding,
+} from "@/lib/finance";
 
 export async function GET() {
   const now = new Date();
@@ -8,9 +14,13 @@ export async function GET() {
 
   const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
+  const currentMonth = `${now.getFullYear()}-${String(
+    now.getMonth() + 1,
+  ).padStart(2, "0")}`;
+
   const maintenance = await prisma.truckMaintenance.findMany({
     where: {
-      month: "2026-03",
+      month: currentMonth,
     },
   });
 
@@ -128,16 +138,12 @@ export async function GET() {
 
   // Outstanding amount from active trips
   const outstandingAmount = activeTripsData.reduce((sum, trip) => {
-    const quantity =
-      trip.status === "CLOSED"
-        ? (trip.actualQty ?? 0)
-        : (trip.estimatedQty ?? 0);
-    const revenue = quantity * (trip.ratePerUnit || 0);
-    const totalPayments = (trip.payments ?? []).reduce(
-      (pSum, p) => pSum + p.amount,
-      0,
-    );
-    const outstanding = revenue - totalPayments;
+    const revenue = calculateRevenue({
+      actualQty: trip.estimatedQty,
+      ratePerUnit: trip.ratePerUnit,
+    });
+
+    const outstanding = calculateOutstanding(revenue, trip.payments);
 
     return sum + (outstanding > 0 ? outstanding : 0);
   }, 0);
