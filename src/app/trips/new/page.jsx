@@ -25,6 +25,7 @@ export default async function NewTripPage() {
       );
     }
 
+    //create trip
     await prisma.trip.create({
       data: {
         truckId,
