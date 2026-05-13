@@ -209,6 +209,7 @@ export default async function TripDetailPage(props) {
       throw new Error("Trip ID missing");
     }
 
+    //assert if trip is editable
     await assertTripIsEditable(tripId);
 
     const category = formData.get("category");
@@ -376,6 +377,7 @@ export default async function TripDetailPage(props) {
           </button>
         </Link>
       </div>
+
       {/*Trip detail and status*/}
       <h1 className="text-2xl font-bold">Trip Details</h1>
       <div className="space-y-1">
@@ -426,6 +428,18 @@ export default async function TripDetailPage(props) {
         </div>
       </div>
 
+      <div>
+        <strong>Payments Received:</strong> ₹{totalPayments.toFixed(0)}
+      </div>
+
+      <div>
+        <strong>Outstanding:</strong>{" "}
+        <span
+          className={outstanding > 0 ? "text-orange-600" : "text-green-600"}
+        >
+          ₹{outstanding.toFixed(0)}
+        </span>
+      </div>
       <hr />
       {trip.status === "ACTIVE" && (
         <div className="pt-4 border-t">
@@ -450,26 +464,7 @@ export default async function TripDetailPage(props) {
           </form>
         </div>
       )}
-      {/*Payments and outstanding amount summary*/}
-      <div className="space-y-1">
-        <div>
-          <strong>Total Paid:</strong> ₹{totalPayments.toFixed(0)}
-        </div>
-        <div>
-          <strong>Outstanding:</strong>{" "}
-          <span
-            className={
-              outstanding > 0
-                ? "text-red-600"
-                : outstanding < 0
-                  ? "text-orange-600"
-                  : "text-green-600"
-            }
-          >
-            ₹{outstanding.toFixed(0)}
-          </span>
-        </div>
-      </div>
+
       {/*Trip Lifecyle Action*/}
       <div className="pt-4">
         {trip.status === "PLANNED" && (
