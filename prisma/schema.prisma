@@ -85,6 +85,7 @@ enum ExpenseCategory {
   LOADING
   UNLOADING
   REPAIR
+  BROKER
   OTHER
 }
 

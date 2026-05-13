@@ -1154,3 +1154,400 @@ editable finalized records
 broken receivable math
 inconsistent aggregation
 unsafe deletions
+
+######
+
+HH Trucks — Source of Truth Update (May 2026)
+
+# Current System Understanding (LATEST)
+
+## 1. Core Business Reality
+
+The system is NOT a fleet management platform.
+
+It is:
+→ a trucking financial visibility system.
+
+Primary objective:
+
+- understand trip profitability
+- understand truck profitability
+- identify operational money leaks
+
+The system must always align with:
+→ real Excel workflow.
+
+Critical rule:
+If software output ≠ Excel reality,
+the software is wrong.
+
+---
+
+# 2. Final Revenue Model (IMPORTANT)
+
+## OLD MODEL (Deprecated)
+
+```text
+Revenue = Qty × Rate
+```
+
+This was developer-logical but not fully aligned with operations.
+
+---
+
+## CORRECT MODEL (Current)
+
+```text
+Revenue = grossAmount (if provided)
+Otherwise:
+Revenue = Qty × Rate
+```
+
+Reason:
+
+In real trucking operations:
+the final commercial settlement often differs from mathematical quantity calculations.
+
+Examples:
+
+- negotiated rates
+- shortages
+- round-offs
+- broker adjustments
+- fixed route contracts
+- commercial settlements
+
+Therefore:
+grossAmount is treated as the authoritative final revenue.
+
+Qty × Rate remains useful for:
+
+- planning
+- estimation
+- fallback calculations
+
+But accounting trusts:
+→ grossAmount
+
+---
+
+# 3. Final Financial Logic
+
+## Revenue
+
+```text
+revenue =
+  grossAmount
+  OR
+  (actualQty × ratePerUnit)
+```
+
+---
+
+## Expenses
+
+Trip-level expenses include:
+
+- fuel
+- toll
+- police
+- loading
+- unloading
+- repair
+- other
+
+Total:
+
+```text
+totalExpenses = sum(expenses)
+```
+
+---
+
+## Payments
+
+Payments represent:
+→ money actually received from customer
+
+Types:
+
+- ADVANCE
+- SETTLEMENT
+
+Modes:
+
+- CASH
+- UPI
+- BANK
+
+---
+
+## Outstanding
+
+```text
+outstanding = revenue − totalPayments
+```
+
+Only positive outstanding matters.
+
+---
+
+## Trip Profit
+
+```text
+tripProfit = revenue − totalExpenses
+```
+
+Loss-making trips are allowed.
+
+---
+
+# 4. Maintenance Model
+
+Maintenance is intentionally separate from trips.
+
+Source:
+external Excel maintenance ledger.
+
+Operator manually enters:
+
+- truckNumber
+- month
+- totalCost
+
+Maintenance includes:
+
+- salary
+- permits
+- insurance
+- repairs
+- tyres
+- idle ownership cost
+- overhead
+
+NO additional fixed-cost calculations required.
+
+---
+
+# 5. Truck Profitability Logic
+
+Monthly truck profitability:
+
+```text
+truckProfit =
+sum(all closed trip profits for truck)
+− maintenanceCost
+```
+
+This is the PRIMARY business metric.
+
+The business ultimately cares about:
+→ which trucks are actually making money.
+
+---
+
+# 6. Trip Lifecycle
+
+```text
+PLANNED → ACTIVE → CLOSED
+```
+
+Rules:
+
+- ACTIVE = operational money movement
+- CLOSED = financially finalized
+
+CLOSED trips are immutable.
+
+---
+
+# 7. Close Validation Rules
+
+Trip can close only if:
+
+- expenses exist
+- revenue exists
+- outstanding ≤ 0
+- all expense bills uploaded
+
+Allowed:
+
+- negative profit
+- high expense trips
+
+Blocked:
+
+- unpaid trips
+- undocumented expense trips
+
+---
+
+# 8. Current Working Features
+
+## Backend
+
+- Prisma + PostgreSQL
+- Supabase Storage
+- Full relational schema
+
+## Trips
+
+- create trip
+- start trip
+- close trip
+- immutable closed trips
+
+## Financials
+
+- revenue tracking
+- grossAmount support
+- expense tracking
+- payment tracking
+- outstanding tracking
+- trip profitability
+
+## Expenses
+
+- categorized expenses
+- bill upload
+- bill replacement
+- bill deletion
+- signed URL viewing
+- visual missing-bill highlighting
+
+## Payments
+
+- payment types
+- payment modes
+- payment totals
+
+## Dashboard
+
+Implemented:
+
+- operational profit
+- truck profitability
+- maintenance integration
+- active trips
+- cash deployed
+- outstanding receivables
+- loss-making trips
+- top active trips
+
+## UX Improvements
+
+- city autocomplete
+- audit visibility
+- financial totals
+- immutable closure flow
+
+---
+
+# 9. Current Remaining Work
+
+## HIGH PRIORITY
+
+### Trips Page Redesign
+
+Needs:
+
+- operational table layout
+- better density
+- status pills
+- filters
+- sorting
+- search
+- better financial visibility
+
+---
+
+### Trip Detail Page Polish
+
+Needs:
+
+- stronger layout hierarchy
+- grouped financial cards
+- operational summary header
+- cleaner audit sections
+- side-by-side layout improvements
+
+---
+
+### Dashboard UI Polish
+
+Logic mostly complete.
+
+Needs:
+
+- visual polish
+- charts
+- better hierarchy
+- operational widgets
+- responsiveness
+
+---
+
+## MEDIUM PRIORITY
+
+### Real Analytics
+
+Potential future analytics:
+
+- route profitability
+- fuel-heavy routes
+- receivable aging
+- monthly trends
+- truck performance trends
+
+---
+
+### Design System Extraction
+
+Create reusable:
+
+- KPI cards
+- section wrappers
+- table shells
+- status badges
+- insight widgets
+
+---
+
+### Responsive Design
+
+Need:
+
+- mobile layout
+- responsive tables
+- collapsible sidebar
+
+---
+
+## LOW PRIORITY / LATER
+
+- exports
+- auth/roles
+- advanced maintenance workflows
+- trend reporting
+- notifications
+- route analytics
+
+---
+
+# 10. Final Mental Model
+
+This system is:
+
+→ a structured, queryable version of Excel
+→ a financial lens over trucking operations
+→ a decision-making system
+
+NOT:
+
+- ERP
+- GPS software
+- automation platform
+- fleet tracking app
+
+The value comes from:
+→ turning operational chaos into financial clarity.

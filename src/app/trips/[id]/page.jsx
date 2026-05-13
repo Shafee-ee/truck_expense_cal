@@ -61,7 +61,7 @@ export default async function TripDetailPage(props) {
   const totalPayments = calculatePayments(trip.payments);
 
   const outstanding = calculateOutstanding(revenue, trip.payments);
-  const hasRevenue = trip.actualQty && trip.actualQty > 0;
+  const hasRevenue = revenue > 0;
   const hasOutstanding = outstanding > 0;
   const canClose = hasRevenue && !hasOutstanding && trip.expenses.length > 0;
 
@@ -136,8 +136,7 @@ export default async function TripDetailPage(props) {
     if (freshTrip.status !== "ACTIVE") {
       throw new Error("Only ACTIVE trips can be closed");
     }
-    const revenue = calculateRevenue(freshTrip);
-
+    const revenue = freshTrip.grossAmount ?? calculateRevenue(freshTrip);
     const totalExpenses = calculateExpenses(freshTrip.expenses);
 
     const totalPayments = calculatePayments(freshTrip.payments);
@@ -147,6 +146,12 @@ export default async function TripDetailPage(props) {
     const balance = calculateBalance(revenue, freshTrip.expenses);
     if (freshTrip.expenses.length === 0) {
       throw new Error("Cannot close trip without expenses");
+    }
+
+    const missingBills = freshTrip.expenses.some((e) => !e.billPath);
+
+    if (missingBills) {
+      throw new Error("Cannot close trip until all expense bills are uploaded");
     }
 
     if (revenue <= 0) {
@@ -324,8 +329,7 @@ export default async function TripDetailPage(props) {
       throw new Error("Invalid payment amount");
     }
 
-    const revenue = calculateRevenue(freshTrip);
-
+    const revenue = freshTrip.grossAmount || calculateRevenue(freshTrip);
     const outstanding = calculateOutstanding(revenue, freshTrip.payments);
 
     if (paymentAmount > outstanding) {
@@ -546,31 +550,17 @@ export default async function TripDetailPage(props) {
 
           <form action={addExpense} className="space-y-2 max-w-sm">
             <input type="hidden" name="tripId" value={id} />
-            <input
-              id="expense-category"
-              name="category"
-              placeholder="Category (ex: FUEL)"
-              className="border p-2 w-full"
-              required
-            />
-
-            <div className="flex gap-2 flex-wrap">
-              {["FUEL", "TOLL", "POLICE", "LOADING", "UNLOADING", "REPAIR"].map(
-                (cat) => (
-                  <button
-                    type="button"
-                    key={cat}
-                    className="bg-gray-300 px-2 py-1 text-sm rounded"
-                    onClick={() => {
-                      document.getElementById("expense-category").value = cat;
-                    }}
-                  >
-                    {cat}
-                  </button>
-                ),
-              )}
-            </div>
-
+            <select name="category" className="border p-2 w-full" required>
+              <option value="">Select Category</option>
+              <option value="FUEL">Fuel</option>
+              <option value="TOLL">Toll</option>
+              <option value="BROKER">Broker / Mamool</option>
+              <option value="POLICE">Police</option>
+              <option value="LOADING">Loading</option>
+              <option value="UNLOADING">Unloading</option>
+              <option value="REPAIR">Repair</option>
+              <option value="OTHER">Other</option>
+            </select>
             <input
               name="amount"
               type="number"
@@ -620,7 +610,12 @@ export default async function TripDetailPage(props) {
                         : null;
 
                       return (
-                        <tr key={e.id} className="border-b">
+                        <tr
+                          key={e.id}
+                          className={`border-b ${
+                            !e.billPath ? "bg-red-50" : ""
+                          }`}
+                        >
                           <td className="py-1">
                             {new Date(e.expenseDate).toLocaleDateString()}
                           </td>
@@ -699,6 +694,20 @@ export default async function TripDetailPage(props) {
                     }),
                   )}
                 </tbody>
+                <tfoot>
+                  <tr className="font-semibold border-t">
+                    <td colSpan="2" className="py-2">
+                      Total
+                    </td>
+
+                    <td className="text-right py-2">
+                      ₹{totalExpenses.toFixed(0)}
+                    </td>
+
+                    <td></td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           )}
@@ -775,6 +784,17 @@ export default async function TripDetailPage(props) {
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="font-semibold border-t">
+                <td colSpan="3" className="py-2">
+                  Total Received
+                </td>
+
+                <td className="text-right py-2">₹{totalPayments.toFixed(0)}</td>
+
+                <td></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}

@@ -138,10 +138,12 @@ export async function GET() {
 
   // Outstanding amount from active trips
   const outstandingAmount = activeTripsData.reduce((sum, trip) => {
-    const revenue = calculateRevenue({
-      actualQty: trip.estimatedQty,
-      ratePerUnit: trip.ratePerUnit,
-    });
+    const revenue =
+      trip.grossAmount ||
+      calculateRevenue({
+        actualQty: trip.estimatedQty,
+        ratePerUnit: trip.ratePerUnit,
+      });
 
     const outstanding = calculateOutstanding(revenue, trip.payments);
 
