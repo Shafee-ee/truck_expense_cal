@@ -35,6 +35,8 @@ model Truck {
   createdAt      DateTime @default(now())
   dailyFixedCost Float?
   trips          Trip[]
+    truckExpenses  TruckExpense[]
+
   company        Company  @relation(fields: [companyId], references: [id])
 }
 
@@ -47,6 +49,27 @@ model Expense {
   expenseDate DateTime
   billPath    String?
   trip        Trip            @relation(fields: [tripId], references: [id])
+}
+
+model TruckExpense {
+  id          String   @id @default(cuid())
+
+  truckId     String
+  truck       Truck    @relation(fields: [truckId], references: [id])
+
+  category    TruckExpenseCategory
+
+  amount      Float
+
+  vendor      String?
+  notes       String?
+
+  expenseDate DateTime
+
+  month       Int
+  year        Int
+
+  createdAt   DateTime @default(now())
 }
 
 model Trip {
@@ -89,6 +112,18 @@ enum ExpenseCategory {
   OTHER
 }
 
+enum TruckExpenseCategory {
+  TYRE
+  REPAIR
+  ELECTRICAL
+  INSURANCE
+  SALARY
+  TAX
+  PERMIT
+  WASHING
+  OTHER
+}
+
 enum PaymentMode {
   CASH
   UPI
@@ -100,13 +135,3 @@ enum PaymentType {
   SETTLEMENT
 }
 
-model TruckMaintenance {
-  id          String   @id @default(uuid())
-  truckNumber String
-  month       String
-  totalCost   Float
-  note String?
-  createdAt   DateTime @default(now())
-
-  @@unique([truckNumber, month])
-}

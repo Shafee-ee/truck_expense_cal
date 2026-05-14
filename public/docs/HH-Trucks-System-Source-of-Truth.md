@@ -1551,3 +1551,241 @@ NOT:
 
 The value comes from:
 → turning operational chaos into financial clarity.
+
+######
+
+# Operational Architecture Discoveries (IMPORTANT)
+
+## 1. Trips are independent financial units
+
+A truck lifecycle and a trip lifecycle are NOT the same thing.
+
+Example:
+
+- Mangalore → Kadapa
+- Kadapa → Hassan
+
+These are treated as two completely separate trips financially and operationally.
+
+Conclusion:
+
+- Every new load/destination = new trip
+- Each trip has its own:
+  - revenue
+  - expenses
+  - profitability
+  - commission logic
+  - closure lifecycle
+
+The truck persists across trips, but trips are independent accounting entities.
+
+---
+
+# 2. Broker / Mamool logic clarified
+
+Broker/mamool is associated with acquiring the NEW trip/load.
+
+Example:
+
+- Truck unloads at Bangalore
+- Broker arranges Bangalore → Chennai
+- Broker commission belongs to Bangalore → Chennai trip
+
+Conclusion:
+
+- Broker fee belongs to NEXT trip
+- NOT previous trip
+
+Implementation decision:
+
+- Keep BROKER as optional operational expense category
+- Do NOT make it mandatory
+- Do NOT attach broker logic to every trip automatically
+
+---
+
+# 3. GJ loads are operationally different
+
+Observed business rule:
+
+- GJ loads belong to company-owned/internal loads
+- External/non-GJ loads may involve broker commission
+
+Conclusion:
+
+- Commission applicability is conditional
+- Need future `TripType` / `LoadType` modeling
+
+Potential future enum values:
+
+- GJ
+- RP
+- RETURN
+- COAL
+- CONT
+- OTHER
+
+This field is NOT cosmetic.
+It affects:
+
+- profitability
+- routes
+- commission logic
+- operational patterns
+
+---
+
+# 4. Gross Amount is authoritative revenue
+
+Final revenue logic:
+
+Revenue =
+
+- grossAmount
+  OR fallback:
+- actualQty × ratePerUnit
+
+The system should only care:
+`revenue > 0`
+
+NOT:
+`actualQty > 0`
+
+Reason:
+commercial settlement may exist independently of quantity calculations.
+
+---
+
+# 5. Trip accounting and maintenance accounting are separate systems
+
+The company effectively operates on TWO financial layers:
+
+## Layer 1 — Trip Profitability Ledger
+
+Tracks:
+
+- revenue
+- diesel
+- toll
+- loading
+- police
+- broker
+- trip expenses
+- trip balance/profit
+- earnings/day
+
+Purpose:
+"Did this trip make money?"
+
+---
+
+## Layer 2 — Truck Maintenance Ledger
+
+Tracks:
+
+- tyre expenses
+- repairs
+- electrical work
+- washing
+- permits
+- salary
+- insurance
+- road tax
+- overhead costs
+
+Purpose:
+"Is this truck profitable long-term?"
+
+Conclusion:
+Maintenance MUST NOT be modeled as trip expense.
+
+Future architecture:
+Trip Profitability
+
+- # Monthly Truck Expenses
+
+True Truck Profitability
+
+---
+
+# 6. Advance semantics need clarification
+
+Current Excel suggests:
+`Advance = operational cash given to driver/trip`
+
+NOT customer payment.
+
+Need confirmation from POC:
+
+- Is advance always operational cash deployment?
+- Or can it sometimes mean customer advance payment?
+
+This may require redesigning payment semantics later.
+
+---
+
+# 7. Earnings Per Day is an important KPI
+
+Excel consistently calculates:
+`trip balance / number of days`
+
+Meaning business values:
+
+- truck-day efficiency
+- capital efficiency
+- utilization quality
+
+Future dashboard should expose:
+
+- earnings/day
+- truck efficiency metrics
+- low-performing routes/trucks
+
+---
+
+# 8. Maintenance architecture direction
+
+Future likely model:
+
+TruckExpense
+
+- truckId
+- category
+- amount
+- vendor
+- notes
+- date
+- month
+- year
+
+Potential categories:
+
+- TYRE
+- REPAIR
+- INSURANCE
+- SALARY
+- TAX
+- PERMIT
+- ELECTRICAL
+- WASHING
+- OTHER
+
+This will power:
+
+- truck profitability dashboard
+- maintenance analytics
+- monthly operational review
+
+---
+
+# 9. Major remaining operational questions
+
+Need confirmation from POC:
+
+1. How are customer payments actually tracked?
+2. What officially closes a trip?
+3. Is advance always driver cash?
+4. How is broker expense currently recorded?
+5. Which workflows are most painful in Excel today?
+
+These answers will shape the final workflow architecture.
