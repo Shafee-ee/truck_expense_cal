@@ -579,7 +579,7 @@ export default async function TripDetailPage(props) {
           </div>
         )}
         {/*Trip Lifecyle Action*/}
-        <div className="pt-4">
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
           {trip.status === "PLANNED" && (
             <form action={startTrip}>
               <button className="bg-blue-600 text-white px-4 py-2">
@@ -587,46 +587,52 @@ export default async function TripDetailPage(props) {
               </button>
             </form>
           )}
-
           {trip.status === "ACTIVE" && (
-            <details className="border p-4 rounded">
-              <summary className="cursor-pointer font-semibold text-red-600">
+            <details className="rounded-lg border border-red-200 bg-red-50">
+              <summary
+                className="
+    cursor-pointer
+    list-none
+    px-5
+    py-4
+    text-sm
+    font-semibold
+    text-red-700
+  "
+              >
                 Review & Close Trip
               </summary>
-
-              <div className="mt-4 space-y-3 text-sm">
-                <p className="text-gray-600 font-semibold ">
+              <div className="border-t border-red-200 px-5 py-5 text-sm">
+                <p className="font-medium text-red-700">
                   Note: This action is final. Once closed, this trip cannot be
                   edited.
                 </p>
-
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Truck is correct</li>
-                  <li>Route is correct</li>
-                  <li>All expenses are entered</li>
-                  <li>All bills are uploaded</li>
-                  <li>Revenue and balance look correct</li>
+                <ul className="space-y-2 text-zinc-700">
+                  <li>•Truck is correct</li>
+                  <li>•Route is correct</li>
+                  <li>•All expenses are entered</li>
+                  <li>•All bills are uploaded</li>
+                  <li>•Revenue and balance look correct</li>
                 </ul>
-
                 {!hasRevenue && (
                   <p className="text-red-600 font-semibold">
                     Cannot close trip: Actual quantity is missing, so revenue is
                     0.
                   </p>
                 )}
-
                 {hasOutstanding && (
                   <p className="text-red-600 font-semibold">
                     Cannot close trip- ₹{outstanding.toFixed(0)} is still
                     outstanding.
                   </p>
                 )}
-
                 <form action={closeTrip}>
                   <button
                     disabled={!canClose}
-                    className={`mt-3 px-4 py-2 text white ${
-                      canClose ? "bg-red-600" : "bg-gray-400 cursor-not-allowed"
+                    className={`mt-4 h-11 rounded-lg px-5 text-sm font-medium text-white transition ${
+                      canClose
+                        ? "bg-red-600 hover:bg-red-700"
+                        : "bg-zinc-300 cursor-not-allowed"
                     }`}
                   >
                     Confirm & close
@@ -896,6 +902,15 @@ export default async function TripDetailPage(props) {
                                   <form
                                     action={deleteExpense}
                                     className="inline ml-2"
+                                    onSubmit={(e) => {
+                                      if (
+                                        !confirm(
+                                          "Delete this expense permanently?",
+                                        )
+                                      ) {
+                                        e.preventDefault();
+                                      }
+                                    }}
                                   >
                                     <input
                                       type="hidden"
@@ -1124,46 +1139,63 @@ export default async function TripDetailPage(props) {
         )}
         {/*Closed trip audit {read only}*/}
         {trip.status === "CLOSED" && (
-          <div className="pt-6 border-t bg-gray-50 p-4 rounded">
-            <h2 className="font-semibold text-red-700 mb-2">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-emerald-800">
               Trip Certified & Locked
             </h2>
 
-            <div className="text-sm space-y-1">
+            <div className="mt-5 grid grid-cols-3 gap-6 text-sm">
               <div>
-                <strong>Certified On:</strong>{" "}
-                {trip.closedAt ? new Date(trip.closedAt).toLocaleString() : "-"}
+                <p className="text-zinc-500">Certified On</p>
+
+                <p className="mt-1 font-medium text-zinc-800">
+                  {trip.closedAt
+                    ? new Date(trip.closedAt).toLocaleString()
+                    : "-"}
+                </p>
               </div>
 
               <div>
-                <strong>Certified By:</strong> {trip.closedBy || "—"}
-              </div>
+                <p className="text-zinc-500">Certified By</p>
 
-              <hr className="my-2" />
-
-              <div>
-                <strong>Final Revenue:</strong> ₹{trip.finalRevenue?.toFixed(0)}
-              </div>
-
-              <div>
-                <strong>Final Expenses:</strong> ₹
-                {trip.finalExpenses?.toFixed(0)}
+                <p className="mt-1 font-medium text-zinc-800">
+                  {trip.closedBy || "—"}
+                </p>
               </div>
 
               <div>
-                <strong>Final Balance:</strong>{" "}
-                <span
-                  className={
-                    trip.finalBalance >= 0 ? "text-green-700" : "text-red-700"
-                  }
+                <p className="text-zinc-500">Final Revenue</p>
+
+                <p className="mt-1 font-medium text-zinc-800">
+                  ₹{trip.finalRevenue?.toFixed(0)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-zinc-500">Final Expenses</p>
+
+                <p className="mt-1 font-medium text-zinc-800">
+                  ₹{trip.finalExpenses?.toFixed(0)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-zinc-500">Final Balance</p>
+
+                <p
+                  className={`mt-1 font-medium ${
+                    trip.finalBalance >= 0 ? "text-emerald-700" : "text-red-700"
+                  }`}
                 >
                   ₹{trip.finalBalance?.toFixed(0)}
-                </span>
+                </p>
               </div>
 
-              <p className="text-xs text-gray-600 mt-2">
-                This trip is locked. No further changes are permitted.
-              </p>
+              <div className="col-span-3">
+                <p className="rounded-lg border border-emerald-200 bg-white px-4 py-3 text-xs text-zinc-600">
+                  This trip is locked. No further changes are permitted.
+                </p>
+              </div>
             </div>
           </div>
         )}
