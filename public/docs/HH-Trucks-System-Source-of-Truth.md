@@ -1789,3 +1789,99 @@ Need confirmation from POC:
 5. Which workflows are most painful in Excel today?
 
 These answers will shape the final workflow architecture.
+
+####
+
+Clarified business rule:
+
+Every destination/load cycle is a new trip
+
+Every external load has its own commission (mamool/broker)
+
+Internal company loads (GJ) have no commission
+
+Mamool belongs to the trip itself, not post-trip continuation
+
+Revenue logic finalized:
+
+Revenue = grossAmount OR ratePerUnit × qty
+
+If grossAmount > 0, system prioritizes gross amount
+
+Added TruckExpense operational maintenance system:
+
+Prisma schema relation completed
+
+Truck ↔ TruckExpense relation wired
+
+Categories added:
+
+TYRE
+
+REPAIR
+
+ELECTRICAL
+
+INSURANCE
+
+SALARY
+
+TAX
+
+PERMIT
+
+WASHING
+
+OTHER
+
+Built /dashboard/truck-expenses
+
+Add maintenance expense form
+
+Server action create flow
+
+Live DB persistence
+
+Real-time UI updates using revalidatePath
+
+Expense table rendering
+
+Vendor + notes support
+
+Added operational visibility:
+
+Total maintenance cost card
+
+Per-truck maintenance summary
+
+Monthly filtering using month + year
+
+Dashboard profitability system completed:
+
+Existing truck profitability pipeline preserved
+
+API now exposes truckProfitability
+
+Dashboard renders truck profitability widget
+
+Net profit = trip profit - maintenance cost
+
+Architectural milestone reached:
+
+System now tracks:
+
+trip profitability
+
+truck maintenance
+
+truck-level net profitability
+
+operational cash deployment
+
+outstanding receivables
+
+loss-making trips
+
+Current system purpose now matches owner requirement:
+
+“Where is money bleeding?”

@@ -8,6 +8,8 @@ export default async function DashboardPage() {
 
   const data = await res.json();
 
+  const truckProfitability = data.truckProfitability ?? [];
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {" "}
@@ -439,6 +441,46 @@ export default async function DashboardPage() {
                   <p className="font-semibold text-gray-900">
                     ₹{formatCurrency(trip.totalExpense ?? 0)}
                   </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="bg-white rounded-xl shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Truck Profitability</h2>
+
+          <span className="text-sm text-gray-500">Current Month</span>
+        </div>
+
+        {truckProfitability.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No truck profitability data available
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {truckProfitability.map((truck) => (
+              <div
+                key={truck.truck}
+                className="flex items-center justify-between border-b pb-2"
+              >
+                <div>
+                  <p className="font-medium">{truck.truck}</p>
+
+                  <p className="text-xs text-gray-500">
+                    Maintenance: ₹{truck.maintenance.toLocaleString()}
+                  </p>
+                </div>
+
+                <div
+                  className={
+                    truck.profit >= 0
+                      ? "text-green-600 font-semibold"
+                      : "text-red-600 font-semibold"
+                  }
+                >
+                  ₹{truck.profit.toLocaleString()}
                 </div>
               </div>
             ))}
