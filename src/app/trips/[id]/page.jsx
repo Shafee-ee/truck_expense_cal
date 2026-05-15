@@ -136,6 +136,11 @@ export default async function TripDetailPage(props) {
     if (freshTrip.status !== "ACTIVE") {
       throw new Error("Only ACTIVE trips can be closed");
     }
+
+    if (freshTrip.closedAt) {
+      throw new Error("Trip is already closed");
+    }
+
     const revenue = freshTrip.grossAmount ?? calculateRevenue(freshTrip);
 
     const totalExpenses = calculateExpenses(freshTrip.expenses);
@@ -254,7 +259,18 @@ export default async function TripDetailPage(props) {
 
       billPath = fileName;
     }
+    const existingExpense = await prisma.expense.findFirst({
+      where: {
+        tripId,
+        category,
+        amount,
+        note,
+      },
+    });
 
+    if (existingExpense) {
+      throw new Error("Possible duplicate expense detected");
+    }
     await prisma.expense.create({
       data: {
         tripId,
@@ -338,7 +354,18 @@ export default async function TripDetailPage(props) {
         `Payment exceeds outstanding balance of ₹${outstanding.toFixed(0)}`,
       );
     }
+    const existingPayment = await prisma.payment.findFirst({
+      where: {
+        tripId,
+        amount: paymentAmount,
+        type: formData.get("type"),
+        mode: formData.get("mode"),
+      },
+    });
 
+    if (existingPayment) {
+      throw new Error("Possible duplicate payment detected");
+    }
     await prisma.payment.create({
       data: {
         tripId,
@@ -365,6 +392,18 @@ export default async function TripDetailPage(props) {
     }
 
     await assertTripIsEditable(tripId);
+
+    const expense = await prisma.expense.findUnique({
+      where: { id: expenseId },
+    });
+
+    if (!expense) {
+      throw new Error("Expense not found");
+    }
+
+    if (expense.tripId !== tripId) {
+      throw new Error("Expense does not belong to this trip");
+    }
 
     await prisma.expense.delete({
       where: { id: expenseId },
