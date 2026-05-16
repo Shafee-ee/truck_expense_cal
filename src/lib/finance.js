@@ -14,10 +14,14 @@ export function calculatePayments(payments = []) {
   return payments.reduce((sum, p) => sum + p.amount, 0);
 }
 
-export function calculateOutstanding(revenue, payments = []) {
-  return revenue - calculatePayments(payments);
+export function calculateOutstanding(trip) {
+  const revenue = calculateRevenue(trip);
+
+  return revenue - calculatePayments(trip.payments);
 }
 
-export function calculateBalance(revenue, expenses = []) {
-  return revenue - calculateExpenses(expenses);
+export function calculateBalance(trip) {
+  const revenue = calculateRevenue(trip);
+
+  return revenue - calculateExpenses(trip.expenses);
 }

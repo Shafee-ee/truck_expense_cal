@@ -1,11 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import {
-  calculateRevenue,
-  calculateExpenses,
-  calculatePayments,
-  calculateOutstanding,
-} from "@/lib/finance";
+import { calculateExpenses, calculateOutstanding } from "@/lib/finance";
 
 export async function GET() {
   const now = new Date();
@@ -95,10 +90,7 @@ export async function GET() {
   // Top active trips by expense
   const topActiveTrips = activeTripsData
     .map((trip) => {
-      const totalExpense = (trip.expenses ?? []).reduce(
-        (sum, e) => sum + e.amount,
-        0,
-      );
+      const totalExpense = calculateExpenses(trip.expenses);
       return {
         id: trip.id,
         source: trip.source,
@@ -138,14 +130,7 @@ export async function GET() {
 
   // Outstanding amount from active trips
   const outstandingAmount = activeTripsData.reduce((sum, trip) => {
-    const revenue =
-      trip.grossAmount ||
-      calculateRevenue({
-        actualQty: trip.estimatedQty,
-        ratePerUnit: trip.ratePerUnit,
-      });
-
-    const outstanding = calculateOutstanding(revenue, trip.payments);
+    const outstanding = calculateOutstanding(trip);
 
     return sum + (outstanding > 0 ? outstanding : 0);
   }, 0);

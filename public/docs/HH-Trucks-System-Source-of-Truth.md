@@ -2037,3 +2037,99 @@ a functional transport operations foundation
 not:
 a frontend demo app
 That is a major shift already.
+
+##
+
+Brief source update:
+
+Trip detail page significantly hardened and cleaned up
+
+Added strict ACTIVE-only edit protection via assertTripIsEditable()
+
+Protected:
+
+add expense
+
+delete expense
+
+replace bill
+
+add payment
+
+update actual qty
+
+Added duplicate detection:
+
+expenses
+
+payments
+
+Added close-trip integrity enforcement:
+
+cannot close without expenses
+
+cannot close without bills
+
+cannot close with outstanding payments
+
+cannot close without revenue
+
+Added immutable trip certification workflow:
+
+closedAt
+
+closedBy
+
+finalRevenue snapshot
+
+finalExpenses snapshot
+
+finalBalance snapshot
+
+Added certified/locked audit UI for CLOSED trips
+
+Added running expense breakdown widget
+
+Added payment ledger
+
+Added expense ledger improvements:
+
+signed bill URLs
+
+replace bill workflow
+
+missing bill highlighting
+
+Began Edit Expense workflow architecture
+
+Added URL-driven edit state:
+
+searchParams
+
+editingExpenseId
+
+/trips/[id]?editExpense=...
+
+Added Edit button into expense actions
+
+Discovered Server Component limitation:
+
+removed client-side onSubmit confirm handlers from server-rendered forms
+
+Current focus shifted toward:
+
+staging-ready usable operational software
+
+not enterprise overengineering yet
+
+Strategic decision made:
+
+separate staging/operator environment
+
+separate development environment
+
+Project direction clarified:
+
+evolving transport operations decision-support system
+
+not just CRUD dashboard

@@ -447,7 +447,7 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
-      <div className="bg-white rounded-xl shadow p-6">
+      {/* <div className="bg-white rounded-xl shadow p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Truck Profitability</h2>
 
@@ -486,7 +486,7 @@ export default async function DashboardPage() {
             ))}
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }

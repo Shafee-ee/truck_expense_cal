@@ -18,7 +18,7 @@ export default async function NewTripPage() {
     if (
       grossAmount &&
       calculatedRevenue > 0 &&
-      grossAmount !== calculatedRevenue
+      Math.abs(grossAmount - calculatedRevenue) > 1
     ) {
       console.warn(
         `Gross Amount (${grossAmount}) differs from Qty × Rate (${calculatedRevenue})`,

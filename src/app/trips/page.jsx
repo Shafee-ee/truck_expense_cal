@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
 import TripsTable from "./TripsTable";
+import { calculateBalance } from "@/lib/finance";
 
 export default async function TripsPage() {
   const trips = await prisma.trip.findMany({
@@ -20,11 +21,7 @@ export default async function TripsPage() {
     let result = null;
 
     if (trip.status === "CLOSED") {
-      const revenue = (trip.actualQty || 0) * (trip.ratePerUnit || 0);
-
-      const totalExpenses = trip.expenses.reduce((sum, e) => sum + e.amount, 0);
-
-      result = revenue - totalExpenses;
+      result = calculateBalance(trip);
     }
 
     return {

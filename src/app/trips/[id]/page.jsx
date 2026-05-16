@@ -1,5 +1,5 @@
 export const runtime = "nodejs";
-
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
@@ -30,6 +30,9 @@ async function getSignedUrl(path) {
 export default async function TripDetailPage(props) {
   const { id } = await props.params;
 
+  const searchParams = await props.searchParams;
+
+  const editingExpenseId = searchParams.editExpense;
   console.log("ID:", id);
 
   const trip = await prisma.trip.findUnique({
@@ -60,57 +63,39 @@ export default async function TripDetailPage(props) {
 
   const totalPayments = calculatePayments(trip.payments);
 
-  const outstanding = calculateOutstanding(revenue, trip.payments);
+  const outstanding = calculateOutstanding(trip);
   const hasRevenue = revenue > 0;
   const hasOutstanding = outstanding > 0;
   const canClose = hasRevenue && !hasOutstanding && trip.expenses.length > 0;
 
-  // check if trip is editable
-  async function assertTripIsEditable(id) {
-    "use server";
-
-    console.log("assert Trip is editable id:", id);
-    const freshTrip = await prisma.trip.findUnique({
-      where: { id },
-      select: { status: true },
-    });
-
-    if (!freshTrip) {
-      throw new Error("Trip not found");
-    }
-
-    if (freshTrip.status !== "ACTIVE") {
-      throw new Error("Only ACTIVE trips can be modified");
-    }
-  }
-
   const balance =
-    trip.status === "CLOSED"
-      ? trip.finalBalance || 0
-      : calculateBalance(revenue, trip.expenses);
+    trip.status === "CLOSED" ? trip.finalBalance || 0 : calculateBalance(trip);
+
   //startTrip
   async function startTrip() {
     "use server";
 
-    const freshTrip = await prisma.trip.findUnique({
-      where: { id },
-      select: { status: true },
-    });
+    await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id },
+        select: { status: true },
+      });
 
-    if (!freshTrip) {
-      throw new Error("Trip not found");
-    }
+      if (!freshTrip) {
+        throw new Error("Trip not found");
+      }
 
-    if (freshTrip.status !== "PLANNED") {
-      throw new Error("Only PLANNED trips can be started");
-    }
+      if (freshTrip.status !== "PLANNED") {
+        throw new Error("Only PLANNED trips can be started");
+      }
 
-    await prisma.trip.update({
-      where: { id },
-      data: {
-        status: "ACTIVE",
-        startDate: new Date(),
-      },
+      await tx.trip.update({
+        where: { id },
+        data: {
+          status: "ACTIVE",
+          startDate: new Date(),
+        },
+      });
     });
 
     revalidatePath(`/trips/${id}`);
@@ -121,66 +106,69 @@ export default async function TripDetailPage(props) {
   async function closeTrip() {
     "use server";
 
-    const freshTrip = await prisma.trip.findUnique({
-      where: { id },
-      include: {
-        expenses: true,
-        payments: true,
-      },
-    });
+    await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id },
+        include: {
+          expenses: true,
+          payments: true,
+        },
+      });
 
-    if (!freshTrip) {
-      throw new Error("Trip not found");
-    }
+      if (!freshTrip) {
+        throw new Error("Trip not found");
+      }
 
-    if (freshTrip.status !== "ACTIVE") {
-      throw new Error("Only ACTIVE trips can be closed");
-    }
+      if (freshTrip.status !== "ACTIVE") {
+        throw new Error("Only ACTIVE trips can be closed");
+      }
 
-    if (freshTrip.closedAt) {
-      throw new Error("Trip is already closed");
-    }
+      if (freshTrip.closedAt) {
+        throw new Error("Trip is already closed");
+      }
 
-    const revenue = freshTrip.grossAmount ?? calculateRevenue(freshTrip);
+      if (freshTrip.expenses.length === 0) {
+        throw new Error("Cannot close trip without expenses");
+      }
 
-    const totalExpenses = calculateExpenses(freshTrip.expenses);
+      const missingBills = freshTrip.expenses.some((e) => !e.billPath);
 
-    const totalPayments = calculatePayments(freshTrip.payments);
+      if (missingBills) {
+        throw new Error(
+          "Cannot close trip until all expense bills are uploaded",
+        );
+      }
 
-    const outstanding = calculateOutstanding(revenue, freshTrip.payments);
+      const revenue = calculateRevenue(freshTrip);
 
-    const balance = calculateBalance(revenue, freshTrip.expenses);
-    if (freshTrip.expenses.length === 0) {
-      throw new Error("Cannot close trip without expenses");
-    }
+      if (revenue <= 0) {
+        throw new Error("Cannot close trip without valid revenue");
+      }
 
-    const missingBills = freshTrip.expenses.some((e) => !e.billPath);
+      const outstanding = calculateOutstanding(freshTrip);
 
-    if (missingBills) {
-      throw new Error("Cannot close trip until all expense bills are uploaded");
-    }
+      if (outstanding > 0) {
+        throw new Error(
+          `Cannot close trip. ₹${outstanding.toFixed(0)} still outstanding.`,
+        );
+      }
 
-    if (revenue <= 0) {
-      throw new Error("Cannot close trip without valid revenue");
-    }
+      const totalExpenses = calculateExpenses(freshTrip.expenses);
 
-    if (outstanding > 0) {
-      throw new Error(
-        `Cannot close trip. ₹${outstanding.toFixed(0)} still outstanding.`,
-      );
-    }
+      const balance = calculateBalance(freshTrip);
 
-    await prisma.trip.update({
-      where: { id },
-      data: {
-        status: "CLOSED",
-        endDate: new Date(),
-        closedAt: new Date(),
-        closedBy: "operator", // placeholder
-        finalRevenue: revenue,
-        finalExpenses: totalExpenses,
-        finalBalance: balance,
-      },
+      await tx.trip.update({
+        where: { id },
+        data: {
+          status: "CLOSED",
+          endDate: new Date(),
+          closedAt: new Date(),
+          closedBy: "operator",
+          finalRevenue: revenue,
+          finalExpenses: totalExpenses,
+          finalBalance: balance,
+        },
+      });
     });
 
     revalidatePath(`/trips/${id}`);
@@ -194,18 +182,34 @@ export default async function TripDetailPage(props) {
     const tripId = formData.get("tripId");
     const actualQty = Number(formData.get("actualQty"));
 
-    if (!tripId) throw new Error("Trip ID missing");
+    if (!tripId) {
+      throw new Error("Trip ID missing");
+    }
+
     if (!actualQty || actualQty <= 0) {
       throw new Error("Actual quantity must be greater than 0");
     }
 
-    await assertTripIsEditable(tripId);
+    await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id: tripId },
+        select: { status: true },
+      });
 
-    await prisma.trip.update({
-      where: { id: tripId },
-      data: {
-        actualQty,
-      },
+      if (!freshTrip) {
+        throw new Error("Trip not found");
+      }
+
+      if (freshTrip.status !== "ACTIVE") {
+        throw new Error("Only ACTIVE trips can be modified");
+      }
+
+      await tx.trip.update({
+        where: { id: tripId },
+        data: {
+          actualQty,
+        },
+      });
     });
 
     revalidatePath(`/trips/${tripId}`);
@@ -221,8 +225,6 @@ export default async function TripDetailPage(props) {
     }
 
     //assert if trip is editable
-    await assertTripIsEditable(tripId);
-
     const category = formData.get("category");
     const amount = Number(formData.get("amount"));
     const note = formData.get("note") || null;
@@ -259,27 +261,43 @@ export default async function TripDetailPage(props) {
 
       billPath = fileName;
     }
-    const existingExpense = await prisma.expense.findFirst({
-      where: {
-        tripId,
-        category,
-        amount,
-        note,
-      },
-    });
+    await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id: tripId },
+        select: { status: true },
+      });
 
-    if (existingExpense) {
-      throw new Error("Possible duplicate expense detected");
-    }
-    await prisma.expense.create({
-      data: {
-        tripId,
-        category,
-        amount,
-        expenseDate: new Date(),
-        note,
-        billPath,
-      },
+      if (!freshTrip) {
+        throw new Error("Trip not found");
+      }
+
+      if (freshTrip.status !== "ACTIVE") {
+        throw new Error("Only ACTIVE trips can be modified");
+      }
+
+      const existingExpense = await tx.expense.findFirst({
+        where: {
+          tripId,
+          category,
+          amount,
+          note,
+        },
+      });
+
+      if (existingExpense) {
+        throw new Error("Possible duplicate expense detected");
+      }
+
+      await tx.expense.create({
+        data: {
+          tripId,
+          category,
+          amount,
+          expenseDate: new Date(),
+          note,
+          billPath,
+        },
+      });
     });
 
     revalidatePath(`/trips/${tripId}`);
@@ -290,31 +308,67 @@ export default async function TripDetailPage(props) {
     "use server";
 
     const tripId = formData.get("tripId");
-    if (!tripId) throw new Error("Trip ID missing");
 
-    await assertTripIsEditable(tripId);
+    if (!tripId) {
+      throw new Error("Trip ID missing");
+    }
 
     const expenseId = formData.get("expenseId");
     const file = formData.get("bill");
-    if (!file || file.size === 0) return;
 
-    const expense = await prisma.expense.findUnique({
-      where: { id: expenseId },
-    });
-    if (!expense) return;
+    if (!expenseId) {
+      throw new Error("Expense ID missing");
+    }
+
+    if (!file || file.size === 0) {
+      throw new Error("Bill file missing");
+    }
 
     const fileExt = file.name.split(".").pop();
     const fileName = `${tripId}/${crypto.randomUUID()}.${fileExt}`;
 
     const { error } = await supabase.storage
       .from("bills")
-      .upload(fileName, file, { contentType: file.type });
+      .upload(fileName, file, {
+        contentType: file.type,
+      });
 
-    if (error) return;
+    if (error) {
+      throw new Error("Bill upload failed");
+    }
 
-    await prisma.expense.update({
-      where: { id: expenseId },
-      data: { billPath: fileName },
+    await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id: tripId },
+        select: { status: true },
+      });
+
+      if (!freshTrip) {
+        throw new Error("Trip not found");
+      }
+
+      if (freshTrip.status !== "ACTIVE") {
+        throw new Error("Only ACTIVE trips can be modified");
+      }
+
+      const expense = await tx.expense.findUnique({
+        where: { id: expenseId },
+      });
+
+      if (!expense) {
+        throw new Error("Expense not found");
+      }
+
+      if (expense.tripId !== tripId) {
+        throw new Error("Expense does not belong to this trip");
+      }
+
+      await tx.expense.update({
+        where: { id: expenseId },
+        data: {
+          billPath: fileName,
+        },
+      });
     });
 
     revalidatePath(`/trips/${tripId}`);
@@ -325,19 +379,9 @@ export default async function TripDetailPage(props) {
     "use server";
 
     const tripId = formData.get("tripId");
-    if (!tripId) throw new Error("Trip ID missing");
 
-    await assertTripIsEditable(tripId);
-
-    const freshTrip = await prisma.trip.findUnique({
-      where: { id: tripId },
-      include: {
-        payments: true,
-      },
-    });
-
-    if (!freshTrip) {
-      throw new Error("Trip not found");
+    if (!tripId) {
+      throw new Error("Trip ID missing");
     }
 
     const paymentAmount = Number(formData.get("amount"));
@@ -346,35 +390,53 @@ export default async function TripDetailPage(props) {
       throw new Error("Invalid payment amount");
     }
 
-    const revenue = freshTrip.grossAmount || calculateRevenue(freshTrip);
-    const outstanding = calculateOutstanding(revenue, freshTrip.payments);
+    await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id: tripId },
+        include: {
+          payments: true,
+        },
+      });
 
-    if (paymentAmount > outstanding) {
-      throw new Error(
-        `Payment exceeds outstanding balance of ₹${outstanding.toFixed(0)}`,
-      );
-    }
-    const existingPayment = await prisma.payment.findFirst({
-      where: {
-        tripId,
-        amount: paymentAmount,
-        type: formData.get("type"),
-        mode: formData.get("mode"),
-      },
-    });
+      if (!freshTrip) {
+        throw new Error("Trip not found");
+      }
 
-    if (existingPayment) {
-      throw new Error("Possible duplicate payment detected");
-    }
-    await prisma.payment.create({
-      data: {
-        tripId,
-        amount: paymentAmount,
-        type: formData.get("type"),
-        mode: formData.get("mode"),
-        paymentDate: new Date(),
-        note: formData.get("note") || null,
-      },
+      if (freshTrip.status !== "ACTIVE") {
+        throw new Error("Only ACTIVE trips can be modified");
+      }
+
+      const outstanding = calculateOutstanding(freshTrip);
+
+      if (paymentAmount > outstanding) {
+        throw new Error(
+          `Payment exceeds outstanding balance of ₹${outstanding.toFixed(0)}`,
+        );
+      }
+
+      const existingPayment = await tx.payment.findFirst({
+        where: {
+          tripId,
+          amount: paymentAmount,
+          type: formData.get("type"),
+          mode: formData.get("mode"),
+        },
+      });
+
+      if (existingPayment) {
+        throw new Error("Possible duplicate payment detected");
+      }
+
+      await tx.payment.create({
+        data: {
+          tripId,
+          amount: paymentAmount,
+          type: formData.get("type"),
+          mode: formData.get("mode"),
+          paymentDate: new Date(),
+          note: formData.get("note") || null,
+        },
+      });
     });
 
     revalidatePath(`/trips/${tripId}`);
@@ -391,22 +453,35 @@ export default async function TripDetailPage(props) {
       throw new Error("Missing identifiers");
     }
 
-    await assertTripIsEditable(tripId);
+    await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id: tripId },
+        select: { status: true },
+      });
 
-    const expense = await prisma.expense.findUnique({
-      where: { id: expenseId },
-    });
+      if (!freshTrip) {
+        throw new Error("Trip not found");
+      }
 
-    if (!expense) {
-      throw new Error("Expense not found");
-    }
+      if (freshTrip.status !== "ACTIVE") {
+        throw new Error("Only ACTIVE trips can be modified");
+      }
 
-    if (expense.tripId !== tripId) {
-      throw new Error("Expense does not belong to this trip");
-    }
+      const expense = await tx.expense.findUnique({
+        where: { id: expenseId },
+      });
 
-    await prisma.expense.delete({
-      where: { id: expenseId },
+      if (!expense) {
+        throw new Error("Expense not found");
+      }
+
+      if (expense.tripId !== tripId) {
+        throw new Error("Expense does not belong to this trip");
+      }
+
+      await tx.expense.delete({
+        where: { id: expenseId },
+      });
     });
 
     revalidatePath(`/trips/${tripId}`);
@@ -505,7 +580,6 @@ export default async function TripDetailPage(props) {
           </div>
         </div>
 
-        {/* Trip financial summary*/}
         {/* Financial Summary */}
         <div className="grid grid-cols-4 gap-4">
           <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -863,7 +937,7 @@ export default async function TripDetailPage(props) {
                             <td className="px-4 py-3 text-sm">{e.category}</td>
                             <td className="px-4 py-3 text-right font-medium text-zinc-800">
                               ₹{e.amount}
-                            </td>{" "}
+                            </td>
                             <td className="px-4 py-3 text-sm">
                               {e.note || "-"}
                             </td>
@@ -938,18 +1012,29 @@ export default async function TripDetailPage(props) {
                                     </button>
                                   </form>
 
+                                  <Link
+                                    href={`/trips/${id}?editExpense=${e.id}`}
+                                    className="
+    inline-flex
+    rounded-md
+    border
+    border-zinc-300
+    px-3
+    py-1.5
+    text-xs
+    font-medium
+    text-zinc-700
+    transition
+    hover:bg-zinc-100
+    ml-2
+  "
+                                  >
+                                    Edit
+                                  </Link>
+
                                   <form
                                     action={deleteExpense}
                                     className="inline ml-2"
-                                    onSubmit={(e) => {
-                                      if (
-                                        !confirm(
-                                          "Delete this expense permanently?",
-                                        )
-                                      ) {
-                                        e.preventDefault();
-                                      }
-                                    }}
                                   >
                                     <input
                                       type="hidden"
