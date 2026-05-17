@@ -2133,3 +2133,135 @@ Project direction clarified:
 evolving transport operations decision-support system
 
 not just CRUD dashboard
+
+######
+
+Extracted major trip server actions into trips/[id]/actions.js
+
+startTrip
+
+closeTrip
+
+addExpense
+
+deleteExpense
+
+replaceBill
+
+addPayment
+
+updateActualQty
+
+Added transaction safety + fresh DB validation inside actions
+
+Added ACTIVE status guards before mutations
+
+Added duplicate prevention:
+
+expenses
+
+payments
+
+Added trip close validations:
+
+no missing bills
+
+no outstanding balance
+
+revenue required
+
+expenses required
+
+Fixed dashboard API crash
+
+removed old truckMaintenance
+
+moved toward TruckExpense
+
+Added gross amount override support in trip creation
+
+Added tolerance check between:
+
+gross amount
+
+qty × rate
+
+Implemented Supabase bill uploads
+
+Fixed:
+
+wrong bucket references
+
+missing buffer upload conversion
+
+signed URL generation
+
+replace bill uploads
+
+Created modern bill UI:
+
+bill thumbnails
+
+missing bill icon (BookX)
+
+hover replace overlay
+
+upload confirmation icon
+
+external/open bill icon
+
+selected image preview before upload
+
+Created first isolated Client Component:
+
+BillUploader.jsx
+
+Split Bill and Actions into separate table columns
+
+Cleaned expense ledger alignment/layout
+
+Current architecture:
+
+Page remains Server Component
+
+Interactive upload UI isolated into Client Component
+
+Server actions still handle uploads + DB updates
+
+Remaining:
+
+Convert <img> → next/image
+
+Make bill thumbnail clickable to open full image
+
+Add optimistic/loading states to uploads/actions
+
+Add toast/success/error feedback system
+
+Replace Edit/Delete text with Lucide icons
+
+Add expense edit modal/panel polish
+
+Finish TruckExpense integration
+
+dashboard
+
+monthly maintenance
+
+profitability
+
+Add closed-trip snapshot protection everywhere
+
+Improve dashboard UI/cards/charts
+
+Add auth/operator tracking
+
+Add pagination/search/filtering
+
+Add audit/history logging
+
+Add export/report generation
+
+Mobile responsiveness cleanup
+
+Clean remaining oversized page.jsx into components

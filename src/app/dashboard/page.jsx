@@ -1,14 +1,28 @@
 import { Wallet, TrendingUp, Truck, AlertTriangle } from "lucide-react";
 const formatCurrency = (num) => new Intl.NumberFormat("en-IN").format(num);
 
-export default async function DashboardPage() {
-  const res = await fetch("http://localhost:3000/api/dashboard", {
-    cache: "no-store",
-  });
+export default async function DashboardPage(props) {
+  const searchParams = await props.searchParams;
+  const selectedMonth =
+    searchParams?.month ?? new Date().toISOString().slice(0, 7);
+  const res = await fetch(
+    `http://localhost:3000/api/dashboard?month=${selectedMonth}`,
+    {
+      cache: "no-store",
+    },
+  );
 
   const data = await res.json();
 
   const truckProfitability = data.truckProfitability ?? [];
+
+  const operationalProfit = data.operationalProfit ?? 0;
+
+  const fixedCost = data.fixedCost ?? 0;
+
+  const total = operationalProfit + fixedCost;
+
+  const operationalPercent = total > 0 ? (operationalProfit / total) * 100 : 0;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -16,6 +30,33 @@ export default async function DashboardPage() {
       {/* MONEY SECTION */}
       <div className="space-y-4 pt-2">
         <h2 className="text-base font-semibold">Financial Summary</h2>
+
+        <form className="flex items-center gap-3">
+          <input
+            type="month"
+            name="month"
+            defaultValue={selectedMonth}
+            className="
+      rounded-lg
+      border border-gray-300
+      px-3 py-2
+      text-sm
+    "
+          />
+
+          <button
+            type="submit"
+            className="
+      rounded-lg
+      bg-zinc-900
+      px-4 py-2
+      text-sm
+      text-white
+    "
+          >
+            Apply
+          </button>
+        </form>
 
         <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
           <div className="grid grid-cols-4 gap-8 items-center">
@@ -26,7 +67,7 @@ export default async function DashboardPage() {
               </p>
 
               <p
-                className={`mt-4 text-5xl font-bold tracking-tight ${
+                className={`mt-4 text-3xl font-bold tracking-tight ${
                   (data.trueNetProfit ?? 0) >= 0
                     ? "text-green-600"
                     : "text-red-600"
@@ -36,13 +77,24 @@ export default async function DashboardPage() {
               </p>
 
               <div className="mt-5 space-y-2">
-                <div className="flex items-center gap-2 text-sm text-red-500">
-                  <span>▼</span>
-                  <span>18.6% vs last month</span>
+                <div
+                  className={`flex items-center gap-2 text-sm ${
+                    data.trueNetProfit >= 0 ? "text-green-600" : "text-red-500"
+                  }`}
+                >
+                  <span>{data.trueNetProfit >= 0 ? "▲" : "▼"}</span>
+
+                  <span>
+                    {data.trueNetProfit >= 0
+                      ? "Profitable operations"
+                      : "Operational decline"}
+                  </span>
                 </div>
 
                 <p className="text-sm text-gray-500">
-                  Trips are profitable, but fixed costs are too high
+                  {data.trueNetProfit > 0
+                    ? "Business is operating profitably"
+                    : "Business is operating at a loss"}
                 </p>
               </div>
             </div>
@@ -52,14 +104,18 @@ export default async function DashboardPage() {
                 Operational Profit
               </p>
 
-              <p className="mt-4 text-4xl font-bold tracking-tight">
+              <p className="mt-4 text-3xl font-bold tracking-tight">
                 ₹{formatCurrency(data.operationalProfit ?? 0)}
               </p>
 
               <div className="mt-5 space-y-2">
                 <div className="flex items-center gap-2 text-sm text-gray-400">
                   <span>—</span>
-                  <span>0% vs last month</span>
+                  <span>
+                    {data.operationalProfit >= 0
+                      ? "Closed trip earnings"
+                      : "Operational losses"}
+                  </span>
                 </div>
 
                 <p className="text-sm text-gray-500">Based on closed trips</p>
@@ -71,18 +127,32 @@ export default async function DashboardPage() {
                 Fixed Cost
               </p>
 
-              <p className="mt-4 text-4xl font-bold tracking-tight">
+              <p className="mt-4 text-3xl font-bold tracking-tight">
                 ₹{formatCurrency(data.fixedCost ?? 0)}
               </p>
 
               <div className="mt-5 space-y-2">
-                <div className="flex items-center gap-2 text-sm text-red-500">
-                  <span>▲</span>
-                  <span>18.6% vs last month</span>
+                <div
+                  className={`flex items-center gap-2 text-sm ${
+                    data.fixedCost > data.operationalProfit
+                      ? "text-red-500"
+                      : "text-green-600"
+                  }`}
+                >
+                  <span>
+                    {data.fixedCost > data.operationalProfit ? "▲" : "✓"}
+                  </span>
+                  <span>
+                    {data.fixedCost > data.operationalProfit
+                      ? "High maintenance pressure"
+                      : "Maintenance under control"}
+                  </span>
                 </div>
 
                 <p className="text-sm text-gray-500">
-                  Monthly operational overhead
+                  {data.fixedCost > data.operationalProfit
+                    ? "Maintenance costs exceed earnings"
+                    : "Maintenance costs under control"}
                 </p>
               </div>
             </div>
@@ -98,15 +168,16 @@ export default async function DashboardPage() {
     "
                 style={{
                   background: `conic-gradient(
-        #22c55e 0% 35%,
-        #ef4444 35% 100%
+       #22c55e 0% ${operationalPercent}%,
+#ef4444 ${operationalPercent}% 100%
       )`,
                 }}
               >
                 <div className="w-28 h-28 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
                   <span className="text-sm text-gray-500">Costs</span>
-
-                  <span className="text-2xl font-bold">100%</span>
+                  <span className="text-2xl font-bold">
+                    {operationalPercent.toFixed(0)}%
+                  </span>{" "}
                 </div>
               </div>
 
@@ -128,12 +199,13 @@ export default async function DashboardPage() {
         </div>
       </div>
       {/* OPERATIONS SECTION */}
+      {/* OPERATIONS SECTION */}
       <div className="space-y-4 pt-2">
         <h2 className="text-base font-semibold">Cash Position</h2>
 
         <div className="grid grid-cols-2 gap-6">
           {/* CASH DEPLOYED */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center justify-between ">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500">Cash Deployed</p>
 
@@ -146,62 +218,89 @@ export default async function DashboardPage() {
               </p>
             </div>
 
-            <div
-              className="
-      w-16 h-16
-      rounded-2xl
-      bg-green-100
-      flex items-center justify-center
-      text-2xl
-      "
-            >
+            <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center">
               <Wallet size={28} className="text-green-600" />
             </div>
           </div>
 
           {/* RECEIVABLES */}
-          <div
-            className="
-    bg-white
-    border border-gray-200
-    rounded-2xl
-    p-6
-    shadow-sm
-    flex items-center justify-between
-    "
-          >
-            <div>
-              <p className="text-sm font-medium text-gray-500">
-                Outstanding (Receivable)
-              </p>
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">
+                  Outstanding (Receivable)
+                </p>
 
-              <p className="mt-3 text-4xl font-bold tracking-tight text-blue-600">
-                ₹{formatCurrency(data.statusStrip?.outstandingAmount ?? 0)}
-              </p>
+                <p className="mt-3 text-4xl font-bold tracking-tight text-blue-600">
+                  ₹{formatCurrency(data.statusStrip?.outstandingAmount ?? 0)}
+                </p>
 
-              <p className="mt-3 text-sm text-blue-500">Pending collections</p>
+                <p className="mt-3 text-sm text-blue-500">
+                  Pending collections
+                </p>
+              </div>
+
+              <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center">
+                <TrendingUp size={28} className="text-blue-600" />
+              </div>
             </div>
 
-            <div
-              className="
-      w-16 h-16
-      rounded-2xl
-      bg-blue-100
-      flex items-center justify-center
-      text-2xl
-      "
-            >
-              <TrendingUp size={28} className="text-blue-600" />{" "}
+            <div className="mt-6">
+              {data.outstandingTrips?.length === 0 ? (
+                <p className="text-sm text-gray-500">No pending receivables</p>
+              ) : (
+                <div className="space-y-3">
+                  {data.outstandingTrips?.map((trip) => (
+                    <div
+                      key={trip.id}
+                      className="
+                  border border-gray-100
+                  rounded-xl
+                  p-4
+                "
+                    >
+                      <div className="flex justify-between items-center">
+                        <p className="font-semibold">
+                          {trip.source} → {trip.destination}
+                        </p>
+
+                        <p className="font-bold text-blue-600">
+                          ₹{formatCurrency(trip.outstanding)}
+                        </p>
+                      </div>
+
+                      <div className="mt-2">
+                        <span
+                          className={`
+                      inline-flex
+                      rounded-full
+                      px-3 py-1
+                      text-sm font-medium
+                      ${
+                        trip.status === "ACTIVE"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-amber-100 text-amber-700"
+                      }
+                    `}
+                        >
+                          {trip.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {(() => {
           const cashDeployed = data.statusStrip?.cashDeployed ?? 0;
+
           const outstanding = data.statusStrip?.outstandingAmount ?? 0;
+
           const netProfit = data.trueNetProfit ?? 0;
 
-          // 🔴 Primary risks
           if (netProfit < 0 && cashDeployed > outstanding) {
             return (
               <p className="text-sm text-red-600 mt-2 font-semibold">
@@ -218,7 +317,6 @@ export default async function DashboardPage() {
             );
           }
 
-          // 🟠 Secondary
           if (outstanding < cashDeployed * 0.5) {
             return (
               <p className="text-sm text-orange-500 mt-2">
@@ -376,7 +474,7 @@ export default async function DashboardPage() {
       {/* TOP ACTIVE TRIPS */}
       <div className="space-y-4 pt-2">
         <h2 className="text-base font-semibold">
-          Top Active Trips (By Expense)
+          Highest Expense Active Trips{" "}
         </h2>
 
         {data.topActiveTrips?.length === 0 ? (

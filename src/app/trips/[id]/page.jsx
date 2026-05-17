@@ -2,10 +2,22 @@ export const runtime = "nodejs";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
+import AddPaymentForm from "@/components/AddPaymentForm";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import BillUploader from "./BillUploader";
+import {
+  startTrip,
+  closeTrip,
+  updateActualQty,
+  addPayment,
+  deleteExpense,
+  addExpense,
+  replaceBill,
+  updateExpense,
+} from "./actions";
 
 import {
   calculateRevenue,
@@ -14,7 +26,7 @@ import {
   calculateOutstanding,
   calculateBalance,
 } from "@/lib/finance";
-
+import { Upload, BookX, RefreshCcw } from "lucide-react";
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -22,7 +34,7 @@ const supabase = createClient(
 
 async function getSignedUrl(path) {
   const { data } = await supabase.storage
-    .from("bills")
+    .from("expense-bills")
     .createSignedUrl(path, 60 * 10);
 
   return data?.signedUrl || null;
@@ -33,6 +45,7 @@ export default async function TripDetailPage(props) {
   const searchParams = await props.searchParams;
 
   const editingExpenseId = searchParams.editExpense;
+
   console.log("ID:", id);
 
   const trip = await prisma.trip.findUnique({
@@ -45,6 +58,9 @@ export default async function TripDetailPage(props) {
   });
 
   if (!trip) notFound();
+
+  const editingExpense =
+    trip?.expenses?.find((e) => e.id === editingExpenseId) || null;
 
   const revenue =
     trip.status === "CLOSED" ? trip.finalRevenue || 0 : calculateRevenue(trip);
@@ -71,421 +87,7 @@ export default async function TripDetailPage(props) {
   const balance =
     trip.status === "CLOSED" ? trip.finalBalance || 0 : calculateBalance(trip);
 
-  //startTrip
-  async function startTrip() {
-    "use server";
-
-    await prisma.$transaction(async (tx) => {
-      const freshTrip = await tx.trip.findUnique({
-        where: { id },
-        select: { status: true },
-      });
-
-      if (!freshTrip) {
-        throw new Error("Trip not found");
-      }
-
-      if (freshTrip.status !== "PLANNED") {
-        throw new Error("Only PLANNED trips can be started");
-      }
-
-      await tx.trip.update({
-        where: { id },
-        data: {
-          status: "ACTIVE",
-          startDate: new Date(),
-        },
-      });
-    });
-
-    revalidatePath(`/trips/${id}`);
-    revalidatePath("/trips");
-  }
-
-  //close trip
-  async function closeTrip() {
-    "use server";
-
-    await prisma.$transaction(async (tx) => {
-      const freshTrip = await tx.trip.findUnique({
-        where: { id },
-        include: {
-          expenses: true,
-          payments: true,
-        },
-      });
-
-      if (!freshTrip) {
-        throw new Error("Trip not found");
-      }
-
-      if (freshTrip.status !== "ACTIVE") {
-        throw new Error("Only ACTIVE trips can be closed");
-      }
-
-      if (freshTrip.closedAt) {
-        throw new Error("Trip is already closed");
-      }
-
-      if (freshTrip.expenses.length === 0) {
-        throw new Error("Cannot close trip without expenses");
-      }
-
-      const missingBills = freshTrip.expenses.some((e) => !e.billPath);
-
-      if (missingBills) {
-        throw new Error(
-          "Cannot close trip until all expense bills are uploaded",
-        );
-      }
-
-      const revenue = calculateRevenue(freshTrip);
-
-      if (revenue <= 0) {
-        throw new Error("Cannot close trip without valid revenue");
-      }
-
-      const outstanding = calculateOutstanding(freshTrip);
-
-      if (outstanding > 0) {
-        throw new Error(
-          `Cannot close trip. ₹${outstanding.toFixed(0)} still outstanding.`,
-        );
-      }
-
-      const totalExpenses = calculateExpenses(freshTrip.expenses);
-
-      const balance = calculateBalance(freshTrip);
-
-      await tx.trip.update({
-        where: { id },
-        data: {
-          status: "CLOSED",
-          endDate: new Date(),
-          closedAt: new Date(),
-          closedBy: "operator",
-          finalRevenue: revenue,
-          finalExpenses: totalExpenses,
-          finalBalance: balance,
-        },
-      });
-    });
-
-    revalidatePath(`/trips/${id}`);
-    revalidatePath("/trips");
-  }
-
-  //update actual quantity
-  async function updateActualQty(formData) {
-    "use server";
-
-    const tripId = formData.get("tripId");
-    const actualQty = Number(formData.get("actualQty"));
-
-    if (!tripId) {
-      throw new Error("Trip ID missing");
-    }
-
-    if (!actualQty || actualQty <= 0) {
-      throw new Error("Actual quantity must be greater than 0");
-    }
-
-    await prisma.$transaction(async (tx) => {
-      const freshTrip = await tx.trip.findUnique({
-        where: { id: tripId },
-        select: { status: true },
-      });
-
-      if (!freshTrip) {
-        throw new Error("Trip not found");
-      }
-
-      if (freshTrip.status !== "ACTIVE") {
-        throw new Error("Only ACTIVE trips can be modified");
-      }
-
-      await tx.trip.update({
-        where: { id: tripId },
-        data: {
-          actualQty,
-        },
-      });
-    });
-
-    revalidatePath(`/trips/${tripId}`);
-  }
-
-  // add expense
-  async function addExpense(formData) {
-    "use server";
-
-    const tripId = formData.get("tripId");
-    if (!tripId) {
-      throw new Error("Trip ID missing");
-    }
-
-    //assert if trip is editable
-    const category = formData.get("category");
-    const amount = Number(formData.get("amount"));
-    const note = formData.get("note") || null;
-    const file = formData.get("bill");
-
-    console.log({
-      hasFile: !!file,
-      fileType: file?.constructor?.name,
-      fileSize: file?.size,
-      fileName: file?.name,
-    });
-
-    if (!amount || amount <= 0) return;
-
-    let billPath = null;
-
-    if (file && file.size > 0) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${tripId}/${crypto.randomUUID()}.${fileExt}`;
-
-      const { error } = await supabase.storage
-        .from("bills")
-        .upload(fileName, buffer, {
-          contentType: file.type,
-        });
-
-      if (error) {
-        console.error("Supabase upload error:", error);
-        throw new Error("Bill upload failed");
-      }
-
-      billPath = fileName;
-    }
-    await prisma.$transaction(async (tx) => {
-      const freshTrip = await tx.trip.findUnique({
-        where: { id: tripId },
-        select: { status: true },
-      });
-
-      if (!freshTrip) {
-        throw new Error("Trip not found");
-      }
-
-      if (freshTrip.status !== "ACTIVE") {
-        throw new Error("Only ACTIVE trips can be modified");
-      }
-
-      const existingExpense = await tx.expense.findFirst({
-        where: {
-          tripId,
-          category,
-          amount,
-          note,
-        },
-      });
-
-      if (existingExpense) {
-        throw new Error("Possible duplicate expense detected");
-      }
-
-      await tx.expense.create({
-        data: {
-          tripId,
-          category,
-          amount,
-          expenseDate: new Date(),
-          note,
-          billPath,
-        },
-      });
-    });
-
-    revalidatePath(`/trips/${tripId}`);
-  }
-
-  //replace bill
-  async function replaceBill(formData) {
-    "use server";
-
-    const tripId = formData.get("tripId");
-
-    if (!tripId) {
-      throw new Error("Trip ID missing");
-    }
-
-    const expenseId = formData.get("expenseId");
-    const file = formData.get("bill");
-
-    if (!expenseId) {
-      throw new Error("Expense ID missing");
-    }
-
-    if (!file || file.size === 0) {
-      throw new Error("Bill file missing");
-    }
-
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${tripId}/${crypto.randomUUID()}.${fileExt}`;
-
-    const { error } = await supabase.storage
-      .from("bills")
-      .upload(fileName, file, {
-        contentType: file.type,
-      });
-
-    if (error) {
-      throw new Error("Bill upload failed");
-    }
-
-    await prisma.$transaction(async (tx) => {
-      const freshTrip = await tx.trip.findUnique({
-        where: { id: tripId },
-        select: { status: true },
-      });
-
-      if (!freshTrip) {
-        throw new Error("Trip not found");
-      }
-
-      if (freshTrip.status !== "ACTIVE") {
-        throw new Error("Only ACTIVE trips can be modified");
-      }
-
-      const expense = await tx.expense.findUnique({
-        where: { id: expenseId },
-      });
-
-      if (!expense) {
-        throw new Error("Expense not found");
-      }
-
-      if (expense.tripId !== tripId) {
-        throw new Error("Expense does not belong to this trip");
-      }
-
-      await tx.expense.update({
-        where: { id: expenseId },
-        data: {
-          billPath: fileName,
-        },
-      });
-    });
-
-    revalidatePath(`/trips/${tripId}`);
-  }
-
   //add payment just fixed
-  async function addPayment(formData) {
-    "use server";
-
-    const tripId = formData.get("tripId");
-
-    if (!tripId) {
-      throw new Error("Trip ID missing");
-    }
-
-    const paymentAmount = Number(formData.get("amount"));
-
-    if (!paymentAmount || paymentAmount <= 0) {
-      throw new Error("Invalid payment amount");
-    }
-
-    await prisma.$transaction(async (tx) => {
-      const freshTrip = await tx.trip.findUnique({
-        where: { id: tripId },
-        include: {
-          payments: true,
-        },
-      });
-
-      if (!freshTrip) {
-        throw new Error("Trip not found");
-      }
-
-      if (freshTrip.status !== "ACTIVE") {
-        throw new Error("Only ACTIVE trips can be modified");
-      }
-
-      const outstanding = calculateOutstanding(freshTrip);
-
-      if (paymentAmount > outstanding) {
-        throw new Error(
-          `Payment exceeds outstanding balance of ₹${outstanding.toFixed(0)}`,
-        );
-      }
-
-      const existingPayment = await tx.payment.findFirst({
-        where: {
-          tripId,
-          amount: paymentAmount,
-          type: formData.get("type"),
-          mode: formData.get("mode"),
-        },
-      });
-
-      if (existingPayment) {
-        throw new Error("Possible duplicate payment detected");
-      }
-
-      await tx.payment.create({
-        data: {
-          tripId,
-          amount: paymentAmount,
-          type: formData.get("type"),
-          mode: formData.get("mode"),
-          paymentDate: new Date(),
-          note: formData.get("note") || null,
-        },
-      });
-    });
-
-    revalidatePath(`/trips/${tripId}`);
-  }
-
-  // Delete expense
-  async function deleteExpense(formData) {
-    "use server";
-
-    const tripId = formData.get("tripId");
-    const expenseId = formData.get("expenseId");
-
-    if (!tripId || !expenseId) {
-      throw new Error("Missing identifiers");
-    }
-
-    await prisma.$transaction(async (tx) => {
-      const freshTrip = await tx.trip.findUnique({
-        where: { id: tripId },
-        select: { status: true },
-      });
-
-      if (!freshTrip) {
-        throw new Error("Trip not found");
-      }
-
-      if (freshTrip.status !== "ACTIVE") {
-        throw new Error("Only ACTIVE trips can be modified");
-      }
-
-      const expense = await tx.expense.findUnique({
-        where: { id: expenseId },
-      });
-
-      if (!expense) {
-        throw new Error("Expense not found");
-      }
-
-      if (expense.tripId !== tripId) {
-        throw new Error("Expense does not belong to this trip");
-      }
-
-      await tx.expense.delete({
-        where: { id: expenseId },
-      });
-    });
-
-    revalidatePath(`/trips/${tripId}`);
-  }
 
   return (
     <div className="min-h-screen bg-zinc-100 p-6">
@@ -579,7 +181,6 @@ export default async function TripDetailPage(props) {
             </div>
           </div>
         </div>
-
         {/* Financial Summary */}
         <div className="grid grid-cols-4 gap-4">
           <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -638,7 +239,6 @@ export default async function TripDetailPage(props) {
             </p>
           </div>
         </div>
-
         {trip.status === "ACTIVE" && (
           <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
             <div className="mb-4">
@@ -650,7 +250,13 @@ export default async function TripDetailPage(props) {
                 Update delivered quantity for final revenue calculation
               </p>
             </div>
-            <form action={updateActualQty} className="flex items-end gap-3">
+            <form
+              action={async (formData) => {
+                "use server";
+                await updateActualQty(formData);
+              }}
+              className="flex items-end gap-3"
+            >
               <input type="hidden" name="tripId" value={id} />
               <input
                 name="actualQty"
@@ -694,7 +300,12 @@ export default async function TripDetailPage(props) {
         {/*Trip Lifecyle Action*/}
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
           {trip.status === "PLANNED" && (
-            <form action={startTrip}>
+            <form
+              action={async () => {
+                "use server";
+                await startTrip(id);
+              }}
+            >
               <button className="bg-blue-600 text-white px-4 py-2">
                 Start Trip
               </button>
@@ -736,10 +347,18 @@ export default async function TripDetailPage(props) {
                 {hasOutstanding && (
                   <p className="text-red-600 font-semibold">
                     Cannot close trip- ₹{outstanding.toFixed(0)} is still
-                    outstanding.
+                    outstanding.{" "}
+                    <span className="text-red-400">
+                      This receivable will remain active after closing.
+                    </span>
                   </p>
                 )}
-                <form action={closeTrip}>
+                <form
+                  action={async () => {
+                    "use server";
+                    await closeTrip(id);
+                  }}
+                >
                   <button
                     disabled={!canClose}
                     className={`mt-4 h-11 rounded-lg px-5 text-sm font-medium text-white transition ${
@@ -755,6 +374,81 @@ export default async function TripDetailPage(props) {
             </details>
           )}
         </div>
+        {editingExpense && (
+          <div className="rounded-lg border border-blue-300 bg-blue-50 p-4">
+            <form
+              action={async (formData) => {
+                "use server";
+
+                await updateExpense(formData);
+              }}
+              className="space-y-4"
+            >
+              <input type="hidden" name="expenseId" value={editingExpense.id} />
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">
+                  Category
+                </label>
+
+                <select
+                  name="category"
+                  defaultValue={editingExpense.category}
+                  className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm"
+                >
+                  <option value="FUEL">Fuel</option>
+                  <option value="TOLL">Toll</option>
+                  <option value="BROKER">Broker / Mamool</option>
+                  <option value="POLICE">Police</option>
+                  <option value="LOADING">Loading</option>
+                  <option value="UNLOADING">Unloading</option>
+                  <option value="REPAIR">Repair</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">
+                  Amount
+                </label>
+
+                <input
+                  type="number"
+                  step="0.01"
+                  name="amount"
+                  defaultValue={editingExpense.amount}
+                  className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">
+                  Note
+                </label>
+
+                <input
+                  type="text"
+                  name="note"
+                  defaultValue={editingExpense.note || ""}
+                  className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white">
+                  Update Expense
+                </button>
+
+                <Link
+                  href={`/trips/${id}`}
+                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm"
+                >
+                  Cancel
+                </Link>
+              </div>
+            </form>
+          </div>
+        )}
         {/*expense management for ACTIVE trip*/}
         {trip.status === "ACTIVE" && (
           <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -766,7 +460,7 @@ export default async function TripDetailPage(props) {
               <p className="mt-1 text-sm text-zinc-500">
                 Record operational trip expenses and upload supporting bills
               </p>
-            </div>{" "}
+            </div>
             {Object.keys(expensesBreakdown).length > 0 && (
               <div className="bg-white p-4 rounded border mb-4">
                 <h3 className="font-semibold mb-2">Running Expense Totals</h3>
@@ -788,21 +482,9 @@ export default async function TripDetailPage(props) {
               <input type="hidden" name="tripId" value={id} />
               <select
                 name="category"
-                className="
-    h-11
-    rounded-lg
-    border
-    border-zinc-300
-    bg-white
-    px-3
-    text-sm
-    text-zinc-700
-    outline-none
-    focus:border-amber-400
-  "
+                className="h-11 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-700 outline-none focus:border-amber-400"
                 required
               >
-                {" "}
                 <option value="">Select Category</option>
                 <option value="FUEL">Fuel</option>
                 <option value="TOLL">Toll</option>
@@ -818,70 +500,24 @@ export default async function TripDetailPage(props) {
                 type="number"
                 step="0.01"
                 placeholder="Amount"
-                className="
-  h-11
-  rounded-lg
-  border
-  border-zinc-300
-  bg-white
-  px-3
-  text-sm
-  text-zinc-700
-  outline-none
-  focus:border-amber-400
-"
+                className="h-11 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-700 outline-none focus:border-amber-400"
                 required
               />
 
               <input
                 name="note"
                 placeholder="Note (optional)"
-                className="
-  h-11
-  rounded-lg
-  border
-  border-zinc-300
-  bg-white
-  px-3
-  text-sm
-  text-zinc-700
-  outline-none
-  focus:border-amber-400
-"
+                className="h-11 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-700 outline-none focus:border-amber-400"
               />
 
               <input
                 type="file"
                 name="bill"
                 accept="image/*,application/pdf"
-                className="
-  flex
-  h-11
-  items-center
-  rounded-lg
-  border
-  border-zinc-300
-  bg-white
-  px-3
-  text-sm
-  text-zinc-600
-"
+                className="flex h-11 items-center rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-600"
               />
 
-              <button
-                className="
-  col-span-2
-  h-11
-  rounded-lg
-  bg-zinc-900
-  px-4
-  text-sm
-  font-medium
-  text-white
-  transition
-  hover:bg-zinc-800
-"
-              >
+              <button className="col-span-2 h-11 rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-800">
                 Add Expense
               </button>
             </form>
@@ -912,6 +548,9 @@ export default async function TripDetailPage(props) {
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
                         Note
                       </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                        Bill
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
                         Actions
                       </th>
@@ -941,124 +580,43 @@ export default async function TripDetailPage(props) {
                             <td className="px-4 py-3 text-sm">
                               {e.note || "-"}
                             </td>
-                            <td className="px-4 py-3 text-sm">
-                              {!signedUrl && (
-                                <span className="text-xs text-red-500 mr-2">
-                                  No Bill
-                                </span>
-                              )}
-                              {signedUrl && (
-                                <a
-                                  href={signedUrl}
-                                  target="_blank"
-                                  className="text-blue-600 underline mr-2"
-                                >
-                                  View Bill
-                                </a>
-                              )}
 
+                            <td>
+                              <BillUploader
+                                id={id}
+                                expenseId={e.id}
+                                signedUrl={signedUrl}
+                                replaceBill={replaceBill}
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-sm align-middle">
                               {trip.status === "ACTIVE" && (
-                                <>
-                                  <form
-                                    action={replaceBill}
-                                    className="mt-2 flex items-center gap-2"
-                                  >
-                                    <input
-                                      type="hidden"
-                                      name="tripId"
-                                      value={id}
-                                    />
-                                    <input
-                                      type="hidden"
-                                      name="expenseId"
-                                      value={e.id}
-                                    />
-                                    <label
-                                      className="
-    rounded
-    border
-    border-zinc-300
-    px-2
-    py-1
-    text-xs
-    text-zinc-600
-    cursor-pointer
-    hover:bg-zinc-50
-  "
-                                    >
-                                      {" "}
-                                      Replace Bill
-                                    </label>
-                                    <input
-                                      type="file"
-                                      name="bill"
-                                      accept="image/*,application/pdf"
-                                      className="text-xs text-zinc-500"
-                                    />
-                                    <button
-                                      className="
-    rounded
-    bg-zinc-900
-    px-2
-    py-1
-    text-xs
-    font-medium
-    text-white
-    hover:bg-zinc-800
-  "
-                                    >
-                                      {" "}
-                                      Upload
-                                    </button>
-                                  </form>
-
+                                <div className="flex items-center gap-3">
                                   <Link
                                     href={`/trips/${id}?editExpense=${e.id}`}
-                                    className="
-    inline-flex
-    rounded-md
-    border
-    border-zinc-300
-    px-3
-    py-1.5
-    text-xs
-    font-medium
-    text-zinc-700
-    transition
-    hover:bg-zinc-100
-    ml-2
-  "
+                                    className="inline-flex rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100"
                                   >
                                     Edit
                                   </Link>
 
-                                  <form
-                                    action={deleteExpense}
-                                    className="inline ml-2"
-                                  >
+                                  <form action={deleteExpense}>
                                     <input
                                       type="hidden"
                                       name="tripId"
                                       value={id}
                                     />
+
                                     <input
                                       type="hidden"
                                       name="expenseId"
                                       value={e.id}
                                     />
-                                    <button
-                                      className="
-    text-xs
-    font-medium
-    text-red-600
-    hover:text-red-700
-  "
-                                    >
-                                      {" "}
+
+                                    <button className="text-xs font-medium text-red-600 hover:text-red-700">
                                       Delete
                                     </button>
                                   </form>
-                                </>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -1073,7 +631,6 @@ export default async function TripDetailPage(props) {
                       </td>
 
                       <td className="px-4 py-3 text-right font-semibold">
-                        {" "}
                         ₹{totalExpenses.toFixed(0)}
                       </td>
 
@@ -1087,25 +644,26 @@ export default async function TripDetailPage(props) {
           </div>
         )}
         {/* Payment Management */}
-        {trip.status === "ACTIVE" && (
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <div className="mb-5">
-              <h2 className="text-lg font-semibold text-zinc-800">
-                Payment Management
-              </h2>
+        {/* {(trip.status === "ACTIVE" ||
+  trip.status === "CLOSED") && (
+  <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+                <div className="mb-5">
+                  <h2 className="text-lg font-semibold text-zinc-800">
+                    Payment Management
+                  </h2>
 
-              <p className="mt-1 text-sm text-zinc-500">
-                Record incoming customer payments and settlements
-              </p>
-            </div>
-            <form action={addPayment} className="grid grid-cols-2 gap-4">
-              <input type="hidden" name="tripId" value={id} />
-              <input
-                name="amount"
-                type="number"
-                step="0.01"
-                placeholder="Amount"
-                className="
+                  <p className="mt-1 text-sm text-zinc-500">
+                    Record incoming customer payments and settlements
+                  </p>
+                </div>
+                <form action={addPayment} className="grid grid-cols-2 gap-4">
+                  <input type="hidden" name="tripId" value={id} />
+                  <input
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    placeholder="Amount"
+                    className="
   h-11
   rounded-lg
   border
@@ -1117,11 +675,11 @@ export default async function TripDetailPage(props) {
   outline-none
   focus:border-amber-400
 "
-                required
-              />
-              <select
-                name="type"
-                className="
+                    required
+                  />
+                  <select
+                    name="type"
+                    className="
   h-11
   rounded-lg
   border
@@ -1133,15 +691,15 @@ export default async function TripDetailPage(props) {
   outline-none
   focus:border-amber-400
 "
-                required
-              >
-                <option value="">Payment Type</option>
-                <option value="ADVANCE">Advance</option>
-                <option value="SETTLEMENT">Settlement</option>
-              </select>
-              <select
-                name="mode"
-                className="
+                    required
+                  >
+                    <option value="">Payment Type</option>
+                    <option value="ADVANCE">Advance</option>
+                    <option value="SETTLEMENT">Settlement</option>
+                  </select>
+                  <select
+                    name="mode"
+                    className="
   h-11
   rounded-lg
   border
@@ -1153,17 +711,17 @@ export default async function TripDetailPage(props) {
   outline-none
   focus:border-amber-400
 "
-                required
-              >
-                <option value="">Payment Mode</option>
-                <option value="CASH">Cash</option>
-                <option value="UPI">UPI</option>
-                <option value="BANK">Bank</option>
-              </select>
-              <input
-                name="note"
-                placeholder="Note (optional)"
-                className="
+                    required
+                  >
+                    <option value="">Payment Mode</option>
+                    <option value="CASH">Cash</option>
+                    <option value="UPI">UPI</option>
+                    <option value="BANK">Bank</option>
+                  </select>
+                  <input
+                    name="note"
+                    placeholder="Note (optional)"
+                    className="
   h-11
   rounded-lg
   border
@@ -1175,9 +733,9 @@ export default async function TripDetailPage(props) {
   outline-none
   focus:border-amber-400
 "
-              />
-              <button
-                className="
+                  />
+                  <button
+                    className="
     col-span-2
     h-11
     rounded-lg
@@ -1189,12 +747,13 @@ export default async function TripDetailPage(props) {
     transition
     hover:bg-zinc-800
   "
-              >
-                Add Payment
-              </button>
-            </form>
-          </div>
-        )}
+                  >
+                    Add Payment
+                  </button>
+                </form>
+              </div>,
+            )} */}
+        <AddPaymentForm tripId={id} tripStatus={trip.status} />{" "}
         {/*Payment List / cash flow*/}
         {trip.payments.length > 0 && (
           <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">

@@ -2,8 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { calculateExpenses, calculateOutstanding } from "@/lib/finance";
 
-export async function GET() {
-  const now = new Date();
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+
+  const monthParam = searchParams.get("month");
+
+  const now = monthParam ? new Date(`${monthParam}-01`) : new Date();
 
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -13,18 +17,28 @@ export async function GET() {
     now.getMonth() + 1,
   ).padStart(2, "0")}`;
 
-  const maintenance = await prisma.truckMaintenance.findMany({
+  const maintenance = await prisma.truckExpense.findMany({
     where: {
-      month: currentMonth,
+      month: now.getMonth() + 1,
+      year: now.getFullYear(),
+    },
+    include: {
+      truck: true,
     },
   });
 
-  const fixedCost = maintenance.reduce((sum, m) => sum + m.totalCost, 0);
+  const fixedCost = maintenance.reduce((sum, m) => sum + m.amount, 0);
 
   const maintenanceMap = {};
 
   maintenance.forEach((m) => {
-    maintenanceMap[m.truckNumber] = m.totalCost;
+    const truckNumber = m.truck.numberPlate;
+
+    if (!maintenanceMap[truckNumber]) {
+      maintenanceMap[truckNumber] = 0;
+    }
+
+    maintenanceMap[truckNumber] += m.amount;
   });
 
   const closedTrips = await prisma.trip.findMany({
@@ -83,6 +97,33 @@ export async function GET() {
       payments: true,
     },
   });
+
+  const receivableTrips = await prisma.trip.findMany({
+    where: {
+      status: {
+        in: ["ACTIVE", "CLOSED"],
+      },
+    },
+    include: {
+      payments: true,
+    },
+  });
+
+  const outstandingTrips = receivableTrips
+    .map((trip) => {
+      const outstanding = calculateOutstanding(trip);
+
+      return {
+        id: trip.id,
+        source: trip.source,
+        destination: trip.destination,
+        outstanding,
+        status: trip.status,
+      };
+    })
+    .filter((trip) => trip.outstanding > 0)
+    .sort((a, b) => b.outstanding - a.outstanding)
+    .slice(0, 5);
 
   // count
   const activeTrips = activeTripsData.length;
@@ -152,6 +193,7 @@ export async function GET() {
     fixedCost,
     trueNetProfit,
     truckProfitability,
+    outstandingTrips,
 
     statusStrip: {
       activeTrips,
