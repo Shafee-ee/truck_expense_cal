@@ -51,7 +51,7 @@ export async function startTrip(id) {
 //close trip
 
 export async function closeTrip(id) {
-  await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const freshTrip = await tx.trip.findUnique({
       where: { id },
       include: {
@@ -61,31 +61,41 @@ export async function closeTrip(id) {
     });
 
     if (!freshTrip) {
-      throw new Error("Trip not found");
+      return {
+        error: "Trip not found",
+      };
     }
 
     if (freshTrip.status !== "ACTIVE") {
-      throw new Error("Only ACTIVE trips can be closed");
+      return {
+        error: "Only ACTIVE trips can be closed",
+      };
     }
 
     if (freshTrip.closedAt) {
-      throw new Error("Trip is already closed");
+      return {
+        error: "Trip is already closed",
+      };
     }
 
     if (freshTrip.expenses.length === 0) {
-      throw new Error("Cannot close trip without expenses");
+      return { error: "Cannot close trip without expenses" };
     }
 
     const missingBills = freshTrip.expenses.some((e) => !e.billPath);
 
     if (missingBills) {
-      throw new Error("Cannot close trip until all expense bills are uploaded");
+      return {
+        error: "Cannot close trip until all expense bills are uploaded",
+      };
     }
 
     const revenue = calculateRevenue(freshTrip);
 
     if (revenue <= 0) {
-      throw new Error("Cannot close trip without valid revenue");
+      return {
+        error: "Cannot close trip without valid revenue",
+      };
     }
 
     const totalExpenses = calculateExpenses(freshTrip.expenses);
@@ -105,6 +115,10 @@ export async function closeTrip(id) {
       },
     });
   });
+
+  if (result?.error) {
+    return result;
+  }
 
   revalidatePath(`/trips/${id}`);
   revalidatePath("/trips");
@@ -297,8 +311,11 @@ export async function addExpense(formData) {
     fileName: file?.name,
   });
 
-  if (!amount || amount <= 0) return;
-
+  if (!amount || amount <= 0) {
+    return {
+      error: "Invalid expense amount",
+    };
+  }
   let billPath = null;
 
   if (file && file.size > 0) {
@@ -321,18 +338,22 @@ export async function addExpense(formData) {
 
     billPath = fileName;
   }
-  await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const freshTrip = await tx.trip.findUnique({
       where: { id: tripId },
       select: { status: true },
     });
 
     if (!freshTrip) {
-      throw new Error("Trip not found");
+      return {
+        error: "Trip not found",
+      };
     }
 
     if (freshTrip.status !== "ACTIVE") {
-      throw new Error("Only ACTIVE trips can be modified");
+      return {
+        error: "Only ACTIVE trips can be modified",
+      };
     }
 
     const existingExpense = await tx.expense.findFirst({
@@ -345,7 +366,9 @@ export async function addExpense(formData) {
     });
 
     if (existingExpense) {
-      throw new Error("Possible duplicate expense detected");
+      return {
+        error: "Possible duplicate expense detected",
+      };
     }
 
     console.log("billPath:", billPath);
@@ -361,7 +384,9 @@ export async function addExpense(formData) {
       },
     });
   });
-
+  if (result?.error) {
+    return result;
+  }
   revalidatePath(`/trips/${tripId}`);
 }
 

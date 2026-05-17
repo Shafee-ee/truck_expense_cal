@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import BillUploader from "./BillUploader";
+
+import AddExpenseForm from "@/components/AddExpenseForm";
 import {
   startTrip,
   closeTrip,
@@ -478,49 +480,9 @@ export default async function TripDetailPage(props) {
                 </div>
               </div>
             )}
-            <form action={addExpense} className="grid grid-cols-2 gap-4">
-              <input type="hidden" name="tripId" value={id} />
-              <select
-                name="category"
-                className="h-11 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-700 outline-none focus:border-amber-400"
-                required
-              >
-                <option value="">Select Category</option>
-                <option value="FUEL">Fuel</option>
-                <option value="TOLL">Toll</option>
-                <option value="BROKER">Broker / Mamool</option>
-                <option value="POLICE">Police</option>
-                <option value="LOADING">Loading</option>
-                <option value="UNLOADING">Unloading</option>
-                <option value="REPAIR">Repair</option>
-                <option value="OTHER">Other</option>
-              </select>
-              <input
-                name="amount"
-                type="number"
-                step="0.01"
-                placeholder="Amount"
-                className="h-11 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-700 outline-none focus:border-amber-400"
-                required
-              />
 
-              <input
-                name="note"
-                placeholder="Note (optional)"
-                className="h-11 rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-700 outline-none focus:border-amber-400"
-              />
+            <AddExpenseForm tripId={id} />
 
-              <input
-                type="file"
-                name="bill"
-                accept="image/*,application/pdf"
-                className="flex h-11 items-center rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-600"
-              />
-
-              <button className="col-span-2 h-11 rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-800">
-                Add Expense
-              </button>
-            </form>
             {trip.expenses.length > 0 && (
               <div className="mt-6 border-t border-zinc-200 pt-6">
                 {" "}
@@ -643,116 +605,6 @@ export default async function TripDetailPage(props) {
             )}
           </div>
         )}
-        {/* Payment Management */}
-        {/* {(trip.status === "ACTIVE" ||
-  trip.status === "CLOSED") && (
-  <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-                <div className="mb-5">
-                  <h2 className="text-lg font-semibold text-zinc-800">
-                    Payment Management
-                  </h2>
-
-                  <p className="mt-1 text-sm text-zinc-500">
-                    Record incoming customer payments and settlements
-                  </p>
-                </div>
-                <form action={addPayment} className="grid grid-cols-2 gap-4">
-                  <input type="hidden" name="tripId" value={id} />
-                  <input
-                    name="amount"
-                    type="number"
-                    step="0.01"
-                    placeholder="Amount"
-                    className="
-  h-11
-  rounded-lg
-  border
-  border-zinc-300
-  bg-white
-  px-3
-  text-sm
-  text-zinc-700
-  outline-none
-  focus:border-amber-400
-"
-                    required
-                  />
-                  <select
-                    name="type"
-                    className="
-  h-11
-  rounded-lg
-  border
-  border-zinc-300
-  bg-white
-  px-3
-  text-sm
-  text-zinc-700
-  outline-none
-  focus:border-amber-400
-"
-                    required
-                  >
-                    <option value="">Payment Type</option>
-                    <option value="ADVANCE">Advance</option>
-                    <option value="SETTLEMENT">Settlement</option>
-                  </select>
-                  <select
-                    name="mode"
-                    className="
-  h-11
-  rounded-lg
-  border
-  border-zinc-300
-  bg-white
-  px-3
-  text-sm
-  text-zinc-700
-  outline-none
-  focus:border-amber-400
-"
-                    required
-                  >
-                    <option value="">Payment Mode</option>
-                    <option value="CASH">Cash</option>
-                    <option value="UPI">UPI</option>
-                    <option value="BANK">Bank</option>
-                  </select>
-                  <input
-                    name="note"
-                    placeholder="Note (optional)"
-                    className="
-  h-11
-  rounded-lg
-  border
-  border-zinc-300
-  bg-white
-  px-3
-  text-sm
-  text-zinc-700
-  outline-none
-  focus:border-amber-400
-"
-                  />
-                  <button
-                    className="
-    col-span-2
-    h-11
-    rounded-lg
-    bg-zinc-900
-    px-4
-    text-sm
-    font-medium
-    text-white
-    transition
-    hover:bg-zinc-800
-  "
-                  >
-                    Add Payment
-                  </button>
-                </form>
-              </div>,
-            )} */}
         <AddPaymentForm tripId={id} tripStatus={trip.status} />{" "}
         {/*Payment List / cash flow*/}
         {trip.payments.length > 0 && (
