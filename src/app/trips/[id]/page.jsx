@@ -10,6 +10,7 @@ import Link from "next/link";
 import BillUploader from "./BillUploader";
 
 import AddExpenseForm from "@/components/AddExpenseForm";
+import CloseTripButton from "@/components/CloseTripButton";
 import {
   startTrip,
   closeTrip,
@@ -29,6 +30,9 @@ import {
   calculateBalance,
 } from "@/lib/finance";
 import { Upload, BookX, RefreshCcw } from "lucide-react";
+
+const formatCurrency = (num) => new Intl.NumberFormat("en-IN").format(num);
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -84,7 +88,7 @@ export default async function TripDetailPage(props) {
   const outstanding = calculateOutstanding(trip);
   const hasRevenue = revenue > 0;
   const hasOutstanding = outstanding > 0;
-  const canClose = hasRevenue && !hasOutstanding && trip.expenses.length > 0;
+  const canClose = hasRevenue && trip.expenses.length > 0;
 
   const balance =
     trip.status === "CLOSED" ? trip.finalBalance || 0 : calculateBalance(trip);
@@ -315,17 +319,7 @@ export default async function TripDetailPage(props) {
           )}
           {trip.status === "ACTIVE" && (
             <details className="rounded-lg border border-red-200 bg-red-50">
-              <summary
-                className="
-    cursor-pointer
-    list-none
-    px-5
-    py-4
-    text-sm
-    font-semibold
-    text-red-700
-  "
-              >
+              <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-red-700">
                 Review & Close Trip
               </summary>
               <div className="border-t border-red-200 px-5 py-5 text-sm">
@@ -347,31 +341,11 @@ export default async function TripDetailPage(props) {
                   </p>
                 )}
                 {hasOutstanding && (
-                  <p className="text-red-600 font-semibold">
-                    Cannot close trip- ₹{outstanding.toFixed(0)} is still
-                    outstanding.{" "}
-                    <span className="text-red-400">
-                      This receivable will remain active after closing.
-                    </span>
+                  <p className="mt-3 text-sm font-medium text-amber-600">
+                    Outstanding Amount: ₹{formatCurrency(outstanding)}
                   </p>
                 )}
-                <form
-                  action={async () => {
-                    "use server";
-                    await closeTrip(id);
-                  }}
-                >
-                  <button
-                    disabled={!canClose}
-                    className={`mt-4 h-11 rounded-lg px-5 text-sm font-medium text-white transition ${
-                      canClose
-                        ? "bg-red-600 hover:bg-red-700"
-                        : "bg-zinc-300 cursor-not-allowed"
-                    }`}
-                  >
-                    Confirm & close
-                  </button>
-                </form>
+                <CloseTripButton id={id} canClose={canClose} />
               </div>
             </details>
           )}
