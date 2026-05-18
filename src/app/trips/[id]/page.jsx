@@ -8,9 +8,11 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import BillUploader from "./BillUploader";
-
 import AddExpenseForm from "@/components/AddExpenseForm";
 import CloseTripButton from "@/components/CloseTripButton";
+import StartTripButton from "@/components/StartTripButton";
+import UpdateActualQtyForm from "@/components/UpdateActualQtyForm";
+import EditExpenseForm from "@/components/EditExpenseForm";
 import {
   startTrip,
   closeTrip,
@@ -19,7 +21,6 @@ import {
   deleteExpense,
   addExpense,
   replaceBill,
-  updateExpense,
 } from "./actions";
 
 import {
@@ -199,7 +200,7 @@ export default async function TripDetailPage(props) {
 
               {trip.grossAmount ? (
                 <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
-                  Gross Amount
+                  Fixed Revenue
                 </span>
               ) : (
                 <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600">
@@ -256,67 +257,14 @@ export default async function TripDetailPage(props) {
                 Update delivered quantity for final revenue calculation
               </p>
             </div>
-            <form
-              action={async (formData) => {
-                "use server";
-                await updateActualQty(formData);
-              }}
-              className="flex items-end gap-3"
-            >
-              <input type="hidden" name="tripId" value={id} />
-              <input
-                name="actualQty"
-                type="number"
-                step="0.01"
-                defaultValue={trip.actualQty ?? ""}
-                placeholder="Enter actual quantity"
-                className="
-  h-10
-  w-64
-  rounded-lg
-  border
-  border-zinc-300
-  bg-white
-  px-3
-  text-sm
-  text-zinc-700
-  outline-none
-  focus:border-amber-400
-"
-                required
-              />
-              <button
-                className="
-  h-10
-  rounded-lg
-  bg-zinc-900
-  px-4
-  text-sm
-  font-medium
-  text-white
-  transition
-  hover:bg-zinc-800
-"
-              >
-                Update Quantity
-              </button>
-            </form>
+            {trip.status === "ACTIVE" && !trip.grossAmount && (
+              <UpdateActualQtyForm tripId={id} actualQty={trip.actualQty} />
+            )}
           </div>
         )}
         {/*Trip Lifecyle Action*/}
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-          {trip.status === "PLANNED" && (
-            <form
-              action={async () => {
-                "use server";
-                await startTrip(id);
-              }}
-            >
-              <button className="bg-blue-600 text-white px-4 py-2">
-                Start Trip
-              </button>
-            </form>
-          )}
+          {trip.status === "PLANNED" && <StartTripButton tripId={id} />}
           {trip.status === "ACTIVE" && (
             <details className="rounded-lg border border-red-200 bg-red-50">
               <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-red-700">
@@ -334,7 +282,7 @@ export default async function TripDetailPage(props) {
                   <li>•All bills are uploaded</li>
                   <li>•Revenue and balance look correct</li>
                 </ul>
-                {!hasRevenue && (
+                {!hasRevenue && !trip.grossAmount && (
                   <p className="text-red-600 font-semibold">
                     Cannot close trip: Actual quantity is missing, so revenue is
                     0.
@@ -351,79 +299,7 @@ export default async function TripDetailPage(props) {
           )}
         </div>
         {editingExpense && (
-          <div className="rounded-lg border border-blue-300 bg-blue-50 p-4">
-            <form
-              action={async (formData) => {
-                "use server";
-
-                await updateExpense(formData);
-              }}
-              className="space-y-4"
-            >
-              <input type="hidden" name="expenseId" value={editingExpense.id} />
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700">
-                  Category
-                </label>
-
-                <select
-                  name="category"
-                  defaultValue={editingExpense.category}
-                  className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm"
-                >
-                  <option value="FUEL">Fuel</option>
-                  <option value="TOLL">Toll</option>
-                  <option value="BROKER">Broker / Mamool</option>
-                  <option value="POLICE">Police</option>
-                  <option value="LOADING">Loading</option>
-                  <option value="UNLOADING">Unloading</option>
-                  <option value="REPAIR">Repair</option>
-                  <option value="OTHER">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700">
-                  Amount
-                </label>
-
-                <input
-                  type="number"
-                  step="0.01"
-                  name="amount"
-                  defaultValue={editingExpense.amount}
-                  className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700">
-                  Note
-                </label>
-
-                <input
-                  type="text"
-                  name="note"
-                  defaultValue={editingExpense.note || ""}
-                  className="h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm"
-                />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white">
-                  Update Expense
-                </button>
-
-                <Link
-                  href={`/trips/${id}`}
-                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm"
-                >
-                  Cancel
-                </Link>
-              </div>
-            </form>
-          </div>
+          <EditExpenseForm expense={editingExpense} tripId={id} />
         )}
         {/*expense management for ACTIVE trip*/}
         {trip.status === "ACTIVE" && (

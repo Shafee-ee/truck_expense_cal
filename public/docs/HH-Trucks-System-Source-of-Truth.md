@@ -2265,3 +2265,72 @@ Add export/report generation
 Mobile responsiveness cleanup
 
 Clean remaining oversized page.jsx into components
+
+####
+
+HH Trucks / Logisco — Current Operational Status
+
+DONE
+
+- Dashboard fully dynamic with month filtering
+- Operational Profit / Fixed Cost / True Net Profit working
+- Truck profitability working
+- Loss-making trips section working
+- Outstanding receivables working
+- Cash deployed tracking working
+- Pending collections section working
+- Active trip expense visibility working
+- Dashboard month selector functional
+- Close trip workflow improved
+- Trips can close even with pending receivables
+- Outstanding shown after closure
+- Added transaction-safe validation architecture:
+  server action → structured return → client toast
+- Payments converted to toast UX
+- Expenses converted to toast UX
+- Close trip converted to toast UX
+- Duplicate payment prevention working
+- Duplicate expense prevention working
+- Overpayment prevention working
+- Active-trip-only validation for expenses/payments working
+- Prevent multiple ACTIVE trips for same truck
+- Bill upload enforcement before close working
+- Runtime crash-screen dependency reduced significantly
+
+REMAINING FORMS / ACTIONS TO CONVERT TO TOAST ARCHITECTURE
+
+- CreateTrip form
+- startTrip()
+- updateExpense()
+- deleteExpense()
+- replaceBill()
+- updateActualQty()
+- Truck expense forms
+- Truck creation/edit forms
+
+IMPORTANT REMAINING OPERATIONAL TASKS
+
+- Convert Create Trip page to client component + toast flow
+- Add success/error/loading states everywhere
+- Reset forms after successful submission
+- Disable buttons while submitting
+- Add confirmation modal for destructive actions
+- Add audit fields later (who closed trip, who edited)
+- Improve truck operational history page
+- Add monthly export/report later
+- Improve mobile responsiveness
+- Add authentication/roles later
+- Add better loading skeletons/spinners
+- Add empty states where missing
+
+CURRENT STATE
+Project has crossed from “demo” into usable operations software.
+Core logistics/accounting workflow is now structurally sound:
+
+- trip lifecycle
+- expense tracking
+- receivables
+- truck profitability
+- operational reporting
+- financial visibility
+- validation integrity

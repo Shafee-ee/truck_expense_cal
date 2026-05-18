@@ -19,35 +19,58 @@ const supabase = createClient(
 );
 
 export async function startTrip(id) {
-  await prisma.$transaction(async (tx) => {
-    const freshTrip = await tx.trip.findUnique({
-      where: { id },
-      select: { status: true },
-    });
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id },
+        select: {
+          status: true,
+        },
+      });
 
-    if (!freshTrip) {
+      if (!freshTrip) {
+        return {
+          error: "Trip not found",
+        };
+      }
+
+      if (freshTrip.status !== "PLANNED") {
+        return {
+          error: "Only PLANNED trips can be started",
+        };
+      }
+
+      await tx.trip.update({
+        where: { id },
+        data: {
+          status: "ACTIVE",
+          startDate: new Date(),
+        },
+      });
+
       return {
-        error: "Trip not found",
+        success: true,
       };
-    }
-
-    if (freshTrip.status !== "PLANNED") {
-      throw new Error("Only PLANNED trips can be started");
-    }
-
-    await tx.trip.update({
-      where: { id },
-      data: {
-        status: "ACTIVE",
-        startDate: new Date(),
-      },
     });
-  });
 
-  revalidatePath(`/trips/${id}`);
-  revalidatePath("/trips");
+    if (result?.error) {
+      return result;
+    }
+
+    revalidatePath(`/trips/${id}`);
+    revalidatePath("/trips");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      error: "Failed to start trip",
+    };
+  }
 }
-
 //close trip
 
 export async function closeTrip(id) {

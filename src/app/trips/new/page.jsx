@@ -1,46 +1,9 @@
 export const runtime = "nodejs";
 
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+import CreateTripForm from "@/components/CreateTripForm";
 
 export default async function NewTripPage() {
-  async function createTrip(formData) {
-    "use server";
-
-    const truckId = formData.get("truckId");
-    const source = formData.get("source");
-    const destination = formData.get("destination");
-    const estimatedQty = Number(formData.get("estimatedQty")) || null;
-    const ratePerUnit = Number(formData.get("ratePerUnit")) || null;
-    const grossAmount = Number(formData.get("grossAmount")) || null;
-    const calculatedRevenue = (estimatedQty || 0) * (ratePerUnit || 0);
-
-    if (
-      grossAmount &&
-      calculatedRevenue > 0 &&
-      Math.abs(grossAmount - calculatedRevenue) > 1
-    ) {
-      console.warn(
-        `Gross Amount (${grossAmount}) differs from Qty × Rate (${calculatedRevenue})`,
-      );
-    }
-
-    //create trip for truck
-    await prisma.trip.create({
-      data: {
-        truckId,
-        source,
-        destination,
-        estimatedQty,
-        ratePerUnit,
-        grossAmount,
-        status: "PLANNED",
-      },
-    });
-
-    redirect("/trips");
-  }
-
   const trucks = await prisma.truck.findMany({
     orderBy: { numberPlate: "asc" },
   });
@@ -60,85 +23,7 @@ export default async function NewTripPage() {
     <div className="p-6 bg-blue-50">
       <h1 className="text-2xl font-bold mb-4">Create Trip</h1>
 
-      <form action={createTrip} className="space-y-4  ">
-        <div>
-          <label className="block text-sm font-medium">Truck</label>
-          <select name="truckId" required className="border p-2 w-full">
-            <option value="">Select Truck</option>
-
-            {trucks.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.numberPlate}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Source</label>
-          <input
-            name="source"
-            list="source-cities"
-            required
-            className="border p-2 w-full"
-          />
-          <datalist id="source-cities">
-            {cities.map((city) => (
-              <option key={city} value={city} />
-            ))}
-          </datalist>{" "}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Destination</label>
-          <input
-            name="destination"
-            list="destination-cities"
-            required
-            className="border p-2 w-full"
-          />
-          <datalist id="destination-cities">
-            {cities.map((city) => (
-              <option key={city} value={city} />
-            ))}
-          </datalist>{" "}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Estimated Qty</label>
-          <input
-            name="estimatedQty"
-            type="number"
-            step="0.01"
-            className="border p-2 w-full"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium ">Rate/Unit</label>
-          <input
-            type="number"
-            name="ratePerUnit"
-            step="0.01"
-            className="border p-2 w-full"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium">Gross Amount</label>
-
-          <input
-            name="grossAmount"
-            type="number"
-            step="0.01"
-            className="border p-2 w-full"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            If provided, Gross Amount overrides Qty × Rate calculations.
-          </p>
-        </div>
-
-        <button className="bg-black text-white px-4 py-2">Create Trip</button>
-      </form>
+      <CreateTripForm trucks={trucks} cities={cities} />
     </div>
   );
 }
