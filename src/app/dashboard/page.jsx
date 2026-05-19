@@ -382,9 +382,17 @@ export default async function DashboardPage(props) {
               p-4
               "
                   >
-                    <span className="font-medium">
-                      {trip.source} → {trip.destination}
-                    </span>
+                    <div>
+                      <span className="font-medium">
+                        {trip.source} →{trip.destination}
+                      </span>
+
+                      <div className="text-xs text-gray-500 mt-1">
+                        {trip.tripDays} days • ₹
+                        {formatCurrency(Math.round(trip.earningsPerDay))}
+                        /day
+                      </div>
+                    </div>
 
                     <span className="text-red-600 font-bold">
                       -₹{formatCurrency(Math.abs(trip.finalBalance ?? 0))}
@@ -434,7 +442,7 @@ export default async function DashboardPage(props) {
               </p>
             ) : (
               <div className="space-y-3">
-                {data.truckProfitability.map((truck) => (
+                {data.truckProfitability.slice(0, 5).map((truck) => (
                   <div
                     key={truck.truckNumber}
                     className="
@@ -458,11 +466,13 @@ export default async function DashboardPage(props) {
                     </div>
 
                     <div className="mt-2 text-sm text-gray-500">
-                      Trip Profit: ₹{formatCurrency(truck.tripProfit)}
+                      Trips Completed:
+                      {truck.tripCount}
                     </div>
 
                     <div className="text-sm text-gray-500">
-                      Maintenance: ₹{formatCurrency(truck.maintenanceCost)}
+                      Earnings/Day: ₹
+                      {formatCurrency(Math.round(truck.earningsPerDay))}
                     </div>
                   </div>
                 ))}

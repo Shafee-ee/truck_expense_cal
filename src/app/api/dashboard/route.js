@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { calculateExpenses, calculateOutstanding } from "@/lib/finance";
-
+import {
+  calculateExpenses,
+  calculateOutstanding,
+  calculateEarningsPerDay,
+  calculateTripDays,
+} from "@/lib/finance";
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
 
@@ -67,25 +71,38 @@ export async function GET(request) {
     },
   });
 
-  // Loss-making trips (this month)
-  const lossTrips = await prisma.trip.findMany({
+  // Loss-making / inefficient trips
+  const rawLossTrips = await prisma.trip.findMany({
     where: {
       status: "CLOSED",
       closedAt: {
         gte: startOfMonth,
         lt: startOfNextMonth,
       },
-      finalBalance: {
-        lt: 0,
-      },
     },
-    select: {
-      id: true,
-      source: true,
-      destination: true,
-      finalBalance: true,
+    include: {
+      expenses: true,
+      payments: true,
+      truck: true,
     },
   });
+
+  const lossTrips = rawLossTrips
+    .map((trip) => {
+      const earningsPerDay = calculateEarningsPerDay(trip);
+
+      return {
+        id: trip.id,
+        source: trip.source,
+        destination: trip.destination,
+        finalBalance: trip.finalBalance || 0,
+        earningsPerDay,
+        tripDays: calculateTripDays(trip),
+      };
+    })
+    .filter((trip) => trip.finalBalance < 0 || trip.earningsPerDay < 2000)
+    .sort((a, b) => a.earningsPerDay - b.earningsPerDay)
+    .slice(0, 5);
 
   // ACTIVE trips
   const activeTripsData = await prisma.trip.findMany({
@@ -149,25 +166,36 @@ export async function GET(request) {
     const truckNumber = trip.truck.numberPlate;
 
     if (!truckProfitMap[truckNumber]) {
-      truckProfitMap[truckNumber] = 0;
+      truckProfitMap[truckNumber] = {
+        tripProfit: 0,
+        tripCount: 0,
+        totalDays: 0,
+      };
     }
 
-    truckProfitMap[truckNumber] += trip.finalBalance || 0;
+    truckProfitMap[truckNumber].tripProfit += trip.finalBalance || 0;
+
+    truckProfitMap[truckNumber].tripCount += 1;
+
+    truckProfitMap[truckNumber].totalDays += calculateTripDays(trip);
   });
 
   //truck profitability
-  const truckProfitability = Object.entries(truckProfitMap).map(
-    ([truckNumber, tripProfit]) => {
+  const truckProfitability = Object.entries(truckProfitMap)
+    .map(([truckNumber, { tripProfit, tripCount, totalDays }]) => {
       const maintenanceCost = maintenanceMap[truckNumber] || 0;
-
+      const earningsPerDay =
+        totalDays > 0 ? tripProfit / totalDays : tripProfit;
       return {
         truckNumber,
         tripProfit,
         maintenanceCost,
+        tripCount,
+        earningsPerDay,
         netProfit: tripProfit - maintenanceCost,
       };
-    },
-  );
+    })
+    .sort((a, b) => b.netProfit - a.netProfit);
 
   // Outstanding amount from active trips
   const outstandingAmount = activeTripsData.reduce((sum, trip) => {
