@@ -198,13 +198,13 @@ export default async function TripDetailPage(props) {
                 ₹{revenue.toFixed(0)}
               </p>
 
-              {trip.grossAmount ? (
+              {trip.revenueMode === "FIXED" ? (
                 <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
                   Fixed Revenue
                 </span>
               ) : (
                 <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600">
-                  Qty × Rate
+                  Quantity Based
                 </span>
               )}
             </div>
@@ -257,7 +257,7 @@ export default async function TripDetailPage(props) {
                 Update delivered quantity for final revenue calculation
               </p>
             </div>
-            {trip.status === "ACTIVE" && !trip.grossAmount && (
+            {trip.status === "ACTIVE" && trip.revenueMode === "VARIABLE" && (
               <UpdateActualQtyForm tripId={id} actualQty={trip.actualQty} />
             )}
           </div>
@@ -282,7 +282,7 @@ export default async function TripDetailPage(props) {
                   <li>•All bills are uploaded</li>
                   <li>•Revenue and balance look correct</li>
                 </ul>
-                {!hasRevenue && !trip.grossAmount && (
+                {!hasRevenue && trip.revenueMode === "VARIABLE" && (
                   <p className="text-red-600 font-semibold">
                     Cannot close trip: Actual quantity is missing, so revenue is
                     0.

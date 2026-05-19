@@ -33,7 +33,6 @@ model Truck {
   numberPlate    String   @unique
   companyId      String
   createdAt      DateTime @default(now())
-  dailyFixedCost Float?
   trips          Trip[]
     truckExpenses  TruckExpense[]
 
@@ -81,6 +80,7 @@ model Trip {
   actualQty     Float?
   ratePerUnit   Float?
   grossAmount Float?
+  revenueMode RevenueMode @default(FIXED)
   startDate     DateTime?
   endDate       DateTime?
   status        TripStatus @default(PLANNED)
@@ -99,6 +99,11 @@ enum TripStatus {
   PLANNED
   ACTIVE
   CLOSED
+}
+
+enum RevenueMode {
+  FIXED
+  VARIABLE
 }
 
 enum ExpenseCategory {

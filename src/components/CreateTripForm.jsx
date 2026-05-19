@@ -84,6 +84,7 @@ export default function CreateTripForm({ trucks, cities }) {
           <label className="flex items-center gap-2">
             <input
               type="radio"
+              name="revenueMode"
               value="FIXED"
               checked={revenueMode === "FIXED"}
               onChange={(e) => setRevenueMode(e.target.value)}
@@ -94,6 +95,7 @@ export default function CreateTripForm({ trucks, cities }) {
           <label className="flex items-center gap-2">
             <input
               type="radio"
+              name="revenueMode"
               value="VARIABLE"
               checked={revenueMode === "VARIABLE"}
               onChange={(e) => setRevenueMode(e.target.value)}

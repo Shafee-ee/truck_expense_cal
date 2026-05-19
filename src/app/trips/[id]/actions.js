@@ -2,7 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import {
   calculateRevenue,
   calculateExpenses,
@@ -74,114 +73,163 @@ export async function startTrip(id) {
 //close trip
 
 export async function closeTrip(id) {
-  const result = await prisma.$transaction(async (tx) => {
-    const freshTrip = await tx.trip.findUnique({
-      where: { id },
-      include: {
-        expenses: true,
-        payments: true,
-      },
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id },
+        include: {
+          expenses: true,
+          payments: true,
+        },
+      });
+
+      if (!freshTrip) {
+        return {
+          error: "Trip not found",
+        };
+      }
+
+      if (freshTrip.status !== "ACTIVE") {
+        return {
+          error: "Only ACTIVE trips can be closed",
+        };
+      }
+
+      if (freshTrip.closedAt) {
+        return {
+          error: "Trip is already closed",
+        };
+      }
+
+      if (freshTrip.expenses.length === 0) {
+        return {
+          error: "Cannot close trip without expenses",
+        };
+      }
+
+      const missingBills = freshTrip.expenses.some((e) => !e.billPath);
+
+      if (missingBills) {
+        return {
+          error: "Cannot close trip until all expense bills are uploaded",
+        };
+      }
+
+      const revenue = calculateRevenue(freshTrip);
+
+      if (revenue <= 0) {
+        return {
+          error: "Cannot close trip without valid revenue",
+        };
+      }
+
+      const totalExpenses = calculateExpenses(freshTrip.expenses);
+
+      const balance = calculateBalance(freshTrip);
+
+      await tx.trip.update({
+        where: { id },
+        data: {
+          status: "CLOSED",
+          endDate: new Date(),
+          closedAt: new Date(),
+          closedBy: "operator",
+          finalRevenue: revenue,
+          finalExpenses: totalExpenses,
+          finalBalance: balance,
+        },
+      });
+
+      return {
+        success: true,
+      };
     });
 
-    if (!freshTrip) {
-      return {
-        error: "Trip not found",
-      };
+    if (result?.error) {
+      return result;
     }
 
-    if (freshTrip.status !== "ACTIVE") {
-      return {
-        error: "Only ACTIVE trips can be closed",
-      };
-    }
+    revalidatePath(`/trips/${id}`);
+    revalidatePath("/trips");
 
-    if (freshTrip.closedAt) {
-      return {
-        error: "Trip is already closed",
-      };
-    }
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(error);
 
-    if (freshTrip.expenses.length === 0) {
-      return { error: "Cannot close trip without expenses" };
-    }
-
-    const missingBills = freshTrip.expenses.some((e) => !e.billPath);
-
-    if (missingBills) {
-      return {
-        error: "Cannot close trip until all expense bills are uploaded",
-      };
-    }
-
-    const revenue = calculateRevenue(freshTrip);
-
-    if (revenue <= 0) {
-      return {
-        error: "Cannot close trip without valid revenue",
-      };
-    }
-
-    const totalExpenses = calculateExpenses(freshTrip.expenses);
-
-    const balance = calculateBalance(freshTrip);
-
-    await tx.trip.update({
-      where: { id },
-      data: {
-        status: "CLOSED",
-        endDate: new Date(),
-        closedAt: new Date(),
-        closedBy: "operator",
-        finalRevenue: revenue,
-        finalExpenses: totalExpenses,
-        finalBalance: balance,
-      },
-    });
-  });
-
-  if (result?.error) {
-    return result;
+    return {
+      error: "Failed to close trip",
+    };
   }
-
-  revalidatePath(`/trips/${id}`);
-  revalidatePath("/trips");
 }
 
 export async function updateActualQty(formData) {
   const tripId = formData.get("tripId");
+
   const actualQty = Number(formData.get("actualQty"));
 
-  if (!tripId) {
-    throw new Error("Trip ID missing");
-  }
-
-  if (!actualQty || actualQty <= 0) {
-    throw new Error("Actual quantity must be greater than 0");
-  }
-
-  await prisma.$transaction(async (tx) => {
-    const freshTrip = await tx.trip.findUnique({
-      where: { id: tripId },
-      select: { status: true },
-    });
-
-    if (!freshTrip) {
-      throw new Error("Trip not found");
+  try {
+    if (!tripId) {
+      return {
+        error: "Trip ID missing",
+      };
     }
 
-    if (freshTrip.status !== "ACTIVE") {
-      throw new Error("Only ACTIVE trips can be modified");
+    if (!actualQty || actualQty <= 0) {
+      return {
+        error: "Actual quantity must be greater than 0",
+      };
     }
 
-    await tx.trip.update({
-      where: { id: tripId },
-      data: {
-        actualQty,
-      },
-    });
-  });
+    const result = await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id: tripId },
+        select: {
+          status: true,
+        },
+      });
 
-  revalidatePath(`/trips/${tripId}`);
+      if (!freshTrip) {
+        return {
+          error: "Trip not found",
+        };
+      }
+
+      if (freshTrip.status !== "ACTIVE") {
+        return {
+          error: "Only ACTIVE trips can be modified",
+        };
+      }
+
+      await tx.trip.update({
+        where: { id: tripId },
+        data: {
+          actualQty,
+        },
+      });
+
+      return {
+        success: true,
+      };
+    });
+
+    if (result?.error) {
+      return result;
+    }
+
+    revalidatePath(`/trips/${tripId}`);
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      error: "Failed to update actual quantity",
+    };
+  }
 }
 
 export async function addPayment(formData) {
@@ -190,7 +238,9 @@ export async function addPayment(formData) {
   const tripId = formData.get("tripId");
 
   if (!tripId) {
-    throw new Error("Trip ID missing");
+    return {
+      error: "Trip ID missing",
+    };
   }
 
   const paymentAmount = Number(formData.get("amount"));
@@ -268,46 +318,77 @@ export async function deleteExpense(formData) {
   "use server";
 
   const tripId = formData.get("tripId");
+
   const expenseId = formData.get("expenseId");
 
-  if (!tripId || !expenseId) {
-    throw new Error("Missing identifiers");
-  }
-
-  await prisma.$transaction(async (tx) => {
-    const freshTrip = await tx.trip.findUnique({
-      where: { id: tripId },
-      select: { status: true },
-    });
-
-    if (!freshTrip) {
+  try {
+    if (!tripId || !expenseId) {
       return {
-        error: "Trip not found",
+        error: "Missing identifiers",
       };
     }
 
-    if (freshTrip.status !== "ACTIVE") {
-      throw new Error("Only ACTIVE trips can be modified");
-    }
+    const result = await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id: tripId },
+        select: {
+          status: true,
+        },
+      });
 
-    const expense = await tx.expense.findUnique({
-      where: { id: expenseId },
+      if (!freshTrip) {
+        return {
+          error: "Trip not found",
+        };
+      }
+
+      if (freshTrip.status !== "ACTIVE") {
+        return {
+          error: "Only ACTIVE trips can be modified",
+        };
+      }
+
+      const expense = await tx.expense.findUnique({
+        where: { id: expenseId },
+      });
+
+      if (!expense) {
+        return {
+          error: "Expense not found",
+        };
+      }
+
+      if (expense.tripId !== tripId) {
+        return {
+          error: "Expense does not belong to this trip",
+        };
+      }
+
+      await tx.expense.delete({
+        where: { id: expenseId },
+      });
+
+      return {
+        success: true,
+      };
     });
 
-    if (!expense) {
-      throw new Error("Expense not found");
+    if (result?.error) {
+      return result;
     }
 
-    if (expense.tripId !== tripId) {
-      throw new Error("Expense does not belong to this trip");
-    }
+    revalidatePath(`/trips/${tripId}`);
 
-    await tx.expense.delete({
-      where: { id: expenseId },
-    });
-  });
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(error);
 
-  revalidatePath(`/trips/${tripId}`);
+    return {
+      error: "Failed to delete expense",
+    };
+  }
 }
 
 // add expense
@@ -356,7 +437,9 @@ export async function addExpense(formData) {
 
     if (error) {
       console.error("Supabase upload error:", error);
-      throw new Error("Bill upload failed");
+      return {
+        error: "Bill upload failed",
+      };
     }
 
     billPath = fileName;
@@ -376,21 +459,6 @@ export async function addExpense(formData) {
     if (freshTrip.status !== "ACTIVE") {
       return {
         error: "Only ACTIVE trips can be modified",
-      };
-    }
-
-    const existingExpense = await tx.expense.findFirst({
-      where: {
-        tripId,
-        category,
-        amount,
-        note,
-      },
-    });
-
-    if (existingExpense) {
-      return {
-        error: "Possible duplicate expense detected",
       };
     }
 
@@ -419,106 +487,186 @@ export async function replaceBill(formData) {
 
   const tripId = formData.get("tripId");
 
-  if (!tripId) {
-    throw new Error("Trip ID missing");
-  }
-
   const expenseId = formData.get("expenseId");
+
   const file = formData.get("bill");
 
-  if (!expenseId) {
-    throw new Error("Expense ID missing");
+  try {
+    if (!tripId) {
+      return {
+        error: "Trip ID missing",
+      };
+    }
+
+    if (!expenseId) {
+      return {
+        error: "Expense ID missing",
+      };
+    }
+
+    if (!file || file.size === 0) {
+      return {
+        error: "Bill file missing",
+      };
+    }
+
+    const bytes = await file.arrayBuffer();
+
+    const buffer = Buffer.from(bytes);
+
+    const fileExt = file.name.split(".").pop();
+
+    const fileName = `${tripId}/${crypto.randomUUID()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from("expense-bills")
+      .upload(fileName, buffer, {
+        contentType: file.type,
+      });
+
+    if (error) {
+      console.error(error);
+
+      return {
+        error: "Bill upload failed",
+      };
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const freshTrip = await tx.trip.findUnique({
+        where: { id: tripId },
+        select: {
+          status: true,
+        },
+      });
+
+      if (!freshTrip) {
+        return {
+          error: "Trip not found",
+        };
+      }
+
+      if (freshTrip.status !== "ACTIVE") {
+        return {
+          error: "Only ACTIVE trips can be modified",
+        };
+      }
+
+      const expense = await tx.expense.findUnique({
+        where: {
+          id: expenseId,
+        },
+      });
+
+      if (!expense) {
+        return {
+          error: "Expense not found",
+        };
+      }
+
+      if (expense.tripId !== tripId) {
+        return {
+          error: "Expense does not belong to this trip",
+        };
+      }
+
+      await tx.expense.update({
+        where: {
+          id: expenseId,
+        },
+        data: {
+          billPath: fileName,
+        },
+      });
+
+      return {
+        success: true,
+      };
+    });
+
+    if (result?.error) {
+      return result;
+    }
+
+    revalidatePath(`/trips/${tripId}`);
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      error: "Failed to replace bill",
+    };
   }
-
-  if (!file || file.size === 0) {
-    throw new Error("Bill file missing");
-  }
-
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  const fileExt = file.name.split(".").pop();
-  const fileName = `${tripId}/${crypto.randomUUID()}.${fileExt}`;
-
-  const { error } = await supabase.storage
-    .from("expense-bills")
-    .upload(fileName, buffer, {
-      contentType: file.type,
-    });
-
-  if (error) {
-    throw new Error("Bill upload failed");
-  }
-
-  await prisma.$transaction(async (tx) => {
-    const freshTrip = await tx.trip.findUnique({
-      where: { id: tripId },
-      select: { status: true },
-    });
-
-    if (!freshTrip) {
-      throw new Error("Trip not found");
-    }
-
-    if (freshTrip.status !== "ACTIVE") {
-      throw new Error("Only ACTIVE trips can be modified");
-    }
-
-    const expense = await tx.expense.findUnique({
-      where: { id: expenseId },
-    });
-
-    if (!expense) {
-      throw new Error("Expense not found");
-    }
-
-    if (expense.tripId !== tripId) {
-      throw new Error("Expense does not belong to this trip");
-    }
-
-    await tx.expense.update({
-      where: { id: expenseId },
-      data: {
-        billPath: fileName,
-      },
-    });
-  });
-
-  revalidatePath(`/trips/${tripId}`);
 }
-
 export async function updateExpense(formData) {
   const expenseId = formData.get("expenseId");
 
   const category = formData.get("category");
+
   const amount = Number(formData.get("amount"));
+
   const note = formData.get("note");
 
-  const expense = await prisma.expense.findUnique({
-    where: {
-      id: expenseId,
-    },
-    include: {
-      trip: true,
-    },
-  });
+  try {
+    if (!expenseId) {
+      return {
+        error: "Expense ID missing",
+      };
+    }
 
-  if (!expense) {
-    throw new Error("Expense not found");
+    if (!amount || amount <= 0) {
+      return {
+        error: "Amount must be greater than 0",
+      };
+    }
+
+    const expense = await prisma.expense.findUnique({
+      where: {
+        id: expenseId,
+      },
+      include: {
+        trip: true,
+      },
+    });
+
+    if (!expense) {
+      return {
+        error: "Expense not found",
+      };
+    }
+
+    const tripId = expense.tripId;
+
+    if (expense.trip.status !== "ACTIVE") {
+      return {
+        error: "Only ACTIVE trips can be modified",
+      };
+    }
+
+    await prisma.expense.update({
+      where: {
+        id: expenseId,
+      },
+      data: {
+        category,
+        amount,
+        note,
+      },
+    });
+
+    revalidatePath(`/trips/${tripId}`);
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      error: "Failed to update expense",
+    };
   }
-
-  const tripId = expense.tripId;
-
-  await prisma.expense.update({
-    where: {
-      id: expenseId,
-    },
-    data: {
-      category,
-      amount,
-      note,
-    },
-  });
-
-  revalidatePath(`/trips/${tripId}`);
-  redirect(`/trips/${tripId}`);
 }

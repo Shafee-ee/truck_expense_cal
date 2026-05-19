@@ -6,24 +6,13 @@ export async function createTrip(formData) {
   const truckId = formData.get("truckId");
   const source = formData.get("source");
   const destination = formData.get("destination");
+  const revenueMode = formData.get("revenueMode");
 
   const estimatedQty = Number(formData.get("estimatedQty")) || null;
 
   const ratePerUnit = Number(formData.get("ratePerUnit")) || null;
 
   const grossAmount = Number(formData.get("grossAmount")) || null;
-
-  const calculatedRevenue = (estimatedQty || 0) * (ratePerUnit || 0);
-
-  if (
-    grossAmount &&
-    calculatedRevenue > 0 &&
-    Math.abs(grossAmount - calculatedRevenue) > 1
-  ) {
-    console.warn(
-      `Gross Amount (${grossAmount}) differs from Qty × Rate (${calculatedRevenue})`,
-    );
-  }
 
   try {
     const existingActiveTrip = await prisma.trip.findFirst({
@@ -43,6 +32,7 @@ export async function createTrip(formData) {
       data: {
         truckId,
         source,
+        revenueMode,
         destination,
         estimatedQty,
         ratePerUnit,
