@@ -5,6 +5,7 @@ import {
   calculateOutstanding,
   calculateEarningsPerDay,
   calculateTripDays,
+  calculateTruckMetrics,
 } from "@/lib/finance";
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -181,19 +182,20 @@ export async function GET(request) {
   });
 
   //truck profitability
+  //truck profitability
   const truckProfitability = Object.entries(truckProfitMap)
-    .map(([truckNumber, { tripProfit, tripCount, totalDays }]) => {
+    .map(([truckNumber]) => {
       const maintenanceCost = maintenanceMap[truckNumber] || 0;
-      const earningsPerDay =
-        totalDays > 0 ? tripProfit / totalDays : tripProfit;
-      return {
+
+      const truckTrips = closedTripsWithTruck.filter(
+        (trip) => trip.truck.numberPlate === truckNumber,
+      );
+
+      return calculateTruckMetrics({
         truckNumber,
-        tripProfit,
+        trips: truckTrips,
         maintenanceCost,
-        tripCount,
-        earningsPerDay,
-        netProfit: tripProfit - maintenanceCost,
-      };
+      });
     })
     .sort((a, b) => b.netProfit - a.netProfit);
 
