@@ -38,7 +38,40 @@ export default async function TrucksPage() {
       };
     })
 
-    .sort((a, b) => b.metrics.netProfit - a.metrics.netProfit);
+    .sort((a, b) => {
+      if (a.metrics.tripCount === 0 && b.metrics.tripCount > 0) {
+        return 1;
+      }
+
+      if (b.metrics.tripCount === 0 && a.metrics.tripCount > 0) {
+        return -1;
+      }
+
+      return b.metrics.netProfit - a.metrics.netProfit;
+    });
+
+  const fleetRevenue = rankedTrucks.reduce(
+    (sum, truck) => sum + truck.metrics.totalRevenue,
+    0,
+  );
+
+  const fleetProfit = rankedTrucks.reduce(
+    (sum, truck) => sum + truck.metrics.netProfit,
+    0,
+  );
+
+  const fleetOutstanding = rankedTrucks.reduce(
+    (sum, truck) => sum + truck.metrics.outstanding,
+    0,
+  );
+
+  const activeTrucks = rankedTrucks.filter(
+    (truck) => truck.metrics.tripCount > 0,
+  ).length;
+
+  const lossTrucks = rankedTrucks.filter(
+    (truck) => truck.metrics.netProfit < 0,
+  ).length;
   return (
     <div
       className="
@@ -88,6 +121,23 @@ export default async function TrucksPage() {
         >
           Profitability ranking across trucks
         </p>
+      </div>
+
+      <div
+        className="
+  grid
+  grid-cols-2
+  md:grid-cols-3
+  xl:grid-cols-5
+  gap-4
+  "
+      >
+        {" "}
+        <Card title="Fleet Revenue" value={fleetRevenue} />
+        <Card title="Fleet Profit" value={fleetProfit} />
+        <Card title="Outstanding" value={fleetOutstanding} />
+        <Card title="Active Trucks" value={activeTrucks} raw />
+        <Card title="Loss Trucks" value={lossTrucks} raw />
       </div>
 
       <div
@@ -158,6 +208,16 @@ export default async function TrucksPage() {
 
               <th
                 className="
+text-right
+px-4
+py-4
+"
+              >
+                Outstanding
+              </th>
+
+              <th
+                className="
               text-right
               px-4
               py-4
@@ -178,6 +238,16 @@ export default async function TrucksPage() {
 
               <th
                 className="
+text-right
+px-4
+py-4
+"
+              >
+                Efficiency
+              </th>
+
+              <th
+                className="
               text-center
               px-6
               py-4
@@ -191,73 +261,100 @@ export default async function TrucksPage() {
           <tbody>
             {rankedTrucks.map((truck, index) => {
               const health =
-                truck.metrics.netProfit < 0
-                  ? "LOSS"
-                  : truck.metrics.outstanding > 100000
-                    ? "COLLECTION"
-                    : "HEALTHY";
+                truck.metrics.tripCount === 0
+                  ? "INACTIVE"
+                  : truck.metrics.netProfit < 0
+                    ? "LOSS"
+                    : truck.metrics.outstanding > 100000
+                      ? "COLLECTION"
+                      : "HEALTHY";
 
               return (
-                <tr
+                <Link
                   key={truck.id}
+                  href={`/trucks/${truck.id}/statement`}
                   className="
-                  border-b
-                  hover:bg-slate-50
-                  transition
-                  cursor-pointer
-                  "
+  contents
+  "
                 >
-                  <td
+                  <tr
                     className="
+    border-b
+    hover:bg-slate-50
+    transition
+    cursor-pointer
+    "
+                  >
+                    <td
+                      className="
                     px-6
                     py-5
                     font-semibold
                     "
-                  >
-                    #{index + 1}
-                  </td>
+                    >
+                      #{index + 1}
+                    </td>
 
-                  <td
-                    className="
+                    <td
+                      className="
                     px-4
                     py-5
                     "
-                  >
-                    <Link
-                      href={`/trucks/${truck.id}/statement`}
-                      className="
-                      font-semibold
-                      hover:text-blue-700
-                      "
                     >
-                      {truck.numberPlate}
-                    </Link>
-                  </td>
+                      <Link
+                        href={`/trucks/${truck.id}/statement`}
+                        className="
+  font-semibold
+  hover:text-blue-700
+  flex
+  items-center
+  justify-between
+  "
+                      >
+                        {truck.numberPlate}
 
-                  <td
-                    className="
+                        <span
+                          className="
+    ml-2
+    text-slate-400
+    "
+                        >
+                          →
+                        </span>
+                      </Link>
+                    </td>
+
+                    <td
+                      className="
                     text-right
                     px-4
                     "
-                  >
-                    ₹{truck.metrics.totalRevenue.toLocaleString()}
-                  </td>
+                    >
+                      ₹{truck.metrics.totalRevenue.toLocaleString()}
+                    </td>
 
-                  <td
-                    className="
+                    <td
+                      className="
                     text-right
                     px-4
                     "
-                  >
-                    ₹
-                    {(
-                      truck.metrics.totalExpenses +
-                      truck.metrics.maintenanceCost
-                    ).toLocaleString()}
-                  </td>
-
-                  <td
-                    className={`
+                    >
+                      ₹
+                      {(
+                        truck.metrics.totalExpenses +
+                        truck.metrics.maintenanceCost
+                      ).toLocaleString()}
+                    </td>
+                    <td
+                      className="
+text-right
+px-4
+"
+                    >
+                      ₹{truck.metrics.outstanding.toLocaleString()}
+                    </td>
+                    <td
+                      className={`
                     text-right
                     px-4
                     font-semibold
@@ -268,27 +365,38 @@ export default async function TrucksPage() {
                         : "text-red-600"
                     }
                     `}
-                  >
-                    ₹{truck.metrics.netProfit.toLocaleString()}
-                  </td>
+                    >
+                      ₹{truck.metrics.netProfit.toLocaleString()}
+                    </td>
 
-                  <td
-                    className="
+                    <td
+                      className="
                     text-right
                     px-4
                     "
-                  >
-                    {truck.metrics.tripCount}
-                  </td>
-
-                  <td
-                    className="
+                    >
+                      {truck.metrics.tripCount}
+                    </td>
+                    <td
+                      className="
+  text-right
+  px-4
+  "
+                    >
+                      {truck.metrics.tripCount > 0
+                        ? `₹${Math.round(
+                            truck.metrics.earningsPerDay,
+                          ).toLocaleString()}`
+                        : "-"}
+                    </td>
+                    <td
+                      className="
                     text-center
                     px-6
                     "
-                  >
-                    <span
-                      className={`
+                    >
+                      <span
+                        className={`
                       px-3
                       py-1
                       rounded-full
@@ -300,14 +408,17 @@ export default async function TrucksPage() {
                           ? "bg-green-100 text-green-700"
                           : health === "COLLECTION"
                             ? "bg-yellow-100 text-yellow-700"
-                            : "bg-red-100 text-red-700"
+                            : health === "INACTIVE"
+                              ? "bg-slate-100 text-slate-600"
+                              : "bg-red-100 text-red-700"
                       }
                       `}
-                    >
-                      {health}
-                    </span>
-                  </td>
-                </tr>
+                      >
+                        {health}
+                      </span>
+                    </td>
+                  </tr>
+                </Link>
               );
             })}
           </tbody>
@@ -327,6 +438,43 @@ export default async function TrucksPage() {
       >
         Add Truck
       </Link>
+    </div>
+  );
+}
+function Card({ title, value, raw = false }) {
+  return (
+    <div
+      className="
+    bg-white
+rounded-xl
+border
+border-slate-200
+p-4
+shadow-sm
+hover:shadow-md
+transition
+      "
+    >
+      <p
+        className="
+        text-xs
+        uppercase
+        text-slate-500
+        font-semibold
+        "
+      >
+        {title}
+      </p>
+
+      <p
+        className="
+        text-2xl
+        font-bold
+        mt-2
+        "
+      >
+        {raw ? value : `₹${Number(value).toLocaleString()}`}
+      </p>
     </div>
   );
 }
