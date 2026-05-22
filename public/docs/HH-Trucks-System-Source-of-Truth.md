@@ -2555,3 +2555,257 @@ CONVERSATION / CODING STYLE INSTRUCTIONS FOR FUTURE CHATGPT
 - truck-level monthly P&L
 - real-world workflow refinement
   NOT cosmetic UI churn.
+
+  ####
+
+  PROJECT STATUS — LOGISCO / HH TRUCKS
+
+WHAT WE COMPLETED
+
+1. Trip Day Logic
+
+- Fixed trip day counting
+- Same-day start + close = 1 day
+- Multi-day trips calculate properly
+- Long duration trips now expose operational issues
+
+2. Trip Operational Model
+   Decision made:
+
+- Start trip → auto current date
+- Close trip → auto current date
+- Operator should not manually choose dates
+- Prevents human mistakes and delayed WhatsApp closing issues
+
+3. Truck Statement Page
+   Built operational statement page:
+
+KPIs:
+
+- Revenue
+- Trip Expense
+- Maintenance
+- Outstanding
+- Net Profit
+- Trips
+- Per Day Earnings
+
+Trip Ledger:
+
+- Route
+- Revenue
+- Expense
+- Profit
+- Days
+
+Monthly Truck Expenses:
+
+- Date
+- Category
+- Notes
+- Amount
+
+Operational Alerts:
+
+- Missing revenue warning
+- Long duration trip warning
+
+Examples:
+"Missing revenue entry"
+"Trip closed without revenue"
+
+"Operational alert"
+"27 days active"
+
+4. Fleet Dashboard (New Middle Layer)
+   Created fleet intelligence page:
+
+Fleet KPIs:
+
+- Fleet Revenue
+- Fleet Profit
+- Outstanding
+- Active Trucks
+- Loss Trucks
+
+Truck Ranking Table:
+
+- Rank
+- Truck
+- Revenue
+- Expense
+- Outstanding
+- Net
+- Trips
+- Efficiency
+- Health
+
+Health System:
+HEALTHY
+LOSS
+COLLECTION
+INACTIVE
+
+Profit ranking works.
+
+5. UX Improvements
+
+- Whole truck rows clickable
+- Created Client Component TruckRow
+- Fixed invalid Link + tr nesting
+- Fixed hydration issues
+- Fixed locale mismatch (en-IN formatting)
+- Fixed whitespace hydration issue
+- Fleet page visually improved
+
+6. Month Filtering Architecture
+   Implemented:
+
+Fleet dashboard:
+?month=YYYY-MM
+
+Filters:
+
+- Trips
+- Truck expenses
+- Fleet ranking
+- Fleet KPIs
+
+Need final fix for searchParams persistence.
+
+CURRENT BLOCKER
+
+Fleet month filter:
+
+Issue:
+Selecting another month resets back to May.
+
+Likely fix:
+
+page.jsx
+
+Change:
+
+export default async function TrucksPage({
+searchParams
+})
+
+To:
+
+export default async function TrucksPage(props)
+
+Then:
+
+const searchParams =
+await props.searchParams;
+
+const selectedMonth =
+searchParams?.month || null;
+
+Reason:
+searchParams resolution issue in Next 16.
+
+WHAT REMAINS (PROJECT)
+
+HIGH PRIORITY
+
+1. Finish month filter
+   (Last active blocker)
+
+2. Collection / Outstanding workflow
+   Current:
+   Outstanding KPI exists
+
+Need:
+Outstanding aging visibility
+
+Example:
+
+90+ days unpaid
+
+Collection risk flag
+
+3. Final operational guardrails
+
+Examples:
+
+Prevent closing trip without revenue confirmation
+
+Prevent negative revenue entry
+
+Warning if trip expense unusually high
+
+Duplicate trip protection verification
+
+4. Smoke testing
+
+Create fake 3-6 month data
+
+Test:
+
+Create trip
+
+Close trip
+
+Outstanding
+
+Maintenance
+
+Month filter
+
+Fleet ranking
+
+Truck statement
+
+Long duration alerts
+
+Revenue missing alerts
+
+LOW PRIORITY / OPTIONAL
+
+1. Export PDF statements
+
+2. CSV export
+
+3. Fleet trend charts
+
+4. Month vs previous month comparison
+
+CURRENT ESTIMATE
+
+Operational capability:
+
+~92–95%
+
+Core business value:
+DONE
+
+Now mostly polish + guard rails + verification.
+
+Architecture now:
+
+Fleet Dashboard
+↓
+Truck Statement
+↓
+Trip Ledger
+↓
+Trip Expenses / Payments
+
+Owner can identify:
+
+Bleeding trucks
+
+Profitable trucks
+
+Missing revenue
+
+Outstanding money
+
+Maintenance impact
+
+Operational inefficiencies
+
+This is no longer "Excel replacement."
+
+This is operational intelligence software.

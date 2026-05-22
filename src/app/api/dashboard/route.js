@@ -6,6 +6,8 @@ import {
   calculateEarningsPerDay,
   calculateTripDays,
   calculateTruckMetrics,
+  calculatePayments,
+  calculateRevenue,
 } from "@/lib/finance";
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -69,6 +71,8 @@ export async function GET(request) {
     },
     include: {
       truck: true,
+      payments: true,
+      expenses: true,
     },
   });
 
@@ -124,6 +128,7 @@ export async function GET(request) {
     },
     include: {
       payments: true,
+      truck: true,
     },
   });
 
@@ -131,17 +136,37 @@ export async function GET(request) {
     .map((trip) => {
       const outstanding = calculateOutstanding(trip);
 
+      const referenceDate =
+        trip.closedAt || trip.dischargeDate || trip.createdAt;
+
+      const ageDays = Math.floor(
+        (Date.now() - new Date(referenceDate)) / (1000 * 60 * 60 * 24),
+      );
+
+      let risk = "NORMAL";
+
+      if (outstanding > 100000 && ageDays > 45) {
+        risk = "CRITICAL";
+      } else if (outstanding > 50000 || ageDays > 30) {
+        risk = "RISK";
+      } else if (outstanding > 25000 && ageDays > 15) {
+        risk = "WATCH";
+      }
+
       return {
         id: trip.id,
         source: trip.source,
         destination: trip.destination,
+        truckNumber: trip.truck?.numberPlate || "-",
         outstanding,
+        ageDays,
+        risk,
         status: trip.status,
       };
     })
     .filter((trip) => trip.outstanding > 0)
-    .sort((a, b) => b.outstanding - a.outstanding)
-    .slice(0, 5);
+    .sort((a, b) => b.ageDays - a.ageDays)
+    .slice(0, 10);
 
   // count
   const activeTrips = activeTripsData.length;
@@ -200,7 +225,7 @@ export async function GET(request) {
     .sort((a, b) => b.netProfit - a.netProfit);
 
   // Outstanding amount from active trips
-  const outstandingAmount = activeTripsData.reduce((sum, trip) => {
+  const outstandingAmount = receivableTrips.reduce((sum, trip) => {
     const outstanding = calculateOutstanding(trip);
 
     return sum + (outstanding > 0 ? outstanding : 0);

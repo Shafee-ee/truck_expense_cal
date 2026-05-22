@@ -92,6 +92,8 @@ model Trip {
   closedBy      String?
   expenses      Expense[]
   payments      Payment[]
+  loadType LoadType @default(EXTERNAL)
+  mamool Float @default(0)  
   truck         Truck      @relation(fields: [truckId], references: [id])
 }
 
@@ -113,7 +115,6 @@ enum ExpenseCategory {
   LOADING
   UNLOADING
   REPAIR
-  BROKER
   OTHER
 }
 
@@ -140,3 +141,7 @@ enum PaymentType {
   SETTLEMENT
 }
 
+enum LoadType {
+  GJ
+  EXTERNAL
+}

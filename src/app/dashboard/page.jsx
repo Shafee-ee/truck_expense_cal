@@ -481,6 +481,137 @@ export default async function DashboardPage(props) {
           </div>
         </div>
       </div>
+      {/* COLLECTION RISK */}
+      <div className="space-y-4 pt-2">
+        <h2 className="text-base font-semibold">Collections Risk</h2>
+
+        {data.outstandingTrips?.length === 0 ? (
+          <div
+            className="
+      bg-white
+      border border-gray-200
+      rounded-2xl
+      p-6
+      text-sm
+      text-gray-500
+      "
+          >
+            No outstanding collections
+          </div>
+        ) : (
+          <div
+            className="
+      bg-white
+      rounded-2xl
+      border border-gray-200
+      shadow-sm
+      overflow-hidden
+      "
+          >
+            <div
+              className="
+        grid
+        grid-cols-5
+        px-6 py-4
+        bg-gray-50
+        border-b
+        border-gray-200
+        text-xs
+        uppercase
+        tracking-wide
+        text-gray-500
+        font-semibold
+        "
+            >
+              <div>Truck</div>
+              <div>Route</div>
+              <div className="text-right">Outstanding</div>
+              <div className="text-center">Age</div>
+              <div className="text-center">Risk</div>
+            </div>
+
+            {data.outstandingTrips.map((trip) => {
+              const riskStyle = {
+                NORMAL: "bg-green-100 text-green-700",
+
+                WATCH: "bg-yellow-100 text-yellow-700",
+
+                RISK: "bg-orange-100 text-orange-700",
+
+                CRITICAL: "bg-red-100 text-red-700",
+              }[trip.risk];
+
+              return (
+                <div
+                  key={trip.id}
+                  className="
+            grid
+            grid-cols-5
+            items-center
+            px-6 py-5
+            border-b
+            border-gray-100
+            hover:bg-gray-50
+            transition
+            "
+                >
+                  <div
+                    className="
+              font-medium
+              "
+                  >
+                    {trip.truckNumber}
+                  </div>
+
+                  <div>
+                    {trip.source}
+                    {" → "}
+                    {trip.destination}
+                  </div>
+
+                  <div
+                    className="
+              text-right
+              font-semibold
+              text-blue-600
+              "
+                  >
+                    ₹{formatCurrency(trip.outstanding)}
+                  </div>
+
+                  <div
+                    className="
+              text-center
+              "
+                  >
+                    {trip.ageDays}d
+                  </div>
+
+                  <div
+                    className="
+              flex
+              justify-center
+              "
+                  >
+                    <span
+                      className={`
+                px-3
+                py-1
+                rounded-full
+                text-sm
+                font-medium
+                ${riskStyle}
+                `}
+                    >
+                      {trip.risk}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
       {/* TOP ACTIVE TRIPS */}
       <div className="space-y-4 pt-2">
         <h2 className="text-base font-semibold">
@@ -555,46 +686,6 @@ export default async function DashboardPage(props) {
           </div>
         )}
       </div>
-      {/* <div className="bg-white rounded-xl shadow p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Truck Profitability</h2>
-
-          <span className="text-sm text-gray-500">Current Month</span>
-        </div>
-
-        {truckProfitability.length === 0 ? (
-          <p className="text-sm text-gray-500">
-            No truck profitability data available
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {truckProfitability.map((truck) => (
-              <div
-                key={truck.truck}
-                className="flex items-center justify-between border-b pb-2"
-              >
-                <div>
-                  <p className="font-medium">{truck.truck}</p>
-
-                  <p className="text-xs text-gray-500">
-                    Maintenance: ₹{truck.maintenance.toLocaleString()}
-                  </p>
-                </div>
-
-                <div
-                  className={
-                    truck.profit >= 0
-                      ? "text-green-600 font-semibold"
-                      : "text-red-600 font-semibold"
-                  }
-                >
-                  ₹{truck.profit.toLocaleString()}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div> */}
     </div>
   );
 }

@@ -1,4 +1,8 @@
 export function calculateRevenue(trip) {
+  if (trip.status === "CLOSED" && trip.finalRevenue != null) {
+    return trip.finalRevenue;
+  }
+
   if (trip.revenueMode === "FIXED") {
     return trip.grossAmount || 0;
   }
@@ -15,11 +19,15 @@ export function calculatePayments(payments = []) {
 }
 
 export function calculateOutstanding(trip) {
-  const revenue = calculateRevenue(trip);
+  const revenue =
+    trip.status === "CLOSED"
+      ? (trip.finalRevenue ?? calculateRevenue(trip))
+      : calculateRevenue(trip);
 
-  return revenue - calculatePayments(trip.payments);
+  const payments = calculatePayments(trip.payments || []);
+
+  return Math.max(revenue - payments, 0);
 }
-
 // Legacy compatibility wrapper.
 // Prefer calculateTripProfit() for all new code.
 export function calculateBalance(trip) {
@@ -59,7 +67,11 @@ export function calculateEarningsPerDay(trip) {
 }
 
 export function calculateTripProfit(trip) {
-  return calculateRevenue(trip) - calculateExpenses(trip.expenses);
+  if (trip.status === "CLOSED" && trip.finalBalance != null) {
+    return trip.finalBalance;
+  }
+
+  return calculateRevenue(trip) - calculateExpenses(trip.expenses || []);
 }
 
 export function calculateNetTruckProfit({
@@ -94,10 +106,13 @@ export function calculateTruckMetrics({
     0,
   );
 
-  const totalExpenses = trips.reduce(
-    (sum, trip) => sum + calculateExpenses(trip.expenses),
-    0,
-  );
+  const totalExpenses = trips.reduce((sum, trip) => {
+    if (trip.status === "CLOSED" && trip.finalExpenses != null) {
+      return sum + trip.finalExpenses;
+    }
+
+    return sum + calculateExpenses(trip.expenses || []);
+  }, 0);
 
   const outstanding = trips.reduce((sum, trip) => {
     const amount = calculateOutstanding(trip);
