@@ -156,6 +156,29 @@ export default async function TripDetailPage(props) {
             </div>
           </div>
 
+          <div>
+            <p className="text-zinc-500">Load Type</p>
+
+            <p
+              className={`mt-1 inline-flex rounded-full px-2 py-1 text-xs font-medium
+    ${
+      trip.loadType === "COMPANY"
+        ? "bg-emerald-100 text-emerald-700"
+        : "bg-amber-100 text-amber-700"
+    }`}
+            >
+              {trip.loadType}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-zinc-500">Mamool</p>
+
+            <p className="mt-1 font-medium text-zinc-800">
+              ₹{trip.mamool?.toFixed(0) || "0"}
+            </p>
+          </div>
+
           <div className="grid grid-cols-4 gap-6 px-6 py-5 text-sm">
             <div>
               <p className="text-zinc-500">Truck</p>

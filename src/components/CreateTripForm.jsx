@@ -8,7 +8,7 @@ import { createTrip } from "@/app/trips/new/actions";
 export default function CreateTripForm({ trucks, cities }) {
   const router = useRouter();
   const [revenueMode, setRevenueMode] = useState("FIXED");
-
+  const [loadType, setLoadType] = useState("EXTERNAL");
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData) {
@@ -76,7 +76,33 @@ export default function CreateTripForm({ trucks, cities }) {
           ))}
         </datalist>
       </div>
+      <div>
+        <label className="block text-sm font-medium mb-2">Load Type</label>
 
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="loadType"
+              value="COMPANY"
+              checked={loadType === "COMPANY"}
+              onChange={(e) => setLoadType(e.target.value)}
+            />
+            Company (GJ)
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="loadType"
+              value="EXTERNAL"
+              checked={loadType === "EXTERNAL"}
+              onChange={(e) => setLoadType(e.target.value)}
+            />
+            External
+          </label>
+        </div>
+      </div>
       <div>
         <label className="block text-sm font-medium mb-2">Revenue Type</label>
 
@@ -131,6 +157,43 @@ export default function CreateTripForm({ trucks, cities }) {
         </>
       )}
 
+      {loadType === "EXTERNAL" && (
+        <div>
+          <label
+            className="
+      block
+      text-sm
+      font-medium
+      "
+          >
+            Mamool
+          </label>
+
+          <input
+            name="mamool"
+            type="number"
+            max="3000"
+            min="0"
+            step="1"
+            placeholder="0"
+            className="
+      border
+      p-2
+      w-full
+      "
+          />
+
+          <p
+            className="
+      text-xs
+      text-gray-500
+      mt-1
+      "
+          >
+            External trips only
+          </p>
+        </div>
+      )}
       {revenueMode === "FIXED" && (
         <div>
           <label className="block text-sm font-medium">Gross Amount</label>

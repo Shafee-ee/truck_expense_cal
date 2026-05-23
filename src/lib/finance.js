@@ -71,7 +71,13 @@ export function calculateTripProfit(trip) {
     return trip.finalBalance;
   }
 
-  return calculateRevenue(trip) - calculateExpenses(trip.expenses || []);
+  const revenue = calculateRevenue(trip);
+
+  const expenses = calculateExpenses(trip.expenses || []);
+
+  const mamool = trip.mamool || 0;
+
+  return revenue - (expenses + mamool);
 }
 
 export function calculateNetTruckProfit({

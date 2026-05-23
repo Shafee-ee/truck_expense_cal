@@ -8,6 +8,13 @@ export async function createTrip(formData) {
   const destination = formData.get("destination");
   const revenueMode = formData.get("revenueMode");
 
+  const loadType = formData.get("loadType");
+
+  const mamool =
+    loadType === "COMPANY"
+      ? 0
+      : Math.min(Number(formData.get("mamool")) || 0, 3000);
+
   const estimatedQty = Number(formData.get("estimatedQty")) || null;
 
   const ratePerUnit = Number(formData.get("ratePerUnit")) || null;
@@ -37,6 +44,7 @@ export async function createTrip(formData) {
         estimatedQty,
         ratePerUnit,
         grossAmount,
+        mamool,
         status: "PLANNED",
       },
     });
