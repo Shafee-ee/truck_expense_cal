@@ -13,6 +13,7 @@ import CloseTripButton from "@/components/CloseTripButton";
 import StartTripButton from "@/components/StartTripButton";
 import UpdateActualQtyForm from "@/components/UpdateActualQtyForm";
 import EditExpenseForm from "@/components/EditExpenseForm";
+import MamoolEditor from "@/components/MamoolEditor";
 import {
   startTrip,
   closeTrip,
@@ -21,6 +22,7 @@ import {
   deleteExpense,
   addExpense,
   replaceBill,
+  updateMamool,
 } from "./actions";
 
 import {
@@ -199,10 +201,9 @@ export default async function TripDetailPage(props) {
               <p className="mt-1 font-medium text-zinc-800">{trip.status}</p>
             </div>
             <div>
-              <p className="text-zinc-500">Mamool</p>
-              <p className="mt-1 font-medium text-zinc-800">
-                ₹{trip.mamool?.toFixed(0) || "0"}
-              </p>
+              <div>
+                <p className="text-zinc-500">Mamool</p>
+              </div>
             </div>
           </div>
         </div>

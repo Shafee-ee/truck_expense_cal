@@ -232,6 +232,43 @@ export async function updateActualQty(formData) {
   }
 }
 
+export async function updateMamool(formData) {
+  const tripId = formData.get("tripId");
+
+  const mamool = Math.min(Number(formData.get("mamool")) || 0, 3000);
+
+  try {
+    if (!tripId) {
+      return {
+        error: "Trip missing",
+      };
+    }
+
+    await prisma.trip.update({
+      where: {
+        id: tripId,
+      },
+      data: {
+        mamool,
+      },
+    });
+
+    revalidatePath(`/trips/${tripId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/trips");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      error: "Failed updating mamool",
+    };
+  }
+}
+
 export async function addPayment(formData) {
   "use server";
 
