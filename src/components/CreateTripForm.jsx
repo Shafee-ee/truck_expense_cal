@@ -22,8 +22,7 @@ export default function CreateTripForm({ trucks, cities }) {
 
       toast.success("Trip created successfully");
 
-      router.push("/trips");
-      router.refresh();
+      router.replace("/trips");
     });
   }
 

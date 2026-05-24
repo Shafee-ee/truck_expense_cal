@@ -39,12 +39,17 @@ export async function createTrip(formData) {
       data: {
         truckId,
         source,
-        revenueMode,
         destination,
+
+        loadType,
+
+        revenueMode,
         estimatedQty,
         ratePerUnit,
         grossAmount,
+
         mamool,
+
         status: "PLANNED",
       },
     });

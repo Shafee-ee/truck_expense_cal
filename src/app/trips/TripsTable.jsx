@@ -87,6 +87,7 @@ export default function TripsTable({ trips }) {
         <thead className="bg-zinc-50">
           <tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-500">
             <th className="px-6 py-3 text-left font-medium">Truck</th>
+            <th className="px-6 py-3 text-left font-medium">Type</th>
 
             <th className="px-6 py-3 text-left font-medium">Route</th>
 
@@ -118,6 +119,19 @@ export default function TripsTable({ trips }) {
             >
               <td className="px-6 py-3 font-medium text-zinc-900">
                 {trip.truck.numberPlate}
+              </td>
+
+              <td className="px-6 py-5">
+                <span
+                  className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium
+    ${
+      (trip.loadType || "COMPANY") === "COMPANY"
+        ? "bg-emerald-100 text-emerald-700"
+        : "bg-amber-100 text-amber-700"
+    }`}
+                >
+                  {trip.loadType || "COMPANY"}
+                </span>
               </td>
 
               <td className="px-6 py-3">

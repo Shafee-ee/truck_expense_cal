@@ -22,8 +22,7 @@ export default function CreateTruckForm() {
 
       toast.success("Truck created successfully");
 
-      router.push("/trips");
-      router.refresh();
+      router.replace("/trips");
     });
   }
 
@@ -39,15 +38,6 @@ export default function CreateTruckForm() {
           name="numberPlate"
           placeholder="TN09AB1234"
           className="border p-2 w-full"
-          required
-        />
-
-        <input
-          name="dailyFixedCost"
-          type="number"
-          step="0.01"
-          placeholder="Daily Fixed Cost"
-          className="mt-4 border p-2 w-full"
           required
         />
       </div>

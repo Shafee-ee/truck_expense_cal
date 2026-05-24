@@ -26,14 +26,6 @@ export async function createTruck(formData) {
       });
     }
 
-    const dailyFixedCost = Number(formData.get("dailyFixedCost"));
-
-    if (!dailyFixedCost || dailyFixedCost <= 0) {
-      return {
-        error: "Daily fixed cost must be greater than 0",
-      };
-    }
-
     const existingTruck = await prisma.truck.findFirst({
       where: {
         numberPlate,
@@ -50,7 +42,6 @@ export async function createTruck(formData) {
       data: {
         numberPlate,
         companyId: company.id,
-        dailyFixedCost,
       },
     });
 

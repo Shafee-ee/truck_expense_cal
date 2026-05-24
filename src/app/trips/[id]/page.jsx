@@ -156,30 +156,7 @@ export default async function TripDetailPage(props) {
             </div>
           </div>
 
-          <div>
-            <p className="text-zinc-500">Load Type</p>
-
-            <p
-              className={`mt-1 inline-flex rounded-full px-2 py-1 text-xs font-medium
-    ${
-      trip.loadType === "COMPANY"
-        ? "bg-emerald-100 text-emerald-700"
-        : "bg-amber-100 text-amber-700"
-    }`}
-            >
-              {trip.loadType}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-zinc-500">Mamool</p>
-
-            <p className="mt-1 font-medium text-zinc-800">
-              ₹{trip.mamool?.toFixed(0) || "0"}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-4 gap-6 px-6 py-5 text-sm">
+          <div className="grid grid-cols-6 gap-6 px-6 py-5 text-sm">
             <div>
               <p className="text-zinc-500">Truck</p>
               <p className="mt-1 font-medium text-zinc-800">
@@ -188,6 +165,20 @@ export default async function TripDetailPage(props) {
             </div>
 
             <div>
+              <p className="text-zinc-500">Load Type</p>
+
+              <p
+                className={`mt-1 inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium
+    ${
+      (trip.loadType || "COMPANY") === "COMPANY"
+        ? "bg-emerald-100 text-emerald-700"
+        : "bg-amber-100 text-amber-700"
+    }`}
+              >
+                {trip.loadType || "COMPANY"}
+              </p>
+            </div>
+            <div>
               <p className="text-zinc-500">Start Date</p>
               <p className="mt-1 font-medium text-zinc-800">
                 {trip.startDate
@@ -195,7 +186,6 @@ export default async function TripDetailPage(props) {
                   : "-"}
               </p>
             </div>
-
             <div>
               <p className="text-zinc-500">End Date</p>
               <p className="mt-1 font-medium text-zinc-800">
@@ -204,10 +194,15 @@ export default async function TripDetailPage(props) {
                   : "-"}
               </p>
             </div>
-
             <div>
               <p className="text-zinc-500">Trip Status</p>
               <p className="mt-1 font-medium text-zinc-800">{trip.status}</p>
+            </div>
+            <div>
+              <p className="text-zinc-500">Mamool</p>
+              <p className="mt-1 font-medium text-zinc-800">
+                ₹{trip.mamool?.toFixed(0) || "0"}
+              </p>
             </div>
           </div>
         </div>

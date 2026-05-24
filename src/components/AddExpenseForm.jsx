@@ -38,7 +38,6 @@ export default function AddExpenseForm({ tripId }) {
         <option value="">Select Category</option>
         <option value="FUEL">Fuel</option>
         <option value="TOLL">Toll</option>
-        <option value="BROKER">Broker / Mamool</option>
         <option value="POLICE">Police</option>
         <option value="LOADING">Loading</option>
         <option value="UNLOADING">Unloading</option>
