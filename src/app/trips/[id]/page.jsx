@@ -202,7 +202,7 @@ export default async function TripDetailPage(props) {
             </div>
             <div>
               <div>
-                <p className="text-zinc-500">Mamool</p>
+                <MamoolEditor tripId={trip.id} mamool={trip.mamool} />
               </div>
             </div>
           </div>

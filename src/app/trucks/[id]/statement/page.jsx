@@ -71,10 +71,9 @@ export default async function TruckStatementPage(props) {
       flex
       "
           >
-            <Truck class="mt-2 mr-2" />
+            <Truck className="mt-2 mr-2" />
             {statement.truckNumber}
           </h1>
-
           <p
             className="
       text-sm

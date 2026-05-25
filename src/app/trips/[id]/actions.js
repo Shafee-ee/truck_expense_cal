@@ -17,7 +17,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
-export async function startTrip(id) {
+export async function startTrip(id, startDate) {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const freshTrip = await tx.trip.findUnique({
@@ -43,7 +43,7 @@ export async function startTrip(id) {
         where: { id },
         data: {
           status: "ACTIVE",
-          startDate: new Date(),
+          startDate: new Date(startDate),
         },
       });
 
@@ -72,7 +72,7 @@ export async function startTrip(id) {
 }
 //close trip
 
-export async function closeTrip(id) {
+export async function closeTrip(id, endDate) {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const freshTrip = await tx.trip.findUnique({
@@ -131,7 +131,7 @@ export async function closeTrip(id) {
         where: { id },
         data: {
           status: "CLOSED",
-          endDate: new Date(),
+          endDate: new Date(endDate),
           closedAt: new Date(),
           closedBy: "operator",
           finalRevenue: revenue,

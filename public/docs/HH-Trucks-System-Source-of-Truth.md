@@ -1,3 +1,17 @@
+1. Never spam code blindly.
+
+2. First ask/show file name.
+
+3. Tell exact placement:
+   - replace this block
+   - add below X
+   - import at top
+
+4. Single issue debugging.
+   Rule out one thing → move next.
+
+5. User prefers learning architecture, not copy-paste coding.
+
 Goal is to make it look like IMOS style platform managment system
 
 # HH Trucks — Data Model (Source of Truth)
@@ -2809,3 +2823,125 @@ Operational inefficiencies
 This is no longer "Excel replacement."
 
 This is operational intelligence software.
+
+##
+
+Truck
+└ TruckExpense
+├ Tyre
+├ Repair
+├ Insurance
+├ Salary
+├ Tax
+└ Other
+
+Trip
+├ Revenue
+├ Expenses
+├ Payments
+├ Mamool
+├ Load Type
+├ Start Date
+├ End Date
+└ Profitability
+
+REMOVED
+
+Truck.dailyFixedCost
+
+ExpenseCategory.BROKER
+(mamool moved to Trip)
+
+OLD
+
+Expense
+└ Broker / Mamool
+
+NEW
+
+Trip
+└ mamool Float @default(0)
+
+###
+
+Trip model:
+loadType LoadType @default(EXTERNAL)mamool Float @default(0)enum LoadType { COMPANY EXTERNAL}
+Business rule confirmed with Jeevan:
+COMPANY load→ no mamoolEXTERNAL load→ mamool appliesOperator generally knows:trucksourcedestinationload typemamoolduring trip creation.
+Trip creation:
+Create TripAdded:Load Type selectorCOMPANYEXTERNALMamool input0–3000 capIf COMPANYmamool forced 0If EXTERNALoperator enters mamool
+Profit architecture:
+finance.js:
+ProfitRevenue-Expenses-Mamool
+Mamool now impacts:
+Trip ProfitTruck ProfitabilityDashboard metrics
+Mamool editing:
+Created:
+components/MamoolEditor.jsx
+Pattern:
+Server ComponentTrip pageClient ComponentMamoolEditor
+UX:
+Mamool ₹1300 EditClick EditInput appearsUpdateReturns to view mode
+Next.js lesson learned:
+Do NOT convert whole page client side.Create small client islands.
+Trips:
+Trips table now shows:COMPANY badgeEXTERNAL badge
+Trip detail page shows:
+Load TypeMamool
+Expense system:
+Removed:
+Broker / Mamool
+Expense categories now:
+FUELTOLLPOLICELOADINGUNLOADINGREPAIROTHER
+Payment system:
+Confirmed works:
+PLANNEDNO paymentsACTIVEpayments allowedCLOSEDpayments allowed
+Flow supported:
+Trip closeOutstanding remainsCustomer pays laterOutstanding updates
+Migration problems solved:
+Issues encountered:
+BROKER enum blocked migrationFixed:UPDATE ExpenseBROKER → OTHER
+Migration default issue:
+Old trips became EXTERNALReason:DB default populated old rowsFixed via SQL cleanup.
+Truck creation:
+Removed:
+dailyFixedCost UIdailyFixedCost backend validation
+Navigation fix:
+Old:
+router.push()router.refresh()
+New:
+router.replace()
+Fixed pending UI hang.
+Dates architecture:
+START TRIP:
+Before:
+startDate auto now()
+Now:
+Click Start TripDate pickerdefault todayoperator can changeConfirm
+Backend:
+startTrip( id, startDate)
+DB:
+startDate:new Date(startDate)
+CLOSE TRIP:
+Before:
+endDate auto now()
+Now:
+Close Tripdate pickerdefault todayoperator can adjustConfirm
+Backend:
+closeTrip( id, endDate)
+DB:
+endDate:new Date(endDate)closedAt:new Date()
+Meaning:
+endDatebusiness dateclosedAtaudit timestamp
+Trip day logic:
+Current:
+Math.floor(diffMs/day)+1
+Meaning:
+May 24 → May 241 dayMay 23 → May 242 days
+Need operator confirmation if inclusive days desired.
+Demo verification completed:
+Create TruckCreate EXTERNAL TripLoad type persistsMamool persistsMamool editablePayments after CLOSEDOutstanding worksDashboard preservedMigration stableTruck create stable
+Current remaining thing:
+Test date architecture fully:Start yesterdayClose todayVerify:Trip DaysEarnings/dayDashboard metrics
+Project status:
+Foundation complete.Current phase:Verification + operational polish.

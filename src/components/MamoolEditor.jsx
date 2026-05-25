@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { updateMamool } from "@/app/trips/[id]/actions";
 
+import { Save } from "lucide-react";
+
 export default function MamoolEditor({ tripId, mamool }) {
   const [editing, setEditing] = useState(false);
 
@@ -59,11 +61,11 @@ export default function MamoolEditor({ tripId, mamool }) {
             className="
               rounded-lg
               bg-amber-500
-              px-4
+              px-2
               text-white
             "
           >
-            Update
+            <Save />
           </button>
         </form>
       )}
