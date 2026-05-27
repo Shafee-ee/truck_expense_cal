@@ -97,6 +97,10 @@ export function calculateCollectionHealth({ outstanding = 0, revenue = 0 }) {
   return Math.max(0, (collected / revenue) * 100);
 }
 
+
+
+
+
 export function calculateTruckMetrics({
   truckNumber,
   trips = [],
