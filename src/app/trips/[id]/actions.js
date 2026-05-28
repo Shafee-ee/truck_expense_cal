@@ -707,3 +707,69 @@ export async function updateExpense(formData) {
     };
   }
 }
+
+export async function updateSettlement(tripId, formData) {
+  try {
+    const clientName = formData.get("clientName") || null;
+
+    const billNumber = formData.get("billNumber") || null;
+
+    const grossAmount = Number(formData.get("grossAmount")) || 0;
+
+    const customerDiesel = Number(formData.get("customerDiesel")) || 0;
+
+    const customerAdvance = Number(formData.get("customerAdvance")) || 0;
+
+    const tds = Number(formData.get("tds")) || 0;
+
+    const charges = Number(formData.get("charges")) || 0;
+
+    const damageAmount = Number(formData.get("damageAmount")) || 0;
+
+    const damageNotes = formData.get("damageNotes") || null;
+
+    const gcBalance =
+      grossAmount -
+      customerDiesel -
+      customerAdvance -
+      tds -
+      charges -
+      damageAmount;
+
+    await prisma.trip.update({
+      where: {
+        id: tripId,
+      },
+
+      data: {
+        clientName,
+        billNumber,
+
+        grossAmount,
+
+        customerDiesel,
+        customerAdvance,
+
+        tds,
+        charges,
+
+        damageAmount,
+        damageNotes,
+
+        gcBalance,
+      },
+    });
+
+    revalidatePath(`/trips/${tripId}`);
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      error: "Failed to update settlement",
+    };
+  }
+}

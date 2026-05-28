@@ -21,6 +21,22 @@ export async function createTrip(formData) {
 
   const grossAmount = Number(formData.get("grossAmount")) || null;
 
+  const customerDiesel = Number(formData.get("customerDiesel")) || 0;
+
+  const customerAdvance = Number(formData.get("customerAdvance")) || 0;
+
+  const tds = Number(formData.get("tds")) || 0;
+
+  const charges = Number(formData.get("charges")) || 0;
+
+  const damageAmount = Number(formData.get("damageAmount")) || 0;
+
+  const damageNotes = formData.get("damageNotes") || null;
+
+  const billNumber = formData.get("billNumber") || null;
+
+  const transporter = formData.get("transporter") || null;
+
   try {
     const existingActiveTrip = await prisma.trip.findFirst({
       where: {
@@ -46,7 +62,25 @@ export async function createTrip(formData) {
         revenueMode,
         estimatedQty,
         ratePerUnit,
+
         grossAmount,
+
+        customerDiesel,
+        customerAdvance,
+        tds,
+        charges,
+        damageAmount,
+        damageNotes,
+        billNumber,
+        transporter,
+
+        gcBalance:
+          (grossAmount || 0) -
+          customerDiesel -
+          customerAdvance -
+          tds -
+          charges -
+          damageAmount,
 
         mamool,
 

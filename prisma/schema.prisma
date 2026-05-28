@@ -79,7 +79,18 @@ model Trip {
   estimatedQty  Float?
   actualQty     Float?
   ratePerUnit   Float?
-  grossAmount Float?
+  grossAmount   Float?
+  // Settlement / income
+  customerDiesel   Float? @default(0)
+  customerAdvance  Float? @default(0)
+  tds              Float? @default(0)
+  charges          Float? @default(0)
+  damageAmount     Float? @default(0)
+  damageNotes      String?
+  gcBalance        Float?
+  clientName       String?
+  billNumber       String?
+  transporter      String?
   revenueMode RevenueMode @default(FIXED)
   startDate     DateTime?
   endDate       DateTime?
