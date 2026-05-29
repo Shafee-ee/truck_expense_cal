@@ -19,14 +19,11 @@ export function calculatePayments(payments = []) {
 }
 
 export function calculateOutstanding(trip) {
-  const revenue =
-    trip.status === "CLOSED"
-      ? (trip.finalRevenue ?? calculateRevenue(trip))
-      : calculateRevenue(trip);
+  const receivable = trip.gcBalance || 0;
 
   const payments = calculatePayments(trip.payments || []);
 
-  return Math.max(revenue - payments, 0);
+  return Math.max(receivable - payments, 0);
 }
 // Legacy compatibility wrapper.
 // Prefer calculateTripProfit() for all new code.
@@ -96,10 +93,6 @@ export function calculateCollectionHealth({ outstanding = 0, revenue = 0 }) {
 
   return Math.max(0, (collected / revenue) * 100);
 }
-
-
-
-
 
 export function calculateTruckMetrics({
   truckNumber,
