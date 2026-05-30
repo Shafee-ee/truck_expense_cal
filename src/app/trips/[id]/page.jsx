@@ -11,6 +11,7 @@ import BillUploader from "./BillUploader";
 import AddExpenseForm from "@/components/AddExpenseForm";
 import CloseTripButton from "@/components/CloseTripButton";
 import StartTripButton from "@/components/StartTripButton";
+import DeletePaymentButton from "@/components/DeletePaymentButton";
 import UpdateActualQtyForm from "@/components/UpdateActualQtyForm";
 import EditExpenseForm from "@/components/EditExpenseForm";
 import MamoolEditor from "@/components/MamoolEditor";
@@ -24,6 +25,7 @@ import {
   addExpense,
   replaceBill,
   updateMamool,
+  deletePayment,
 } from "./actions";
 
 import {
@@ -518,6 +520,9 @@ export default async function TripDetailPage(props) {
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
                     Note
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -535,6 +540,9 @@ export default async function TripDetailPage(props) {
                       ₹{p.amount}
                     </td>
                     <td className="px-4 py-3">{p.note || "-"}</td>
+                    <td className="px-4 py-3">
+                      <DeletePaymentButton tripId={id} paymentId={p.id} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

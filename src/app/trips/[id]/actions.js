@@ -269,6 +269,7 @@ export async function updateMamool(formData) {
   }
 }
 
+//add payment
 export async function addPayment(formData) {
   "use server";
 
@@ -348,6 +349,69 @@ export async function addPayment(formData) {
   }
 
   revalidatePath(`/trips/${tripId}`);
+}
+
+//delete payment
+export async function deletePayment(formData) {
+  "use server";
+
+  const tripId = formData.get("tripId");
+
+  const paymentId = formData.get("paymentId");
+
+  try {
+    if (!tripId || !paymentId) {
+      return {
+        error: "Missing identifiers",
+      };
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.findUnique({
+        where: {
+          id: paymentId,
+        },
+      });
+
+      if (!payment) {
+        return {
+          error: "Payment not found",
+        };
+      }
+
+      if (payment.tripId !== tripId) {
+        return {
+          error: "Payment does not belong to this trip",
+        };
+      }
+
+      await tx.payment.delete({
+        where: {
+          id: paymentId,
+        },
+      });
+
+      return {
+        success: true,
+      };
+    });
+
+    if (result?.error) {
+      return result;
+    }
+
+    revalidatePath(`/trips/${tripId}`);
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error(error);
+
+    return {
+      error: "Failed to delete payment",
+    };
+  }
 }
 
 // Delete expense
