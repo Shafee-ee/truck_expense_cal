@@ -612,6 +612,53 @@ export default async function DashboardPage(props) {
           </div>
         )}
       </div>
+      {/* COMPANY RECEIVABLES */}
+      <div className="space-y-4 pt-2">
+        <h2 className="text-base font-semibold">Company Receivables</h2>
+
+        {data.companyReceivables?.length === 0 ? (
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 text-sm text-gray-500">
+            No outstanding receivables
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="grid grid-cols-5 px-6 py-4 bg-gray-50 border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500 font-semibold">
+              <div>Company</div>
+              <div className="text-right">Receivable</div>
+              <div className="text-right text-green-400 font-bold">
+                Received
+              </div>
+              <div className="text-right text-blue-400 font-bold">
+                Outstanding
+              </div>
+              <div className="text-center">Trips</div>
+            </div>
+
+            {data.companyReceivables.map((company) => (
+              <div
+                key={company.company}
+                className="grid grid-cols-5 items-center px-6 py-5 border-b border-gray-100 hover:bg-gray-50 transition"
+              >
+                <div className="font-medium">{company.company}</div>
+
+                <div className="text-right">
+                  ₹{formatCurrency(company.receivable)}
+                </div>
+
+                <div className="text-right text-green-600">
+                  ₹{formatCurrency(company.received)}
+                </div>
+
+                <div className="text-right font-semibold text-blue-600">
+                  ₹{formatCurrency(company.outstanding)}
+                </div>
+
+                <div className="text-center">{company.tripCount}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       {/* TOP ACTIVE TRIPS */}
       <div className="space-y-4 pt-2">
         <h2 className="text-base font-semibold">

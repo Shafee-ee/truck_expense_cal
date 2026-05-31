@@ -132,6 +132,8 @@ export async function GET(request) {
     },
   });
 
+  const companyReceivablesMap = {};
+
   const outstandingTrips = receivableTrips
     .map((trip) => {
       const outstanding = calculateOutstanding(trip);
@@ -168,6 +170,38 @@ export async function GET(request) {
     .sort((a, b) => b.ageDays - a.ageDays)
     .slice(0, 10);
 
+  receivableTrips.forEach((trip) => {
+    const company = trip.clientName?.trim() || "Unknown";
+
+    const receivable = trip.gcBalance || 0;
+
+    const received = calculatePayments(trip.payments || []);
+
+    const outstanding = calculateOutstanding(trip);
+
+    if (!companyReceivablesMap[company]) {
+      companyReceivablesMap[company] = {
+        company,
+        receivable: 0,
+        received: 0,
+        outstanding: 0,
+        tripCount: 0,
+      };
+    }
+
+    companyReceivablesMap[company].receivable += receivable;
+
+    companyReceivablesMap[company].received += received;
+
+    companyReceivablesMap[company].outstanding += outstanding;
+
+    companyReceivablesMap[company].tripCount += 1;
+  });
+
+  const companyReceivables = Object.values(companyReceivablesMap)
+    .filter((company) => company.outstanding > 0)
+    .sort((a, b) => b.outstanding - a.outstanding)
+    .slice(0, 10);
   // count
   const activeTrips = activeTripsData.length;
 
@@ -249,6 +283,7 @@ export async function GET(request) {
     trueNetProfit,
     truckProfitability,
     outstandingTrips,
+    companyReceivables,
 
     statusStrip: {
       activeTrips,

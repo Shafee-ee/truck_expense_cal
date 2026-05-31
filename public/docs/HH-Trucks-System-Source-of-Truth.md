@@ -3258,3 +3258,149 @@ UX
 reporting direction
 
 future architecture entirely.
+
+######
+
+## Income / Collections Module (Completed)
+
+### Revenue Rules
+
+Revenue is based on Gross Amount.
+
+Confirmed by Jeevan (30 May 2026).
+
+Profit calculation:
+
+Profit =
+Gross Amount
+
+- Expenses
+- Mamool
+
+GC Balance is NOT revenue.
+
+GC Balance is used only for receivable tracking.
+
+### Settlement
+
+Settlement fields:
+
+- Gross Amount
+- Customer Diesel
+- Customer Advance
+- TDS
+- Charges
+- Damage Amount
+- Damage Notes
+
+GC Balance is automatically calculated:
+
+GC Balance =
+Gross Amount
+
+- Customer Diesel
+- Customer Advance
+- TDS
+- Charges
+- Damage Amount
+
+Settlement remains editable after trip closure because collection reconciliation may happen after operational completion.
+
+### Payments
+
+Payments support:
+
+- Add payment
+- Delete payment
+- Duplicate detection
+- Overpayment protection
+
+Outstanding is calculated as:
+
+Outstanding =
+GC Balance
+
+- Total Payments
+
+Payments remain editable after trip closure because collections may continue after operational completion.
+
+### Collections
+
+Dashboard now includes:
+
+- Outstanding amount
+- Collection risk table
+- Aging analysis
+- Company receivables summary
+
+Company receivables are grouped by:
+
+trip.clientName
+
+Metrics:
+
+- Receivable
+- Received
+- Outstanding
+- Trip Count
+
+### Lifecycle
+
+ACTIVE
+
+- Expenses editable
+- Mamool editable
+- Quantity editable
+- Settlement editable
+- Payments editable
+
+CLOSED
+
+- Operational data locked
+- Settlement editable
+- Payments editable
+
+Reason:
+
+Trip completion and payment collection are separate business processes.
+
+### Deferred To V2
+
+- Company receivable detail page
+- Payment audit trail
+- Export/reporting
+- Collection reminders
+- Customer master table
+
+##
+
+| Truck Number | Age         |
+| ------------ | ----------- |
+| KA19AD2478   | 5.1 Years   |
+| KA01AM1292   | 4.10 Years  |
+| KA01AM1293   | 4.10 Years  |
+| KA01AM4191   | 3.10 Years  |
+| KA01AM4192   | 3.10 Years  |
+| KA01AM4193   | 3.10 Years  |
+| KA01AM4194   | 3.10 Years  |
+| KA01AN1564   | 2.10 Years  |
+| KA01AN1565   | 2.10 Years  |
+| KA01AN1566   | 2.10 Years  |
+| KA01AN1568   | 2.10 Years  |
+| KA01AN1569   | 2.10 Years  |
+| KA01AN1570   | 2.10 Years  |
+| KA01AN1571   | 2.10 Years  |
+| KA01AN1572   | 2.10 Years  |
+| KA01AN7991   | 2.4 Years   |
+| KA01AN7992   | 2.4 Years   |
+| KA01AN7993   | 2.4 Years   |
+| KA01AN7994   | 2.4 Years   |
+| KA01AN7995   | 2.4 Years   |
+| KA01AN7996   | 2.4 Years   |
+| KA01AN7997   | 2.4 Years   |
+| TN06AF7408   | 1.7 Years   |
+| TN06AF7421   | 1.7 Years   |
+| TN06AF7459   | 1.7 Years   |
+| TN06AF7482   | 1.7 Years   |
+| TN06AF7488   | 1.7 Years   |
+| TN21AJ5164   | 14.07 Years |

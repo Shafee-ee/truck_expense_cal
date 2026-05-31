@@ -107,6 +107,7 @@ export default async function TruckExpensesPage() {
             <option value="TAX">Tax</option>
             <option value="PERMIT">Permit</option>
             <option value="WASHING">Washing</option>
+            <option value="ADD_BLUE">Add Blue</option>
             <option value="OTHER">Other</option>
           </select>
 

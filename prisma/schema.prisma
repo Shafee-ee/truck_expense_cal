@@ -29,14 +29,13 @@ model Company {
 }
 
 model Truck {
-  id             String   @id @default(uuid())
-  numberPlate    String   @unique
-  companyId      String
-  createdAt      DateTime @default(now())
-  trips          Trip[]
-    truckExpenses  TruckExpense[]
-
-  company        Company  @relation(fields: [companyId], references: [id])
+  id            String         @id @default(uuid())
+  numberPlate   String         @unique
+  companyId     String
+  createdAt     DateTime       @default(now())
+  trips         Trip[]
+  company       Company        @relation(fields: [companyId], references: [id])
+  truckExpenses TruckExpense[]
 }
 
 model Expense {
@@ -51,61 +50,53 @@ model Expense {
 }
 
 model TruckExpense {
-  id          String   @id @default(cuid())
-
+  id          String               @id @default(cuid())
   truckId     String
-  truck       Truck    @relation(fields: [truckId], references: [id])
-
   category    TruckExpenseCategory
-
   amount      Float
-
   vendor      String?
   notes       String?
-
   expenseDate DateTime
-
   month       Int
   year        Int
-
-  createdAt   DateTime @default(now())
+  createdAt   DateTime             @default(now())
+  truck       Truck                @relation(fields: [truckId], references: [id])
 }
 
 model Trip {
-  id            String     @id @default(uuid())
-  truckId       String
-  source        String
-  destination   String
-  estimatedQty  Float?
-  actualQty     Float?
-  ratePerUnit   Float?
-  grossAmount   Float?
-  // Settlement / income
-  customerDiesel   Float? @default(0)
-  customerAdvance  Float? @default(0)
-  tds              Float? @default(0)
-  charges          Float? @default(0)
-  damageAmount     Float? @default(0)
-  damageNotes      String?
-  gcBalance        Float?
-  clientName       String?
-  billNumber       String?
-  transporter      String?
-  revenueMode RevenueMode @default(FIXED)
-  startDate     DateTime?
-  endDate       DateTime?
-  status        TripStatus @default(PLANNED)
-  createdAt     DateTime   @default(now())
-  finalBalance  Float?
-  finalExpenses Float?
-  finalRevenue  Float?
-  closedAt      DateTime?
-  closedBy      String?
-  expenses      Expense[]
-  payments      Payment[]
-  loadType LoadType @default(EXTERNAL)
-  mamool Float @default(0)  
-  truck         Truck      @relation(fields: [truckId], references: [id])
+  id              String      @id @default(uuid())
+  truckId         String
+  source          String
+  destination     String
+  estimatedQty    Float?
+  actualQty       Float?
+  ratePerUnit     Float?
+  startDate       DateTime?
+  endDate         DateTime?
+  status          TripStatus  @default(PLANNED)
+  createdAt       DateTime    @default(now())
+  finalBalance    Float?
+  finalExpenses   Float?
+  finalRevenue    Float?
+  closedAt        DateTime?
+  closedBy        String?
+  grossAmount     Float?
+  revenueMode     RevenueMode @default(FIXED)
+  loadType        LoadType    @default(EXTERNAL)
+  mamool          Float       @default(0)
+  billNumber      String?
+  charges         Float?      @default(0)
+  customerAdvance Float?      @default(0)
+  customerDiesel  Float?      @default(0)
+  damageAmount    Float?      @default(0)
+  damageNotes     String?
+  gcBalance       Float?
+  tds             Float?      @default(0)
+  transporter     String?
+  clientName      String?
+  expenses        Expense[]
+  payments        Payment[]
+  truck           Truck       @relation(fields: [truckId], references: [id])
 }
 
 enum TripStatus {
@@ -139,6 +130,7 @@ enum TruckExpenseCategory {
   PERMIT
   WASHING
   OTHER
+  ADD_BLUE
 }
 
 enum PaymentMode {
