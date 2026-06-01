@@ -33,11 +33,15 @@ async function createTruckExpense(formData) {
   revalidatePath("/dashboard/truck-expenses");
 }
 
-export default async function TruckExpensesPage() {
-  const currentDate = new Date();
+export default async function TruckExpensesPage(props) {
+  const searchParams = await props.searchParams;
 
-  const currentMonth = currentDate.getMonth() + 1;
-  const currentYear = currentDate.getFullYear();
+  const monthParam = searchParams?.month;
+
+  const selectedDate = monthParam ? new Date(`${monthParam}-01`) : new Date();
+
+  const currentMonth = selectedDate.getMonth() + 1;
+  const currentYear = selectedDate.getFullYear();
   const trucks = await prisma.truck.findMany({
     orderBy: {
       numberPlate: "asc",
@@ -62,26 +66,51 @@ export default async function TruckExpensesPage() {
     0,
   );
 
-  const truckSummaries = trucks.map((truck) => {
-    const truckExpenses = expenses.filter(
-      (expense) => expense.truckId === truck.id,
-    );
+  const truckSummaries = trucks
+    .map((truck) => {
+      const truckExpenses = expenses.filter(
+        (expense) => expense.truckId === truck.id,
+      );
 
-    const total = truckExpenses.reduce(
-      (sum, expense) => sum + expense.amount,
-      0,
-    );
+      if (truckExpenses.length === 0) return null;
 
-    return {
-      truck: truck.numberPlate,
-      total,
-    };
-  });
+      const categoryTotals = {};
+
+      truckExpenses.forEach((expense) => {
+        categoryTotals[expense.category] =
+          (categoryTotals[expense.category] || 0) + expense.amount;
+      });
+
+      const total = truckExpenses.reduce(
+        (sum, expense) => sum + expense.amount,
+        0,
+      );
+
+      return {
+        truck: truck.numberPlate,
+        total,
+        categoryTotals,
+      };
+    })
+    .filter(Boolean);
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Truck Maintenance Ledger</h1>
+      <form className="mb-6">
+        <input
+          type="month"
+          name="month"
+          defaultValue={
+            monthParam ||
+            `${currentYear}-${String(currentMonth).padStart(2, "0")}`
+          }
+          className="border rounded p-2"
+        />
 
+        <button className="ml-2 rounded bg-black px-4 py-2 text-white">
+          Apply
+        </button>
+      </form>
       <div className="mb-8 border rounded-lg p-4">
         <h2 className="font-semibold mb-4">Add Maintenance Expense</h2>
 
@@ -144,7 +173,7 @@ export default async function TruckExpensesPage() {
         </form>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
         <div className="border rounded-lg p-4">
           <p className="text-sm text-gray-500">Total Maintenance Cost</p>
 
@@ -158,10 +187,25 @@ export default async function TruckExpensesPage() {
 
           <div className="space-y-2">
             {truckSummaries.map((truck) => (
-              <div key={truck.truck} className="flex justify-between">
-                <span>{truck.truck}</span>
+              <div key={truck.truck} className="border rounded p-3 mb-3">
+                <div className="flex justify-between font-semibold">
+                  <span>{truck.truck}</span>
+                  <span>₹{truck.total.toLocaleString()}</span>
+                </div>
 
-                <span>₹{truck.total.toLocaleString()}</span>
+                <div className="mt-2 space-y-1 text-sm">
+                  {Object.entries(truck.categoryTotals).map(
+                    ([category, amount]) => (
+                      <div
+                        key={category}
+                        className="flex justify-between text-gray-600"
+                      >
+                        <span>{category}</span>
+                        <span>₹{amount.toLocaleString()}</span>
+                      </div>
+                    ),
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -29,10 +29,15 @@ model Company {
 }
 
 model Truck {
-  id            String         @id @default(uuid())
-  numberPlate   String         @unique
-  companyId     String
-  createdAt     DateTime       @default(now())
+  id          String @id @default(uuid())
+  numberPlate String @unique
+  companyId   String
+
+  roadTaxExpiry DateTime?
+  permitExpiry  DateTime?
+
+  createdAt DateTime @default(now())
+
   trips         Trip[]
   company       Company        @relation(fields: [companyId], references: [id])
   truckExpenses TruckExpense[]
