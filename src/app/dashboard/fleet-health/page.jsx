@@ -94,6 +94,13 @@ export default async function FleetHealthPage() {
     const taxDays = daysSince(lastTax?.expenseDate);
     const permitDays = daysSince(lastPermit?.expenseDate);
     const insuranceDays = daysSince(lastInsurance?.expenseDate);
+
+    const truckStatus = getTruckStatus({
+      taxDays,
+      permitDays,
+      insuranceDays,
+    });
+
     const taxStatus = getHealthStatus(taxDays);
     const permitStatus = getHealthStatus(permitDays);
     const insuranceStatus = getHealthStatus(insuranceDays);
@@ -104,6 +111,8 @@ export default async function FleetHealthPage() {
       taxDays,
       permitDays,
       insuranceDays,
+
+      truckStatus,
 
       taxStatus,
       permitStatus,
@@ -116,18 +125,60 @@ export default async function FleetHealthPage() {
     };
   });
 
+  const summary = {
+    missing: fleetHealth.filter(
+      (t) => t.truckStatus.label === "Missing Records",
+    ).length,
+
+    overdue: fleetHealth.filter((t) => t.truckStatus.label === "Overdue")
+      .length,
+
+    dueSoon: fleetHealth.filter((t) => t.truckStatus.label === "Due Soon")
+      .length,
+
+    healthy: fleetHealth.filter((t) => t.truckStatus.label === "Healthy")
+      .length,
+  };
+
   return (
-    <>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold">Fleet Health</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Fleet Health</h1>
+
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="border rounded p-4">
+          <p className="text-sm text-gray-500">Missing Records</p>
+
+          <p className="text-2xl font-bold">{summary.missing}</p>
+        </div>
+
+        <div className="border rounded p-4">
+          <p className="text-sm text-gray-500">Overdue</p>
+
+          <p className="text-2xl font-bold text-red-600">{summary.overdue}</p>
+        </div>
+
+        <div className="border rounded p-4">
+          <p className="text-sm text-gray-500">Due Soon</p>
+
+          <p className="text-2xl font-bold text-amber-600">{summary.dueSoon}</p>
+        </div>
+
+        <div className="border rounded p-4">
+          <p className="text-sm text-gray-500">Healthy</p>
+
+          <p className="text-2xl font-bold text-green-600">{summary.healthy}</p>
+        </div>
       </div>
-      <div className="mt-6 space-y-4">
+
+      <div className="space-y-4">
         {fleetHealth.map((truck) => (
           <div key={truck.truck} className="border rounded p-4">
             <h2 className="font-semibold">{truck.truck}</h2>
-            <p className={truck.insuranceStatus.color}>
-              Insurance Status: {truck.insuranceStatus.label}
+
+            <p className={`font-semibold ${truck.truckStatus.color}`}>
+              Status: {truck.truckStatus.label}
             </p>
+
             <p>
               Tax:
               {truck.taxDays !== null
@@ -158,6 +209,6 @@ export default async function FleetHealthPage() {
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
