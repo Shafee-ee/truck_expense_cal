@@ -5,9 +5,12 @@ export default async function DashboardPage(props) {
   const searchParams = await props.searchParams;
   const selectedMonth =
     searchParams?.month ?? new Date().toISOString().slice(0, 7);
-  const res = await fetch(`/api/dashboard?month=${selectedMonth}`, {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/api/dashboard?month=${selectedMonth}`,
+    {
+      cache: "no-store",
+    },
+  );
 
   const data = await res.json();
 
