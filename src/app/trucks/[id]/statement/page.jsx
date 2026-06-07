@@ -4,28 +4,16 @@ import {
   calculateTripProfit,
   calculateTripDays,
 } from "@/lib/finance";
+
+import { getTruckStatement } from "@/lib/getTruckStatement";
+
 import { Truck } from "lucide-react";
 export const runtime = "nodejs";
-
-async function getStatement(id) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-  const response = await fetch(`${baseUrl}/api/trucks/${id}/statement`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to load statement");
-  }
-
-  return response.json();
-}
 
 export default async function TruckStatementPage(props) {
   const params = await props.params;
 
-  const statement = await getStatement(params.id);
-
+  const statement = await getTruckStatement(params.id, null);
   const summary = statement.summary;
 
   return (
