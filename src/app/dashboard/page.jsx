@@ -1,38 +1,13 @@
 import { Wallet, TrendingUp, Truck, AlertTriangle } from "lucide-react";
+import { getDashboardData } from "@/lib/dashboard";
 const formatCurrency = (num) => new Intl.NumberFormat("en-IN").format(num);
 
 export default async function DashboardPage(props) {
   const searchParams = await props.searchParams;
   const selectedMonth =
     searchParams?.month ?? new Date().toISOString().slice(0, 7);
-  console.log("APP_URL:", process.env.NEXT_PUBLIC_APP_URL);
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL}/api/dashboard?month=${selectedMonth}`,
-    {
-      cache: "no-store",
-    },
-  );
-
-  console.log("STATUS:", res.status);
-  console.log("URL:", res.url);
-
-  const text = await res.text();
-
-  console.log(text.slice(0, 300));
-
-  return (
-    <pre>
-      {JSON.stringify(
-        {
-          status: res.status,
-          url: res.url,
-        },
-        null,
-        2,
-      )}
-    </pre>
-  );
+  const data = await getDashboardData(selectedMonth);
 
   const truckProfitability = data.truckProfitability ?? [];
 
