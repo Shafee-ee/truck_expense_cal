@@ -5,6 +5,8 @@ export default async function DashboardPage(props) {
   const searchParams = await props.searchParams;
   const selectedMonth =
     searchParams?.month ?? new Date().toISOString().slice(0, 7);
+  console.log("APP_URL:", process.env.NEXT_PUBLIC_APP_URL);
+
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_APP_URL}/api/dashboard?month=${selectedMonth}`,
     {
