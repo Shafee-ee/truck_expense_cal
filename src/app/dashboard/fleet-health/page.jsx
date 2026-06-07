@@ -73,8 +73,6 @@ export default async function FleetHealthPage() {
     },
   });
 
-  console.log(trucks);
-
   function daysSince(date) {
     if (!date) return null;
 
