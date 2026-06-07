@@ -14,7 +14,12 @@ export default async function DashboardPage(props) {
     },
   );
 
-  const data = await res.json();
+  const text = await res.text();
+
+  console.log("DASHBOARD RESPONSE:");
+  console.log(text);
+
+  const data = JSON.parse(text);
 
   const truckProfitability = data.truckProfitability ?? [];
 
