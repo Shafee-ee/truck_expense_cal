@@ -5,12 +5,9 @@ export default async function DashboardPage(props) {
   const searchParams = await props.searchParams;
   const selectedMonth =
     searchParams?.month ?? new Date().toISOString().slice(0, 7);
-  const res = await fetch(
-    `http://localhost:3000/api/dashboard?month=${selectedMonth}`,
-    {
-      cache: "no-store",
-    },
-  );
+  const res = await fetch(`/api/dashboard?month=${selectedMonth}`, {
+    cache: "no-store",
+  });
 
   const data = await res.json();
 
