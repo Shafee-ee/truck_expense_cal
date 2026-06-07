@@ -26,16 +26,6 @@ export default function SettlementForm({ trip }) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-zinc-800">
-              Settlement Management
-            </h2>
-
-            <p className="mt-1 text-sm text-zinc-500">
-              Customer billing and receivable details
-            </p>
-          </div>
-
           <button
             type="button"
             onClick={() => setIsEditing(true)}

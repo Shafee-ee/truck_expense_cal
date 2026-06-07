@@ -8,14 +8,6 @@ export default async function NewTripPage() {
     orderBy: { numberPlate: "asc" },
   });
 
-  console.log(
-    "TRUCKS:",
-    trucks.map((t) => ({
-      id: t.id,
-      plate: t.numberPlate,
-    })),
-  );
-
   const trips = await prisma.trip.findMany({
     select: {
       source: true,
