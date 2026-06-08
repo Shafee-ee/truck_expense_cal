@@ -32,7 +32,9 @@ export default function TruckRow({ truck, index, health }) {
                     px-4
                     py-5
                     "
-      ></td>
+      >
+        {truck.numberPlate}
+      </td>
       <td
         className="
                     text-right
