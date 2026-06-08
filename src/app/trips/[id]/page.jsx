@@ -285,15 +285,6 @@ export default async function TripDetailPage(props) {
           </div>
         )}
         <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-6 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-lg font-semibold text-zinc-800">
-              Settlement Management
-            </h2>
-
-            <p className="mt-1 text-sm text-zinc-500">
-              Record customer billing and receivable details
-            </p>
-          </div>
           <SettlementDetails trip={trip} />
         </div>
         {/*Trip Lifecyle Action*/}
