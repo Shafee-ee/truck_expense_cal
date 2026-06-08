@@ -5,6 +5,8 @@ export default function HomePage() {
       <p className="mt-2 text-gray-600">
         Logistics trip & financial ledger system
       </p>
+
+      <p className="text-red-500 font-bold">BUILD TEST 2026-06-07</p>
     </div>
   );
 }
