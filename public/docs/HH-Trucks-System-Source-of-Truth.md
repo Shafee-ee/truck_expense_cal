@@ -3404,3 +3404,103 @@ Trip completion and payment collection are separate business processes.
 | TN06AF7482   | 1.7 Years   |
 | TN06AF7488   | 1.7 Years   |
 | TN21AJ5164   | 14.07 Years |
+
+////
+
+Major deployment issue resolved
+The dashboard fetch issue was caused by server-side fetches to API routes during deployment.
+Old approach:
+/dashboard/page.jsx -> fetch("/api/dashboard") -> Vercel occasionally tried localhost -> ECONNREFUSED 127.0.0.1:3000
+New approach:
+lib/dashboard.js -> getDashboardData()dashboard/page.jsx -> directly imports getDashboardData()
+Dashboard now loads correctly.
+
+Deployment confusion discovered
+Vercel creates a new preview URL for every deployment:
+truck-expense-xxxx.vercel.apptruck-expense-yyyy.vercel.app
+Production URL remains:
+https://truck-expense-cal.vercel.app
+Client should always use production URL.
+Some of the strange behavior (old settlement heading, localhost errors) was likely coming from older preview deployments.
+
+Dashboard status
+Working.
+Current test data:
+Revenue ₹200,000Expenses ₹25,000Outstanding ₹77,000Net Profit ₹172,000
+Calculations verified.
+
+Trip workflow tested
+Tested successfully:
+Create TruckCreate TripStart TripAdd ExpenseAdd SettlementAdd PaymentClose TripEdit Settlement after closingEdit Expense after closing
+Results updated correctly everywhere.
+
+Financial test scenario used
+Trip:
+Revenue ₹200,000Mamool ₹3,000Fuel Expense ₹25,000Customer Diesel ₹10,000Customer Advance ₹10,000TDS ₹2,000Charges ₹1,000Payments Received ₹100,000
+Outstanding correctly recalculated after edits.
+
+Foreign key bug found and understood
+Error:
+P2003Trip_truckId_fkey
+Cause:
+Dropdown showed stale truck IDs after database reset.
+User selected truck that no longer existed.
+Once truck list refreshed, trip creation worked.
+No code change needed.
+
+Sidebar work
+Added links:
+DashboardTripsTrucksFleet HealthMaintenance
+Routes:
+/dashboard/trips/trucks/dashboard/fleet-health/dashboard/truck-expenses
+
+Active menu highlighting
+Created:
+src/components/Sidebar.jsx
+Uses:
+usePathname()
+Rules:
+pathname === "/dashboard"pathname.startsWith("/trips")pathname.startsWith("/trucks")pathname.startsWith("/dashboard/fleet-health")pathname.startsWith("/dashboard/truck-expenses")
+Dashboard no longer stays highlighted everywhere.
+
+Layout refactor
+Created:
+src/components/Sidebar.jsx
+Layout should now render:
+
+<aside ...>  <Sidebar /></aside>
+inside:
+src/app/layout.jsx
+
+Fleet Health bug found
+Issue:
+Truck column empty.
+File:
+src/app/trucks/TrucksRow.jsx
+Current broken code:
+
+<td></td>
+Fix:
+<td  className="    px-4    py-5    font-medium  ">  {truck.numberPlate}</td>
+Truck numbers should appear immediately after this change.
+
+Maintenance and Compliance
+Pages already exist:
+src/app/dashboard/truck-expenses/page.jsxsrc/app/dashboard/fleet-health/page.jsx
+Next planned task:
+
+1. Finish sidebar cleanup2. Verify Maintenance workflow3. Verify Compliance/Fleet Health calculations4. Prepare demo version for client
+
+Known unresolved item
+Settlement section heading issue:
+Removed locally and committed:
+Settlement ManagementRecord customer billing and receivable details
+Yet sometimes still appeared on deployed version.
+Could be deployment caching/older preview deployment issue.
+Not blocking functionality.
+
+Current focus for next chat
+Start with:
+
+1. Verify Sidebar integration in layout.jsx2. Fix TruckRow truck number display3. Test Maintenance page end-to-end4. Test Fleet Health page calculations
+   Those are the next highest-priority items before client demo.
