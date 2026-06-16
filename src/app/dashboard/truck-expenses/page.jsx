@@ -1,5 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
 
 async function createTruckExpense(formData) {
   "use server";
@@ -10,13 +17,37 @@ async function createTruckExpense(formData) {
   const vendor = formData.get("vendor");
   const notes = formData.get("notes");
   const expenseDate = formData.get("expenseDate");
+  const file = formData.get("document");
 
   if (!truckId || !category || !amount || !expenseDate) {
     throw new Error("Missing required fields");
   }
 
-  const date = new Date(expenseDate);
+  let documentPath = null;
 
+  if (file && file.size > 0) {
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    const fileExt = file.name.split(".").pop();
+
+    const fileName = `maintenance/${truckId}/${crypto.randomUUID()}.${fileExt}`;
+
+    const { error } = await supabase.storage
+      .from("expense-bills")
+      .upload(fileName, buffer, {
+        contentType: file.type,
+      });
+
+    if (error) {
+      console.error("Upload failed:", error);
+      throw new Error("Document upload failed");
+    }
+
+    documentPath = fileName;
+  }
+
+  const date = new Date(expenseDate);
   await prisma.truckExpense.create({
     data: {
       truckId,
@@ -24,9 +55,24 @@ async function createTruckExpense(formData) {
       amount,
       vendor,
       notes,
+      documentPath,
       expenseDate: date,
       month: date.getMonth() + 1,
       year: date.getFullYear(),
+    },
+  });
+
+  revalidatePath("/dashboard/truck-expenses");
+}
+
+async function deleteTruckExpense(formData) {
+  "use server";
+
+  const id = formData.get("id");
+
+  await prisma.truckExpense.delete({
+    where: {
+      id,
     },
   });
 
@@ -124,7 +170,6 @@ export default async function TruckExpensesPage(props) {
               </option>
             ))}
           </select>
-
           <select name="category" className="border rounded p-2">
             <option>Select Category</option>
 
@@ -139,34 +184,47 @@ export default async function TruckExpensesPage(props) {
             <option value="ADD_BLUE">Add Blue</option>
             <option value="OTHER">Other</option>
           </select>
-
           <input
             name="amount"
             type="number"
             placeholder="Amount"
             className="border rounded p-2"
           />
-
           <input
             name="vendor"
             type="text"
             placeholder="Vendor"
             className="border rounded p-2"
           />
-
           <input
             name="expenseDate"
             type="date"
             className="border rounded p-2"
           />
-
           <input
             name="notes"
             type="text"
             placeholder="Notes"
             className="border rounded p-2"
           />
+          <div className="border rounded p-2 flex items-center justify-between">
+            <label
+              htmlFor="document"
+              className="cursor-pointer rounded bg-black px-4 py-2 text-white"
+            >
+              Upload Document
+            </label>
 
+            <input
+              id="document"
+              name="document"
+              type="file"
+              accept=".pdf,image/*"
+              className="hidden"
+            />
+
+            <span className="text-sm text-gray-500">PDF or Image</span>
+          </div>
           <button className="bg-black text-white rounded p-2">
             Add Expense
           </button>
@@ -221,6 +279,7 @@ export default async function TruckExpensesPage(props) {
               <th className="text-left p-3">Amount</th>
               <th className="text-left p-3">Vendor</th>
               <th className="text-left p-3">Date</th>
+              <th className="text-left p-3">Actions</th>
             </tr>
           </thead>
 
@@ -237,6 +296,16 @@ export default async function TruckExpensesPage(props) {
 
                 <td className="p-3">
                   {new Date(expense.expenseDate).toLocaleDateString()}
+                </td>
+
+                <td className="p-3">
+                  <form action={deleteTruckExpense}>
+                    <input type="hidden" name="id" value={expense.id} />
+
+                    <button className="text-red-600 hover:underline">
+                      Delete
+                    </button>
+                  </form>
                 </td>
               </tr>
             ))}

@@ -64,6 +64,7 @@ model TruckExpense {
   expenseDate DateTime
   month       Int
   year        Int
+  documentPath String?
   createdAt   DateTime             @default(now())
   truck       Truck                @relation(fields: [truckId], references: [id])
 }
