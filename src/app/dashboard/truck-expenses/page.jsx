@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
+import FileUpload from "@/components/FileUpload";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,6 +19,20 @@ async function createTruckExpense(formData) {
   const notes = formData.get("notes");
   const expenseDate = formData.get("expenseDate");
   const file = formData.get("document");
+
+  console.log({
+    hasFile: !!file,
+    fileType: file?.constructor?.name,
+    fileSize: file?.size,
+    fileName: file?.name,
+  });
+
+  console.log({
+    truckId,
+    category,
+    amount,
+    expenseDate,
+  });
 
   if (!truckId || !category || !amount || !expenseDate) {
     throw new Error("Missing required fields");
@@ -70,10 +85,16 @@ async function deleteTruckExpense(formData) {
 
   const id = formData.get("id");
 
+  const expense = await prisma.truckExpense.findUnique({
+    where: { id },
+  });
+
+  if (expense?.documentPath) {
+    await supabase.storage.from("expense-bills").remove([expense.documentPath]);
+  }
+
   await prisma.truckExpense.delete({
-    where: {
-      id,
-    },
+    where: { id },
   });
 
   revalidatePath("/dashboard/truck-expenses");
@@ -207,24 +228,7 @@ export default async function TruckExpensesPage(props) {
             placeholder="Notes"
             className="border rounded p-2"
           />
-          <div className="border rounded p-2 flex items-center justify-between">
-            <label
-              htmlFor="document"
-              className="cursor-pointer rounded bg-black px-4 py-2 text-white"
-            >
-              Upload Document
-            </label>
-
-            <input
-              id="document"
-              name="document"
-              type="file"
-              accept=".pdf,image/*"
-              className="hidden"
-            />
-
-            <span className="text-sm text-gray-500">PDF or Image</span>
-          </div>
+          <FileUpload />
           <button className="bg-black text-white rounded p-2">
             Add Expense
           </button>
@@ -271,6 +275,11 @@ export default async function TruckExpensesPage(props) {
       </div>
 
       <div className="border rounded-lg overflow-hidden">
+        <select name="documents">
+          <option value="">All</option>
+          <option value="with">With Documents</option>
+          <option value="without">Without Documents</option>
+        </select>
         <table className="w-full">
           <thead className="bg-gray-100">
             <tr>
@@ -279,6 +288,7 @@ export default async function TruckExpensesPage(props) {
               <th className="text-left p-3">Amount</th>
               <th className="text-left p-3">Vendor</th>
               <th className="text-left p-3">Date</th>
+              <th className="text-left p-3">Document</th>
               <th className="text-left p-3">Actions</th>
             </tr>
           </thead>
@@ -296,6 +306,19 @@ export default async function TruckExpensesPage(props) {
 
                 <td className="p-3">
                   {new Date(expense.expenseDate).toLocaleDateString()}
+                </td>
+                <td className="p-3">
+                  {expense.documentPath ? (
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/expense-bills/${expense.documentPath}`}
+                      target="_blank"
+                      className="rounded bg-blue-500 px-3 py-1 text-white text-sm"
+                    >
+                      View
+                    </a>
+                  ) : (
+                    "No Document"
+                  )}
                 </td>
 
                 <td className="p-3">
