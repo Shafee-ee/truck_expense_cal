@@ -33,13 +33,26 @@ model Truck {
   numberPlate String @unique
   companyId   String
 
+vehicleType VehicleType?
+
+  registrationDate DateTime?
+
+  fitnessExpiry DateTime?
+
   roadTaxExpiry DateTime?
-  permitExpiry  DateTime?
+
+  insuranceExpiry DateTime?
+
+  permitExpiry DateTime?
+
+  nationalPermitExpiry DateTime?
 
   createdAt DateTime @default(now())
 
-  trips         Trip[]
-  company       Company        @relation(fields: [companyId], references: [id])
+  trips Trip[]
+
+  company Company @relation(fields:[companyId], references:[id])
+
   truckExpenses TruckExpense[]
 }
 
@@ -150,7 +163,14 @@ enum PaymentType {
   SETTLEMENT
 }
 
+enum VehicleType {
+  TRUCK
+  TEMPO
+  CAR
+}
+
 enum LoadType {
   COMPANY
   EXTERNAL
 }
+

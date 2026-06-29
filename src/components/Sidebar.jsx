@@ -99,6 +99,17 @@ export default function Sidebar() {
         >
           Maintenance
         </Link>
+
+        <Link
+          href="/dashboard/fleet-register"
+          className={
+            pathname.startsWith("/dashboard/fleet-register")
+              ? activeClass
+              : inactiveClass
+          }
+        >
+          Fleet Register Page
+        </Link>
       </nav>
       {/* FOOTER */}
       <div className="p-4 border-t border-white/10">
