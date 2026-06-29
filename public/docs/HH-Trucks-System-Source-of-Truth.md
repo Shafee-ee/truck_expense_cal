@@ -3504,3 +3504,255 @@ Start with:
 
 1. Verify Sidebar integration in layout.jsx2. Fix TruckRow truck number display3. Test Maintenance page end-to-end4. Test Fleet Health page calculations
    Those are the next highest-priority items before client demo.
+
+   ####
+
+   I think this is the right time to start a new chat.
+
+We've spent several hours evolving the design, and we've reached a stable architecture. The next chat should be focused entirely on implementation, not redesign.
+
+Here's the plan I would follow.
+
+Phase 1 — Database (30 minutes)
+✅ Schema updated
+Run migration
+Run prisma generate
+Remove old Truck expiry fields
+Add expiryDate to TruckExpense
+
+Goal: Stable database.
+
+Phase 2 — Maintenance Module (Highest Priority)
+
+This becomes the single source of truth.
+
+Create/Edit Expense
+
+When category is:
+
+REPAIR
+TYRE
+ELECTRICAL
+ADD_BLUE
+WASHING
+SALARY
+OTHER
+
+Show:
+
+Amount
+Vendor
+Payment Date
+Note
+Upload Document
+
+When category is:
+
+INSURANCE
+ROAD_TAX
+PERMIT
+NATIONAL_PERMIT
+FITNESS
+
+Show:
+
+Amount
+Vendor
+Payment Date
+Expiry Date
+Upload Document
+Note
+
+Same page.
+
+Same form.
+
+Conditional UI.
+
+Upload
+
+Reuse the Supabase upload system.
+
+No changes.
+
+Edit Maintenance
+
+Editing should also allow:
+
+change expiry
+replace document
+delete document
+Phase 3 — Fleet Register
+
+Delete the edit workflow we built.
+
+Instead:
+
+Vehicle
+
+Registration Date
+
+Insurance
+
+Road Tax
+
+Permit
+
+Fitness
+
+National Permit
+
+For every compliance category:
+
+Find latest TruckExpense
+↓
+
+Display expiry
+
+↓
+
+View Document
+
+↓
+
+Download
+
+No editing.
+
+No save button.
+
+Pure reporting.
+
+Phase 4 — Fleet Health
+
+Rewrite completely.
+
+Don't use maintenance cost.
+
+Don't use expense totals.
+
+Instead:
+
+Latest Insurance
+
+↓
+
+Expired?
+
+↓
+
+Latest Fitness
+
+↓
+
+Expired?
+
+Show
+
+Expired
+
+Due within 7 days
+
+Due within 30 days
+
+Healthy
+
+Clicking
+
+Expired
+
+should open Fleet Register filtered to:
+
+Expired
+Phase 5 — Dashboard
+
+Replace old Fleet Health card with
+
+Fleet Compliance
+
+Healthy
+
+Expiring Soon
+
+Expired
+
+Owner sees problems immediately.
+
+Phase 6 — Nice Features
+
+Search
+
+KA01...
+
+Filter
+
+Insurance
+
+Permit
+
+Fitness
+
+Export
+
+Excel
+Phase 7 — Import
+
+Read Excel.
+
+Automatically create:
+
+Truck
+
+and later
+
+TruckExpense
+
+This can wait.
+
+Things we are deleting
+
+❌ Truck expiry fields
+
+❌ Editable Fleet Register
+
+❌ Fleet Health based on maintenance categories
+
+❌ Duplicate compliance information
+
+Final Architecture
+Truck
+│
+├── Number Plate
+├── Vehicle Type
+└── Registration Date
+│
+│
+▼
+TruckExpense
+│
+├── Category
+├── Amount
+├── Expense Date
+├── Expiry Date
+├── Document
+└── Vendor
+│
+├──────────────┐
+▼ ▼
+Fleet Register Fleet Health
+(Read Only) (Alerts)
+One more thing
+
+I would not delete the Fleet Register pages we built today yet.
+
+They helped us validate the UI. We'll repurpose them into the read-only Fleet Register. The page layout, routing, and navigation can all be reused; we'll just remove the editing behavior and change where the data comes from.
+
+I think this is one of the biggest improvements we've made to HH Trucks. Earlier today we had three features that overlapped. Now each module has a single, clear responsibility:
+
+Maintenance → Data entry and document storage.
+Fleet Register → Read-only compliance register.
+Fleet Health → Alerts and operational overview.
+
+That's a clean architecture, and it's one I'd be comfortable maintaining long-term.
+
+Yes—I think this is the perfect point to update your source-of-truth document and start a fresh chat. The next conversation can be entirely implementation-focused, without revisiting the design decisions we've now settled.

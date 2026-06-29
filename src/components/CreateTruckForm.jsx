@@ -59,58 +59,12 @@ export default function CreateTruckForm() {
 
       <div>
         <label className="block text-sm font-medium mb-1">
-          Registraton Date
+          Registration Date
         </label>
 
         <input
           type="date"
           name="registrationDate"
-          className="border p-2 w-full"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">Fitness Expiry</label>
-        <input
-          type="date"
-          name="fitnessExpiry"
-          className="border p-2  w-full"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1 ">
-          Road tax Expiry
-        </label>
-
-        <input type="date" name="roadTaxExpiry" className="w-full p-2 border" />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          Insurance Expiry
-        </label>
-
-        <input
-          type="date"
-          name="insuranceExpiry"
-          className="border w-full p-2"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">Permit Expiry</label>
-        <input type="date" name="permitExpiry" className="border w-full p-2" />
-      </div>
-
-      <div>
-        <label className="text-sm block font-semibold">
-          National Permit Expiry
-        </label>
-
-        <input
-          type="date"
-          name="nationalPermitExpiry"
           className="border p-2 w-full"
         />
       </div>

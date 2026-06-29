@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import FileUpload from "@/components/FileUpload";
+import TruckExpenseForm from "@/components/TruckExpenseForm";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,7 +17,8 @@ async function createTruckExpense(formData) {
   const category = formData.get("category");
   const amount = Number(formData.get("amount"));
   const vendor = formData.get("vendor");
-  const notes = formData.get("notes");
+  const note = formData.get("note");
+  const expiryDate = formData.get("expiryDate");
   const expenseDate = formData.get("expenseDate");
   const file = formData.get("document");
 
@@ -33,6 +35,8 @@ async function createTruckExpense(formData) {
     amount,
     expenseDate,
   });
+
+  console.log("createTruckExpense called");
 
   if (!truckId || !category || !amount || !expenseDate) {
     throw new Error("Missing required fields");
@@ -69,7 +73,8 @@ async function createTruckExpense(formData) {
       category,
       amount,
       vendor,
-      notes,
+      note,
+      expiryDate: expiryDate ? new Date(expiryDate) : null,
       documentPath,
       expenseDate: date,
       month: date.getMonth() + 1,
@@ -181,58 +186,7 @@ export default async function TruckExpensesPage(props) {
       <div className="mb-8 border rounded-lg p-4">
         <h2 className="font-semibold mb-4">Add Maintenance Expense</h2>
 
-        <form action={createTruckExpense} className="grid grid-cols-2 gap-4">
-          <select name="truckId" className="border rounded p-2">
-            <option>Select Truck</option>
-
-            {trucks.map((truck) => (
-              <option key={truck.id} value={truck.id}>
-                {truck.numberPlate}
-              </option>
-            ))}
-          </select>
-          <select name="category" className="border rounded p-2">
-            <option>Select Category</option>
-
-            <option value="TYRE">Tyre</option>
-            <option value="REPAIR">Repair</option>
-            <option value="ELECTRICAL">Electrical</option>
-            <option value="INSURANCE">Insurance</option>
-            <option value="SALARY">Salary</option>
-            <option value="TAX">Tax</option>
-            <option value="PERMIT">Permit</option>
-            <option value="WASHING">Washing</option>
-            <option value="ADD_BLUE">Add Blue</option>
-            <option value="OTHER">Other</option>
-          </select>
-          <input
-            name="amount"
-            type="number"
-            placeholder="Amount"
-            className="border rounded p-2"
-          />
-          <input
-            name="vendor"
-            type="text"
-            placeholder="Vendor"
-            className="border rounded p-2"
-          />
-          <input
-            name="expenseDate"
-            type="date"
-            className="border rounded p-2"
-          />
-          <input
-            name="notes"
-            type="text"
-            placeholder="Notes"
-            className="border rounded p-2"
-          />
-          <FileUpload />
-          <button className="bg-black text-white rounded p-2">
-            Add Expense
-          </button>
-        </form>
+        <TruckExpenseForm trucks={trucks} action={createTruckExpense} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">

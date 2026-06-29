@@ -8,11 +8,6 @@ export async function createTruck(formData) {
 
     const vehicleType = formData.get("vehicleType");
     const registrationDate = formData.get("registrationDate");
-    const fitnessExpiry = formData.get("fitnessExpiry");
-    const roadTaxExpiry = formData.get("roadTaxExpiry");
-    const insuranceExpiry = formData.get("insuranceExpiry");
-    const permitExpiry = formData.get("permitExpiry");
-    const nationalPermitExpiry = formData.get("nationalPermitExpiry");
 
     if (!numberPlate) {
       return {
@@ -50,21 +45,8 @@ export async function createTruck(formData) {
       data: {
         numberPlate,
         companyId: company.id,
-
         vehicleType,
         registrationDate: registrationDate ? new Date(registrationDate) : null,
-
-        fitnessExpiry: fitnessExpiry ? new Date(fitnessExpiry) : null,
-
-        roadTaxExpiry: roadTaxExpiry ? new Date(roadTaxExpiry) : null,
-
-        insuranceExpiry: insuranceExpiry ? new Date(insuranceExpiry) : null,
-
-        permitExpiry: permitExpiry ? new Date(permitExpiry) : null,
-
-        nationalPermitExpiry: nationalPermitExpiry
-          ? new Date(nationalPermitExpiry)
-          : null,
       },
     });
 

@@ -29,31 +29,21 @@ model Company {
 }
 
 model Truck {
-  id          String @id @default(uuid())
-  numberPlate String @unique
-  companyId   String
+  id               String @id @default(uuid())
+  numberPlate      String @unique
+  companyId        String
 
-vehicleType VehicleType?
+  vehicleType      VehicleType?
 
   registrationDate DateTime?
 
-  fitnessExpiry DateTime?
+  createdAt        DateTime @default(now())
 
-  roadTaxExpiry DateTime?
+  trips            Trip[]
 
-  insuranceExpiry DateTime?
+  company          Company @relation(fields: [companyId], references: [id])
 
-  permitExpiry DateTime?
-
-  nationalPermitExpiry DateTime?
-
-  createdAt DateTime @default(now())
-
-  trips Trip[]
-
-  company Company @relation(fields:[companyId], references:[id])
-
-  truckExpenses TruckExpense[]
+  truckExpenses    TruckExpense[]
 }
 
 model Expense {
@@ -68,18 +58,33 @@ model Expense {
 }
 
 model TruckExpense {
-  id          String               @id @default(cuid())
-  truckId     String
-  category    TruckExpenseCategory
-  amount      Float
-  vendor      String?
-  notes       String?
-  expenseDate DateTime
-  month       Int
-  year        Int
-  documentPath String?
-  createdAt   DateTime             @default(now())
-  truck       Truck                @relation(fields: [truckId], references: [id])
+  id           String @id @default(cuid())
+
+  truckId      String
+
+  category      TruckExpenseCategory
+
+  amount        Float
+
+  vendor        String?
+
+  note        String?
+
+  expenseDate   DateTime
+
+  expiryDate    DateTime?   // NEW
+
+  month         Int
+
+  year          Int
+
+  documentPath  String?
+
+  createdAt     DateTime @default(now())
+
+  truck         Truck @relation(fields: [truckId], references: [id])
+
+  @@index([truckId, category, expenseDate])
 }
 
 model Trip {
@@ -144,12 +149,14 @@ enum TruckExpenseCategory {
   REPAIR
   ELECTRICAL
   INSURANCE
-  SALARY
-  TAX
+  ROAD_TAX
   PERMIT
+  NATIONAL_PERMIT
+  FITNESS
+  SALARY
   WASHING
-  OTHER
   ADD_BLUE
+  OTHER
 }
 
 enum PaymentMode {
