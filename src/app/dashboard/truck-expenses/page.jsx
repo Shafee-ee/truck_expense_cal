@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { Wallet, Shield, Wrench, CircleDot, Ellipsis } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
+import TruckMaintenanceSummary from "@/components/TruckMaintenanceSummary";
 import { createClient } from "@supabase/supabase-js";
 import FileUpload from "@/components/FileUpload";
 import TruckExpenseForm from "@/components/TruckExpenseForm";
@@ -66,23 +68,99 @@ async function createTruckExpense(formData) {
     documentPath = fileName;
   }
 
+  const complianceCategories = [
+    "INSURANCE",
+    "ROAD_TAX",
+    "FITNESS",
+    "PERMIT",
+    "NATIONAL_PERMIT",
+  ];
+
+  const isCompliance = complianceCategories.includes(category);
+
   const date = new Date(expenseDate);
-  await prisma.truckExpense.create({
-    data: {
-      truckId,
-      category,
-      amount,
-      vendor,
-      note,
-      expiryDate: expiryDate ? new Date(expiryDate) : null,
-      documentPath,
-      expenseDate: date,
-      month: date.getMonth() + 1,
-      year: date.getFullYear(),
-    },
-  });
+
+  if (isCompliance) {
+    const existing = await prisma.truckExpense.findFirst({
+      where: {
+        truckId,
+        category,
+      },
+      orderBy: {
+        expenseDate: "desc",
+      },
+    });
+
+    if (existing) {
+      let data = {
+        amount,
+        vendor,
+        note,
+        expenseDate: date,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        month: date.getMonth() + 1,
+        year: date.getFullYear(),
+      };
+
+      // Only overwrite the document if a new one was uploaded
+      if (documentPath) {
+        data.documentPath = documentPath;
+      }
+
+      await prisma.truckExpense.update({
+        where: {
+          id: existing.id,
+        },
+        data,
+      });
+    } else {
+      await prisma.truckExpense.create({
+        data: {
+          truckId,
+          category,
+          amount,
+          vendor,
+          note,
+          expenseDate: date,
+          expiryDate: expiryDate ? new Date(expiryDate) : null,
+          documentPath,
+          month: date.getMonth() + 1,
+          year: date.getFullYear(),
+        },
+      });
+    }
+  } else {
+    await prisma.truckExpense.create({
+      data: {
+        truckId,
+        category,
+        amount,
+        vendor,
+        note,
+        expenseDate: date,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        documentPath,
+        month: date.getMonth() + 1,
+        year: date.getFullYear(),
+      },
+    });
+  }
 
   revalidatePath("/dashboard/truck-expenses");
+}
+
+function formatCategory(label) {
+  const names = {
+    TYRE: "Tyres",
+    REPAIR: "Repairs",
+    ELECTRICAL: "Electrical",
+    COMPLIANCE: "Compliance",
+    WASHING: "Washing",
+    ADD_BLUE: "AdBlue",
+    OTHER: "Other",
+  };
+
+  return names[label] || label;
 }
 
 async function deleteTruckExpense(formData) {
@@ -138,6 +216,43 @@ export default async function TruckExpensesPage(props) {
     0,
   );
 
+  const categoryGroups = {
+    TYRE: ["TYRE"],
+
+    REPAIR: ["REPAIR"],
+
+    ELECTRICAL: ["ELECTRICAL"],
+
+    COMPLIANCE: [
+      "INSURANCE",
+      "ROAD_TAX",
+      "FITNESS",
+      "PERMIT",
+      "NATIONAL_PERMIT",
+    ],
+
+    WASHING: ["WASHING"],
+
+    ADD_BLUE: ["ADD_BLUE"],
+
+    OTHER: ["OTHER"],
+  };
+
+  const categoryTotals = Object.entries(categoryGroups).map(
+    ([label, categories]) => {
+      const total = expenses
+        .filter((expense) => categories.includes(expense.category))
+        .reduce((sum, expense) => sum + expense.amount, 0);
+
+      return {
+        label,
+        total,
+        percentage:
+          totalExpenses === 0 ? 0 : Math.round((total / totalExpenses) * 100),
+      };
+    },
+  );
+
   const truckSummaries = trucks
     .map((truck) => {
       const truckExpenses = expenses.filter(
@@ -166,129 +281,158 @@ export default async function TruckExpensesPage(props) {
     })
     .filter(Boolean);
 
+  const selectedMonthLabel = selectedDate.toLocaleDateString("en-IN", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const truckMaintenance = trucks
+    .map((truck) => {
+      const truckExpenses = expenses.filter(
+        (expense) => expense.truckId === truck.id,
+      );
+
+      if (truckExpenses.length === 0) return null;
+
+      const total = truckExpenses.reduce(
+        (sum, expense) => sum + expense.amount,
+        0,
+      );
+
+      return {
+        id: truck.id,
+        numberPlate: truck.numberPlate,
+        total,
+        lastExpense: truckExpenses[0],
+      };
+    })
+    .filter(Boolean);
+
   return (
     <div className="p-6">
-      <form className="mb-6">
-        <input
-          type="month"
-          name="month"
-          defaultValue={
-            monthParam ||
-            `${currentYear}-${String(currentMonth).padStart(2, "0")}`
-          }
-          className="border rounded p-2"
-        />
-
-        <button className="ml-2 rounded bg-black px-4 py-2 text-white">
-          Apply
-        </button>
-      </form>
       <div className="mb-8 border rounded-lg p-4">
         <h2 className="font-semibold mb-4">Add Maintenance Expense</h2>
 
         <TruckExpenseForm trucks={trucks} action={createTruckExpense} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-        <div className="border rounded-lg p-4">
-          <p className="text-sm text-gray-500">Total Maintenance Cost</p>
+      <div className="mb-6 rounded-xl border bg-white p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="font-semibold text-lg">Maintenance Dashboard</h2>
+          <form className="mb-4 flex justify-end">
+            <input
+              type="month"
+              name="month"
+              defaultValue={
+                monthParam ||
+                `${currentYear}-${String(currentMonth).padStart(2, "0")}`
+              }
+              className="rounded-lg border px-3 py-2"
+            />
 
-          <h2 className="text-2xl font-bold">
-            ₹{totalExpenses.toLocaleString()}
-          </h2>
+            <button className="ml-2 rounded-lg bg-black px-4 py-2 text-white">
+              Apply
+            </button>
+          </form>
         </div>
+        <div className="grid gap-4 md:grid-cols-5">
+          <Card
+            icon={<Wallet className="h-5 w-5 text-indigo-600" />}
+            title="Total Maintenance"
+            amount={totalExpenses}
+            subtitle={selectedMonthLabel}
+          />
 
-        <div className="border rounded-lg p-4 col-span-2">
-          <p className="text-sm text-gray-500 mb-2">Truck Expense Summary</p>
+          <Card
+            icon={<CircleDot className="h-5 w-5 text-blue-600" />}
+            title="Tyres"
+            amount={categoryTotals.find((c) => c.label === "TYRE")?.total || 0}
+            subtitle={`${
+              categoryTotals.find((c) => c.label === "TYRE")?.percentage || 0
+            }% of total`}
+          />
 
-          <div className="space-y-2">
-            {truckSummaries.map((truck) => (
-              <div key={truck.truck} className="border rounded p-3 mb-3">
-                <div className="flex justify-between font-semibold">
-                  <span>{truck.truck}</span>
-                  <span>₹{truck.total.toLocaleString()}</span>
+          <Card
+            icon={<Wrench className="h-5 w-5 text-orange-600" />}
+            title="Repairs"
+            amount={
+              categoryTotals.find((c) => c.label === "REPAIR")?.total || 0
+            }
+            subtitle={`${
+              categoryTotals.find((c) => c.label === "REPAIR")?.percentage || 0
+            }% of total`}
+          />
+
+          <Card
+            icon={<Shield className="h-5 w-5 text-green-600" />}
+            title="Compliance"
+            amount={
+              categoryTotals.find((c) => c.label === "COMPLIANCE")?.total || 0
+            }
+            subtitle={`${
+              categoryTotals.find((c) => c.label === "COMPLIANCE")
+                ?.percentage || 0
+            }% of total`}
+          />
+
+          <Card
+            icon={<Ellipsis className="h-5 w-5 text-purple-600" />}
+            title="Other"
+            amount={categoryTotals.find((c) => c.label === "OTHER")?.total || 0}
+            subtitle={`${
+              categoryTotals.find((c) => c.label === "OTHER")?.percentage || 0
+            }% of total`}
+          />
+        </div>
+        <div className="mt-8 rounded-xl border bg-white p-6">
+          <h2 className="mb-6 font-semibold">Expenses by Category</h2>
+
+          <div className="space-y-5">
+            {categoryTotals.map((category) => (
+              <div
+                key={category.label}
+                className="grid grid-cols-12 items-center gap-4"
+              >
+                <div className="col-span-2 font-medium">
+                  {formatCategory(category.label)}
                 </div>
 
-                <div className="mt-2 space-y-1 text-sm">
-                  {Object.entries(truck.categoryTotals).map(
-                    ([category, amount]) => (
-                      <div
-                        key={category}
-                        className="flex justify-between text-gray-600"
-                      >
-                        <span>{category}</span>
-                        <span>₹{amount.toLocaleString()}</span>
-                      </div>
-                    ),
-                  )}
+                <div className="col-span-2">
+                  ₹{category.total.toLocaleString()}
+                </div>
+
+                <div className="col-span-1 text-sm text-slate-500">
+                  {category.percentage}%
+                </div>
+
+                <div className="col-span-7 h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-amber-400"
+                    style={{ width: `${category.percentage}%` }}
+                  />
                 </div>
               </div>
             ))}
           </div>
         </div>
+        <TruckMaintenanceSummary trucks={truckMaintenance} />
+      </div>
+    </div>
+  );
+}
+
+function Card({ icon, title, amount, subtitle }) {
+  return (
+    <div className="rounded-xl border bg-white p-5">
+      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
+        {icon}
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
-        <select name="documents">
-          <option value="">All</option>
-          <option value="with">With Documents</option>
-          <option value="without">Without Documents</option>
-        </select>
-        <table className="w-full">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="text-left p-3">Truck</th>
-              <th className="text-left p-3">Category</th>
-              <th className="text-left p-3">Amount</th>
-              <th className="text-left p-3">Vendor</th>
-              <th className="text-left p-3">Date</th>
-              <th className="text-left p-3">Document</th>
-              <th className="text-left p-3">Actions</th>
-            </tr>
-          </thead>
+      <p className="text-sm text-slate-500">{title}</p>
 
-          <tbody>
-            {expenses.map((expense) => (
-              <tr key={expense.id} className="border-t">
-                <td className="p-3">{expense.truck.numberPlate}</td>
+      <h3 className="mt-1 text-2xl font-bold">₹{amount.toLocaleString()}</h3>
 
-                <td className="p-3">{expense.category}</td>
-
-                <td className="p-3">₹{expense.amount.toLocaleString()}</td>
-
-                <td className="p-3">{expense.vendor || "-"}</td>
-
-                <td className="p-3">
-                  {new Date(expense.expenseDate).toLocaleDateString()}
-                </td>
-                <td className="p-3">
-                  {expense.documentPath ? (
-                    <a
-                      href={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/expense-bills/${expense.documentPath}`}
-                      target="_blank"
-                      className="rounded bg-blue-500 px-3 py-1 text-white text-sm"
-                    >
-                      View
-                    </a>
-                  ) : (
-                    "No Document"
-                  )}
-                </td>
-
-                <td className="p-3">
-                  <form action={deleteTruckExpense}>
-                    <input type="hidden" name="id" value={expense.id} />
-
-                    <button className="text-red-600 hover:underline">
-                      Delete
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
     </div>
   );
 }

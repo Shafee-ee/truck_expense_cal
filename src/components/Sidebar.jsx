@@ -79,14 +79,14 @@ export default function Sidebar() {
         </Link>
 
         <Link
-          href="/dashboard/fleet-health"
+          href="/dashboard/truck-summary"
           className={
-            pathname.startsWith("/dashboard/fleet-health")
+            pathname.startsWith("/dashboard/truck-summary")
               ? activeClass
               : inactiveClass
           }
         >
-          Fleet health
+          Maintaenance Dashboard
         </Link>
 
         <Link

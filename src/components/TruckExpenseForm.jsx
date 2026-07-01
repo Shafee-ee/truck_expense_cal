@@ -116,7 +116,7 @@ export default function TruckExpenseForm({ trucks, action }) {
 
       <div>
         <label className="block text-sm font-medium mb-1">
-          Invoice / Certificate
+          {showExpiryDate ? "Certificate" : "Invoice / Bill"}
         </label>
 
         <FileUpload />

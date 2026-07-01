@@ -3756,3 +3756,304 @@ Fleet Health → Alerts and operational overview.
 That's a clean architecture, and it's one I'd be comfortable maintaining long-term.
 
 Yes—I think this is the perfect point to update your source-of-truth document and start a fresh chat. The next conversation can be entirely implementation-focused, without revisiting the design decisions we've now settled.
+
+########
+Good stopping point. We made solid architectural progress today. Here's the summary you can paste into your source-of-truth file or use to start the next chat.
+
+HH Trucks Progress Summary
+
+1. Maintenance Module (Major Refactor)
+   Purpose decided
+
+The Maintenance page is only for entering expenses and showing fleet-wide analytics.
+
+It is not the place to browse every truck's maintenance history.
+
+This is now split into:
+
+Maintenance
+│
+▼
+Fleet Maintenance Summary
+│
+▼
+Truck Maintenance Statement 2. Compliance Expenses
+
+Completed.
+
+Compliance categories:
+
+Insurance
+Road Tax
+Fitness
+Permit
+National Permit
+
+now behave differently from normal maintenance expenses.
+
+Rules:
+
+Only ONE active record per truck/category.
+Adding another record updates the existing one.
+Prevents duplicate compliance entries.
+New document replaces old document only if uploaded.
+Fleet Register now always reads the latest compliance information. 3. Fleet Register
+
+Completed.
+
+Health calculation now works as intended.
+
+Priority:
+
+Expired
+↓
+
+Expiring Soon
+
+↓
+
+Incomplete
+
+↓
+
+Healthy
+
+Icons:
+
+Green = valid
+Yellow = expires within 30 days
+Red = expired
+Grey = missing
+
+Reason text added beneath each truck.
+
+Example:
+
+Insurance expires in 18 days
+
+Permit expired
+
+Road Tax missing 4. Maintenance Dashboard
+
+Large redesign completed.
+
+Removed:
+
+Truck summary cards
+Monthly table
+
+Added:
+
+Expense Overview cards:
+
+Total Maintenance
+Tyres
+Repairs
+Compliance
+Other
+
+Below that:
+
+Expense Breakdown
+
+with percentage bars.
+
+Current month filter added.
+
+Dashboard is now analytics-first.
+
+5. Fleet Maintenance Summary
+
+New page created.
+
+Route:
+
+/dashboard/truck-summary
+
+Purpose:
+
+Overview of maintenance by truck.
+
+Current table:
+
+Truck
+Total Expense
+Last Expense
+Updated
+View
+
+Completed:
+
+Search UI
+Category filter UI
+Sort UI
+Green totals
+Better table styling
+Whole row clickable
+
+Routing now works.
+
+Clicking a truck opens
+
+/ dashboard / truck-summary / [truckId] 6. Truck Detail Page
+
+Created.
+
+Current route:
+
+/dashboard/truck-summary/[truckId]
+
+Working:
+
+Fetch truck
+Fetch truck expenses
+Lifetime Spend
+This Year
+Last 6 Months
+This Month
+
+Monthly Expense Breakdown has been started.
+
+Need small cleanup:
+
+Move totalMaintenance calculation above categoryTotals
+Remove duplicate totalMaintenance
+Replace
+selectedMonth
+
+with
+
+Current Month
+
+until month filtering is implemented.
+
+Design Decisions Finalized
+
+Maintenance Dashboard
+
+↓
+
+Fleet Maintenance Summary
+
+↓
+
+Truck Detail Page
+
+NOT
+
+Maintenance Dashboard
+
+↓
+
+Huge table
+
+↓
+
+Everything mixed together
+
+This separation is much cleaner.
+
+Truck Detail Page Final Layout
+
+Agreed layout:
+
+Truck Header
+
+↓
+
+4 KPI Cards
+
+Lifetime
+
+This Year
+
+Last 6 Months
+
+This Month
+
+↓
+
+Monthly Expense Breakdown
+
+↓
+
+Expense History
+
+↓
+
+Compliance Status
+
+(optional)
+
+No graphs.
+
+No pie charts.
+
+No unnecessary visualizations.
+
+Operational dashboard first.
+
+Remaining Work
+Truck Detail
+
+Finish:
+
+Monthly Expense Breakdown
+Month selector
+Expense History table
+Search
+Category filter
+Invoice View button
+Notes column
+Fleet Maintenance Summary
+
+Finish:
+
+Functional search
+Functional category filter
+Functional sorting
+KPI cards
+Better "Updated" text
+Title case category names
+Later
+
+Possible additions:
+
+Quick Facts card
+Largest expense
+Last vendor
+Expense count
+Overall Status
+
+Fleet Register
+
+100%
+
+Maintenance Dashboard
+
+95%
+
+Fleet Maintenance Summary
+
+85%
+
+Truck Detail
+
+30%
+
+Overall Maintenance Module
+
+~90% complete
+
+Plan for the next session
+Fix the small issues in truck-summary/[truckId]/page.jsx (5 minutes).
+Finish the Monthly Expense Breakdown.
+Add a month filter that controls both the breakdown and the expense history.
+Build the Expense History table with:
+Search
+Category filter
+Invoice button
+Notes
+Decide whether a lightweight Compliance Status section adds value or if Fleet Register remains the single source for compliance.
+
+After that, the entire maintenance subsystem should be feature-complete and ready for polishing rather than architecture changes.

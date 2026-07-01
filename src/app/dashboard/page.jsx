@@ -194,7 +194,6 @@ export default async function DashboardPage(props) {
         </div>
       </div>
       {/* OPERATIONS SECTION */}
-      {/* OPERATIONS SECTION */}
       <div className="space-y-4 pt-2">
         <h2 className="text-base font-semibold">Cash Position</h2>
 
