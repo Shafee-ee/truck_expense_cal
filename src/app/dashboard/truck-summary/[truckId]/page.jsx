@@ -60,8 +60,6 @@ export default async function TruckDetailPage({ params }) {
     },
   );
 
-  const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-
   const now = new Date();
 
   const currentYear = now.getFullYear();
@@ -92,6 +90,23 @@ export default async function TruckDetailPage({ params }) {
     })
     .reduce((sum, expense) => sum + expense.amount, 0);
 
+  const lastExpense = expenses[0] ?? null;
+
+  const largestExpense =
+    expenses.length === 0
+      ? null
+      : expenses.reduce((largest, expense) =>
+          expense.amount > largest.amount ? expense : largest,
+        );
+
+  const categoryCounts = expenses.reduce((acc, expense) => {
+    acc[expense.category] = (acc[expense.category] || 0) + 1;
+    return acc;
+  }, {});
+
+  const mostFrequentCategory =
+    Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0] ?? null;
+
   return (
     <div className="space-y-6 p-6">
       <div className="rounded-xl border bg-white p-6">
@@ -106,13 +121,54 @@ export default async function TruckDetailPage({ params }) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard title="Lifetime Spend" amount={totalSpent} />
+        <StatCard title="Lifetime Spend" amount={totalMaintenance} />
 
         <StatCard title="This Year" amount={thisYear} />
 
         <StatCard title="Last 6 Months" amount={lastSixMonths} />
 
         <StatCard title="This Month" amount={thisMonth} />
+      </div>
+
+      <div className="rounded-xl border bg-white p-6">
+        <h2 className="mb-6 text-lg font-semibold">Maintenance Snapshot</h2>
+
+        <div className="grid gap-6 md:grid-cols-4">
+          <SnapshotItem title="Total Entries" value={expenses.length} />
+
+          <SnapshotItem
+            title="Last Maintenance"
+            value={
+              lastExpense
+                ? new Date(lastExpense.expenseDate).toLocaleDateString("en-GB")
+                : "-"
+            }
+          />
+
+          <SnapshotItem
+            title="Largest Expense"
+            value={
+              largestExpense
+                ? `₹${largestExpense.amount.toLocaleString("en-IN")}`
+                : "-"
+            }
+            subValue={
+              largestExpense ? formatCategory(largestExpense.category) : ""
+            }
+          />
+
+          <SnapshotItem
+            title="Most Frequent"
+            value={
+              mostFrequentCategory
+                ? formatCategory(mostFrequentCategory[0])
+                : "-"
+            }
+            subValue={
+              mostFrequentCategory ? `${mostFrequentCategory[1]} entries` : ""
+            }
+          />
+        </div>
       </div>
 
       <div className="mt-8 rounded-xl border bg-white p-6">
@@ -129,7 +185,7 @@ export default async function TruckDetailPage({ params }) {
               className="grid grid-cols-12 items-center gap-4"
             >
               <div className="col-span-2 font-medium">
-                {category.label.replace("_", " ")}
+                {formatCategory(category.label)}{" "}
               </div>
 
               <div className="col-span-2">
@@ -152,8 +208,109 @@ export default async function TruckDetailPage({ params }) {
           ))}
         </div>
       </div>
+
+      <div className="rounded-xl border bg-white p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Expense History</h2>
+
+          <p className="text-sm text-slate-500">
+            {expenses.length} {expenses.length === 1 ? "entry" : "entries"}
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          {expenses.length === 0 ? (
+            <div className="py-12 text-center text-slate-500">
+              No maintenance records found.
+            </div>
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead className="border-b bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-slate-600">
+                    Date
+                  </th>
+
+                  <th className="px-4 py-3 text-left font-medium text-slate-600">
+                    Category
+                  </th>
+
+                  <th className="px-4 py-3 text-left font-medium text-slate-600">
+                    Vendor
+                  </th>
+
+                  <th className="px-4 py-3 text-right font-medium text-slate-600">
+                    Amount
+                  </th>
+
+                  <th className="px-4 py-3 text-left font-medium text-slate-600">
+                    Notes
+                  </th>
+
+                  <th className="px-4 py-3 text-center font-medium text-slate-600">
+                    Document
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {expenses.map((expense, index) => (
+                  <tr
+                    key={expense.id}
+                    className={`border-b transition-colors hover:bg-slate-100 ${
+                      index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      {new Date(expense.expenseDate).toLocaleDateString(
+                        "en-GB",
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {formatCategory(expense.category)}{" "}
+                    </td>
+
+                    <td className="px-4 py-3">{expense.vendor || "-"}</td>
+
+                    <td className="px-4 py-3 text-right font-medium text-emerald-600">
+                      ₹{expense.amount.toLocaleString("en-IN")}
+                    </td>
+
+                    <td className="px-4 py-3 text-slate-600">
+                      {expense.notes ? (
+                        expense.notes
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}{" "}
+                    </td>
+
+                    <td className="px-4 py-3 text-center">
+                      {expense.documentPath ? (
+                        <button className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium transition hover:bg-slate-100">
+                          View
+                        </button>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
+}
+
+function formatCategory(category) {
+  return category
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 function StatCard({ title, amount }) {
@@ -164,6 +321,18 @@ function StatCard({ title, amount }) {
       <h2 className="mt-2 text-3xl font-bold text-emerald-600">
         ₹{amount.toLocaleString("en-IN")}
       </h2>
+    </div>
+  );
+}
+
+function SnapshotItem({ title, value, subValue }) {
+  return (
+    <div>
+      <p className="text-sm text-slate-500">{title}</p>
+
+      <h3 className="mt-2 text-xl font-semibold">{value}</h3>
+
+      {subValue && <p className="mt-1 text-sm text-slate-500">{subValue}</p>}
     </div>
   );
 }
