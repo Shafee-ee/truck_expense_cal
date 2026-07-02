@@ -10,18 +10,17 @@ export default function TruckSummaryTable({ trucks, expenses }) {
         (expense) => expense.truckId === truck.id,
       );
 
-      if (truckExpenses.length === 0) return null;
-
       const total = truckExpenses.reduce(
         (sum, expense) => sum + expense.amount,
         0,
       );
 
-      const lastExpense = truckExpenses[0];
+      const lastExpense = truckExpenses[0] ?? null;
 
       return {
         id: truck.id,
         numberPlate: truck.numberPlate,
+        company: truck.company,
         total,
         lastExpense,
         expenseCount: truckExpenses.length,
@@ -61,6 +60,7 @@ export default function TruckSummaryTable({ trucks, expenses }) {
           <thead className="bg-slate-50">
             <tr className="bg-slate-50 text-left text-sm text-slate-600">
               <th className="p-4">Truck</th>
+              <th className="p-4">Owner</th>
               <th className="p-4">Total Expense</th>
               <th className="p-4">Last Expense</th>
               <th className="p-4">Updated</th>
@@ -82,9 +82,21 @@ export default function TruckSummaryTable({ trucks, expenses }) {
                     <p className="font-semibold">{truck.numberPlate}</p>
 
                     <p className="text-sm text-slate-500">
-                      {truck.lastExpense.vendor || "Maintenance"}
+                      {truck.lastExpense?.vendor || "No maintenance"}
                     </p>
                   </div>
+                </td>
+
+                <td className="p-4">
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-medium ${
+                      truck.company.isInternal
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {truck.company.name}
+                  </span>
                 </td>
 
                 <td className="p-4">
@@ -96,11 +108,15 @@ export default function TruckSummaryTable({ trucks, expenses }) {
                 <td className="p-4">
                   <div>
                     <p className="font-medium">
-                      {truck.lastExpense.category.replaceAll("_", " ")}
+                      {truck.lastExpense
+                        ? formatCategory(truck.lastExpense.category)
+                        : "—"}
                     </p>
 
                     <p className="text-sm text-slate-500">
-                      ₹{truck.lastExpense.amount.toLocaleString("en-IN")}
+                      {truck.lastExpense
+                        ? `₹${truck.lastExpense.amount.toLocaleString("en-IN")}`
+                        : "—"}{" "}
                     </p>
                   </div>
                 </td>
@@ -108,9 +124,11 @@ export default function TruckSummaryTable({ trucks, expenses }) {
                 <td className="p-4">
                   <div>
                     <p>
-                      {new Date(
-                        truck.lastExpense.expenseDate,
-                      ).toLocaleDateString("en-IN")}
+                      {truck.lastExpense
+                        ? new Date(
+                            truck.lastExpense.expenseDate,
+                          ).toLocaleDateString("en-IN")
+                        : "—"}
                     </p>
 
                     <p className="text-sm text-slate-500">Latest Entry</p>
@@ -135,4 +153,12 @@ export default function TruckSummaryTable({ trucks, expenses }) {
       </div>
     </div>
   );
+}
+
+function formatCategory(category) {
+  return category
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }

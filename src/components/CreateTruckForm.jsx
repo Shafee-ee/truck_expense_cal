@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 
 import { createTruck } from "@/app/trucks/new/actions";
 
-export default function CreateTruckForm() {
+export default function CreateTruckForm({ companies }) {
   const router = useRouter();
 
   const [isPending, startTransition] = useTransition();
@@ -54,6 +54,24 @@ export default function CreateTruckForm() {
           <option value="TRUCK">Truck</option>
           <option value="TEMPO">Tempo</option>
           <option value="CAR">Car</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Owner Company</label>
+
+        <select
+          name="companyId"
+          className="border p-2 rounded-sm w-full"
+          required
+        >
+          <option value="">Select Company</option>
+
+          {companies.map((company) => (
+            <option key={company.id} value={company.id}>
+              {company.name}
+            </option>
+          ))}
         </select>
       </div>
 

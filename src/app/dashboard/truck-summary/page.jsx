@@ -3,6 +3,9 @@ import TruckSummaryTable from "@/components/TruckSummaryTable";
 
 export default async function TruckSummaryPage() {
   const trucks = await prisma.truck.findMany({
+    include: {
+      company: true,
+    },
     orderBy: {
       numberPlate: "asc",
     },

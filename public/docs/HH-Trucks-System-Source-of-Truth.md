@@ -4057,3 +4057,288 @@ Notes
 Decide whether a lightweight Compliance Status section adds value or if Fleet Register remains the single source for compliance.
 
 After that, the entire maintenance subsystem should be feature-complete and ready for polishing rather than architecture changes.
+
+#####
+
+Here's a clean handoff you can paste into your source.md.
+
+HH Trucks / Logisco Progress Summary
+Overall Status
+
+Project is approximately 75–80% complete.
+
+The core ERP functionality is now stable. The remaining work is primarily business/accounting logic, not CRUD or UI.
+
+Completed This Session
+Truck Maintenance Module
+Truck Detail Page
+
+Completed:
+
+Lifetime Spend
+This Year
+Last 6 Months
+This Month
+Maintenance Snapshot
+Total Entries
+Last Maintenance
+Largest Expense
+Most Frequent Category
+Monthly Expense Breakdown
+Expense History
+Expense History
+
+Completed:
+
+Search (Vendor / Notes)
+Category filter
+Month filter (applies to entire page)
+Document viewing
+Delete maintenance entry
+Back button to Truck Summary
+
+Decision:
+
+No edit functionality.
+Delete + recreate is sufficient for current scope.
+Maintenance Documents
+
+Completed:
+
+Upload
+View
+Delete from Supabase Storage when maintenance record is deleted
+
+Verified working.
+
+Truck Summary
+
+Completed:
+
+Shows owner company
+Internal companies displayed with green badge
+External companies displayed with blue badge
+Shows trucks with no maintenance
+No null crashes
+Category formatting cleaned up
+Driver Salary
+
+Decision made:
+
+Driver salary is not monthly maintenance.
+
+It is a trip expense.
+
+Implemented:
+
+Added new trip expense category:
+
+DRIVER_PAYMENT
+
+Expense flow now:
+
+Fuel
+Toll
+Loading
+Unloading
+Police
+Repair
+Driver Payment
+Other
+
+Driver salary now affects:
+
+Trip expenses
+Trip settlement
+Profit calculations
+
+Not truck maintenance.
+
+Truck Ownership
+
+This is the biggest architectural change.
+
+Previously:
+
+Every truck automatically belonged to Logisco.
+
+Now:
+
+Every truck belongs to a Company.
+
+Implemented:
+
+Truck creation now requires:
+
+Owner Company
+
+Removed automatic Logisco assignment.
+
+TruckSummary now displays:
+
+Truck
+Owner Company
+Maintenance
+
+Architecture now reflects reality.
+
+Business Understanding (Important)
+
+Three scenarios were clarified.
+
+Scenario A
+
+Customer hires Logisco.
+
+Logisco uses:
+
+own truck
+hired truck(s)
+
+Customer pays Logisco.
+
+Logisco pays transporter.
+
+Logisco keeps fulfilment margin.
+
+Scenario B
+
+Logisco transports its own goods.
+
+No external customer.
+
+If required,
+
+Logisco hires external transporter.
+
+Scenario C
+
+Customer hires Logisco.
+
+Logisco uses only its own truck.
+
+Revenue remains entirely with Logisco.
+
+Big realization:
+
+Logisco is not a trucking company.
+
+It is a logistics operator / fulfilment company.
+
+The software is becoming a logistics ERP.
+
+Current Architecture
+Company
+│
+├── owns Trucks
+│
+Truck
+│
+├── Maintenance
+└── Trips
+│
+├── Expenses
+├── Payments
+├── Settlement
+└── Revenue
+
+Truck ownership now exists.
+
+Financial reporting will build on this.
+
+Remaining Work
+Maintenance
+
+Very little remaining.
+
+Only:
+
+Company filter on Truck Summary page
+(optional) Search by owner
+
+Maintenance module is essentially complete.
+
+Trips
+
+Remaining:
+
+Truck dropdown should show:
+
+KA19AB1234 — Logisco
+
+KA20AB5678 — Krishna Transport
+
+instead of only truck number.
+
+Small UX improvement.
+
+Company Module
+
+Needs proper management UI.
+
+Currently company exists in schema.
+
+Need:
+
+Add Company
+Edit Company
+Internal / External
+Company listing
+Dashboard KPIs (Largest Remaining Task)
+
+Current dashboard is operational.
+
+Needs business intelligence.
+
+Future KPIs:
+
+Customer Receivables
+
+Customers owe Logisco
+
+Transporter Payables
+
+Money Logisco owes transporter companies
+
+Internal Fleet Profit
+
+Profit earned using Logisco trucks
+
+Fulfilment Margin
+
+Revenue
+
+minus
+
+Amount paid to transporter
+
+=
+
+Brokerage earned
+
+These KPIs are now possible because truck ownership has been implemented.
+
+Next Chat Plan
+
+Priority order:
+
+Add Company filter to Truck Maintenance Summary.
+Improve Trip truck dropdown to show truck owner.
+Build Company Management page (CRUD).
+Redesign dashboard KPIs around:
+Receivables
+Payables
+Internal Fleet Profit
+Fulfilment Margin
+Update settlement/accounting logic where ownership affects calculations.
+Notes
+
+Important architectural decisions made:
+
+Driver salary belongs to Trips, not Maintenance.
+Truck Maintenance is independent of ownership.
+Ownership affects reporting, settlements and KPIs—not maintenance records themselves.
+Edit functionality for maintenance deferred; delete + recreate is sufficient.
+The remaining effort is concentrated on financial reporting and business logic rather than additional CRUD screens.
+
+This session established the ownership model that the remaining accounting features will build upon.
