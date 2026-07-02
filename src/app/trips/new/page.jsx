@@ -5,7 +5,12 @@ import CreateTripForm from "@/components/CreateTripForm";
 
 export default async function NewTripPage() {
   const trucks = await prisma.truck.findMany({
-    orderBy: { numberPlate: "asc" },
+    include: {
+      company: true,
+    },
+    orderBy: {
+      numberPlate: "asc",
+    },
   });
 
   const trips = await prisma.trip.findMany({
@@ -20,9 +25,8 @@ export default async function NewTripPage() {
   ].filter(Boolean);
 
   return (
-    <div className="p-6 bg-blue-50">
+    <div className="max-w-4xl mx-auto bg-white rounded-lg p-6 shadow border border-slate-200">
       <h1 className="text-2xl font-bold mb-4">Create Trip</h1>
-
       <CreateTripForm trucks={trucks} cities={cities} />
     </div>
   );

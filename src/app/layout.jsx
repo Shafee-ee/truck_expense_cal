@@ -13,9 +13,24 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className="bg-[#f5f7fb] text-gray-900">
         <Providers>
-          <div className="flex min-h-screen">
+          <div className="flex h-screen overflow-hidden">
             {/* SIDEBAR */}
-            <aside className="w-64 bg-gradient-to-b from-[#071120] to-[#0b1730] shadow-2xl text-white flex flex-col border-r border-white/10">
+            <aside
+              className="
+    w-64
+    h-screen
+    shrink-0
+    bg-gradient-to-b
+    from-[#071120]
+    to-[#0b1730]
+    shadow-2xl
+    text-white
+    flex
+    flex-col
+    border-r
+    border-white/10
+  "
+            >
               <Sidebar />
             </aside>
             {/* MAIN CONTENT */}

@@ -12,6 +12,7 @@
     "seed": "node scripts/seed.js"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.10",
     "@prisma/client": "^5.15.0",
     "@supabase/supabase-js": "^2.91.1",
     "lucide-react": "^1.14.0",

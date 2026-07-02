@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import CompanyCombobox from "@/components/CompanyCombobox";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -10,6 +12,8 @@ export default function CreateTruckForm({ companies }) {
   const router = useRouter();
 
   const [isPending, startTransition] = useTransition();
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [companyName, setCompanyName] = useState("");
 
   function handleSubmit(formData) {
     startTransition(async () => {
@@ -60,21 +64,20 @@ export default function CreateTruckForm({ companies }) {
       <div>
         <label className="block text-sm font-medium mb-1">Owner Company</label>
 
-        <select
+        <CompanyCombobox
+          companies={companies}
+          selectedCompany={selectedCompany}
+          onChange={setSelectedCompany}
+          companyName={companyName}
+          setCompanyName={setCompanyName}
+        />
+        <input
+          type="hidden"
           name="companyId"
-          className="border p-2 rounded-sm w-full"
-          required
-        >
-          <option value="">Select Company</option>
-
-          {companies.map((company) => (
-            <option key={company.id} value={company.id}>
-              {company.name}
-            </option>
-          ))}
-        </select>
+          value={selectedCompany?.id ?? ""}
+        />
+        <input type="hidden" name="companyName" value={companyName} />
       </div>
-
       <div>
         <label className="block text-sm font-medium mb-1">
           Registration Date

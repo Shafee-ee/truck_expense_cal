@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 export async function createTruck(formData) {
   try {
@@ -8,6 +9,7 @@ export async function createTruck(formData) {
 
     const vehicleType = formData.get("vehicleType");
     const companyId = formData.get("companyId");
+    const companyName = formData.get("companyName")?.trim();
     const registrationDate = formData.get("registrationDate");
 
     if (!numberPlate) {
@@ -15,7 +17,7 @@ export async function createTruck(formData) {
         error: "Truck number plate is required",
       };
     }
-    if (!companyId) {
+    if (!companyId && !companyName) {
       return {
         error: "Owner company is required",
       };
@@ -33,14 +35,40 @@ export async function createTruck(formData) {
       };
     }
 
+    let finalCompanyId = companyId;
+
+    if (!finalCompanyId) {
+      let company = await prisma.company.findFirst({
+        where: {
+          name: {
+            equals: companyName,
+            mode: "insensitive",
+          },
+        },
+      });
+
+      if (!company) {
+        company = await prisma.company.create({
+          data: {
+            name: companyName,
+          },
+        });
+      }
+
+      finalCompanyId = company.id;
+    }
+
     await prisma.truck.create({
       data: {
         numberPlate,
-        companyId,
+        companyId: finalCompanyId,
         vehicleType,
         registrationDate: registrationDate ? new Date(registrationDate) : null,
       },
     });
+
+    revalidatePath("/trucks");
+    revalidatePath("/trips/new");
 
     return {
       success: true,

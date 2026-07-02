@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import TruckCombobox from "@/components/TruckCombobox";
 
 import { createTrip } from "@/app/trips/new/actions";
 export default function CreateTripForm({ trucks, cities }) {
@@ -10,9 +11,23 @@ export default function CreateTripForm({ trucks, cities }) {
   const [revenueMode, setRevenueMode] = useState("FIXED");
   const [loadType, setLoadType] = useState("EXTERNAL");
   const [isPending, startTransition] = useTransition();
+  const [selectedTruck, setSelectedTruck] = useState(null);
+  const [truckNumber, setTruckNumber] = useState("");
+  const [estimatedQty, setEstimatedQty] = useState("");
+  const [ratePerUnit, setRatePerUnit] = useState("");
+
+  const estimatedRevenue =
+    (Number(estimatedQty) || 0) * (Number(ratePerUnit) || 0);
+
+  const inputClass =
+    "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200";
 
   function handleSubmit(formData) {
     startTransition(async () => {
+      if (!selectedTruck) {
+        toast.error("Please select a truck from the list.");
+        return;
+      }
       const result = await createTrip(formData);
 
       if (result?.error) {
@@ -27,21 +42,33 @@ export default function CreateTripForm({ trucks, cities }) {
   }
 
   return (
-    <form action={handleSubmit} className="space-y-4">
+    <form
+      action={handleSubmit}
+      className="space-y-4"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target.tagName !== "TEXTAREA") {
+          e.preventDefault();
+        }
+      }}
+    >
       <div>
         <label className="block text-sm font-medium">Truck</label>
 
-        <select name="truckId" required className="border p-2 w-full">
-          <option value="">Select Truck</option>
+        <TruckCombobox
+          trucks={trucks}
+          selectedTruck={selectedTruck}
+          onChange={setSelectedTruck}
+          truckNumber={truckNumber}
+          setTruckNumber={setTruckNumber}
+        />
 
-          {trucks.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.numberPlate}
-            </option>
-          ))}
-        </select>
+        <input
+          type="hidden"
+          name="truckId"
+          className={inputClass}
+          value={selectedTruck?.id ?? ""}
+        />
       </div>
-
       <div>
         <label className="block text-sm font-medium">Source</label>
 
@@ -49,7 +76,7 @@ export default function CreateTripForm({ trucks, cities }) {
           name="source"
           list="source-cities"
           required
-          className="border p-2 w-full"
+          className={inputClass}
         />
 
         <datalist id="source-cities">
@@ -58,7 +85,6 @@ export default function CreateTripForm({ trucks, cities }) {
           ))}
         </datalist>
       </div>
-
       <div>
         <label className="block text-sm font-medium">Destination</label>
 
@@ -66,7 +92,7 @@ export default function CreateTripForm({ trucks, cities }) {
           name="destination"
           list="destination-cities"
           required
-          className="border p-2 w-full"
+          className={inputClass}
         />
 
         <datalist id="destination-cities">
@@ -75,38 +101,51 @@ export default function CreateTripForm({ trucks, cities }) {
           ))}
         </datalist>
       </div>
-      <div>
+
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
         <label className="block text-sm font-medium mb-2">Load Type</label>
+        <label className="flex items-center gap-3 cursor-pointer rounded-md border border-transparent p-2 hover:bg-white">
+          <input
+            type="radio"
+            name="loadType"
+            value="COMPANY"
+            checked={loadType === "COMPANY"}
+            onChange={(e) => setLoadType(e.target.value)}
+          />
+          <div>
+            <p className="font-medium">Company (GJ)</p>
 
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="loadType"
-              value="COMPANY"
-              checked={loadType === "COMPANY"}
-              onChange={(e) => setLoadType(e.target.value)}
-            />
-            Company (GJ)
-          </label>
+            <p className="text-xs text-slate-500">
+              Uses your own company's goods.
+            </p>
+          </div>{" "}
+        </label>
 
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="loadType"
-              value="EXTERNAL"
-              checked={loadType === "EXTERNAL"}
-              onChange={(e) => setLoadType(e.target.value)}
-            />
+        <label className="flex items-center gap-3 cursor-pointer rounded-md border border-transparent p-2 hover:bg-white">
+          <input
+            type="radio"
+            name="loadType"
+            value="EXTERNAL"
+            checked={loadType === "EXTERNAL"}
+            onChange={(e) => setLoadType(e.target.value)}
+          />
+
+          <div>
             External
-          </label>
-        </div>
+            <p className="text-xs text-slate-500">
+              Customer or third-party transport.
+            </p>
+          </div>
+        </label>
       </div>
-      <div>
-        <label className="block text-sm font-medium mb-2">Revenue Type</label>
 
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2">
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <label className="block text-sm font-semibold text-slate-700 mb-3">
+          Revenue Type
+        </label>
+
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer rounded-md border border-transparent p-2 hover:bg-white">
             <input
               type="radio"
               name="revenueMode"
@@ -114,10 +153,15 @@ export default function CreateTripForm({ trucks, cities }) {
               checked={revenueMode === "FIXED"}
               onChange={(e) => setRevenueMode(e.target.value)}
             />
-            Fixed Gross Amount
+            <div>
+              <p className="font-medium">Fixed Gross Amount</p>
+              <p className="text-xs text-slate-500">
+                Enter the total agreed freight amount.
+              </p>
+            </div>
           </label>
 
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-3 cursor-pointer rounded-md border border-transparent p-2 hover:bg-white">
             <input
               type="radio"
               name="revenueMode"
@@ -125,7 +169,12 @@ export default function CreateTripForm({ trucks, cities }) {
               checked={revenueMode === "VARIABLE"}
               onChange={(e) => setRevenueMode(e.target.value)}
             />
-            Quantity × Rate
+            <div>
+              <p className="font-medium">Rate × Quantity</p>
+              <p className="text-xs text-slate-500">
+                Revenue will be calculated from quantity and rate.
+              </p>
+            </div>
           </label>
         </div>
       </div>
@@ -139,7 +188,10 @@ export default function CreateTripForm({ trucks, cities }) {
               name="estimatedQty"
               type="number"
               step="0.01"
-              className="border p-2 w-full"
+              required={revenueMode === "VARIABLE"}
+              value={estimatedQty}
+              onChange={(e) => setEstimatedQty(e.target.value)}
+              className={inputClass}
             />
           </div>
 
@@ -150,36 +202,32 @@ export default function CreateTripForm({ trucks, cities }) {
               type="number"
               name="ratePerUnit"
               step="0.01"
-              className="border p-2 w-full"
+              required={revenueMode === "VARIABLE"}
+              value={ratePerUnit}
+              onChange={(e) => setRatePerUnit(e.target.value)}
+              className={inputClass}
             />
+          </div>
+
+          <div className="rounded-md border border-green-200 bg-green-50 p-3">
+            <p className="text-sm text-slate-600">Estimated Revenue</p>
+
+            <p className="text-xl font-bold text-green-700">
+              ₹ {estimatedRevenue.toLocaleString("en-IN")}
+            </p>
           </div>
         </>
       )}
-
       {loadType === "EXTERNAL" && (
         <div>
-          <label
-            className="
-      block
-      text-sm
-      font-medium
-      "
-          >
-            Mamool
-          </label>
+          <label className={inputClass}>Mamool</label>
 
           <input
             name="mamool"
-            type="number"
             max="3000"
             min="0"
-            step="1"
             placeholder="0"
-            className="
-      border
-      p-2
-      w-full
-      "
+            className={inputClass}
           />
 
           <p
@@ -201,7 +249,8 @@ export default function CreateTripForm({ trucks, cities }) {
             name="grossAmount"
             type="number"
             step="0.01"
-            className="border p-2 w-full"
+            required={revenueMode === "FIXED"}
+            className={inputClass}
           />
 
           <p className="text-xs text-gray-500 mt-1">
@@ -209,15 +258,14 @@ export default function CreateTripForm({ trucks, cities }) {
           </p>
         </div>
       )}
-
       <button
         disabled={isPending}
         className="
-        bg-black
-        text-white
-        px-4
-        py-2
-        disabled:opacity-50
+        bg-slate-700
+hover:bg-slate-800
+text-white
+rounded-md
+py-2 px-4 
       "
       >
         {isPending ? "Creating..." : "Create Trip"}
