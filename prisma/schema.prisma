@@ -140,6 +140,7 @@ enum ExpenseCategory {
   POLICE
   LOADING
   UNLOADING
+  DRIVER_PAYMENT
   REPAIR
   OTHER
 }
@@ -152,8 +153,7 @@ enum TruckExpenseCategory {
   ROAD_TAX
   PERMIT
   NATIONAL_PERMIT
-  FITNESS
-  SALARY
+  FITNESS 
   WASHING
   ADD_BLUE
   OTHER

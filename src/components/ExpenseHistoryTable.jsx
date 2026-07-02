@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { deleteTruckExpense } from "@/actions/truckExpenses";
 
 function formatCategory(category) {
   return category
@@ -110,18 +111,28 @@ export default function ExpenseHistoryTable({ expenses }) {
                 </td>
 
                 <td className="px-4 py-3 text-center">
-                  {expense.documentUrl ? (
-                    <a
-                      href={expense.documentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block rounded-md border px-3 py-1 text-xs hover:bg-slate-100"
-                    >
-                      View
-                    </a>
-                  ) : (
-                    <span className="text-slate-400">—</span>
-                  )}
+                  <div className="flex justify-center gap-2">
+                    {expense.documentUrl ? (
+                      <a
+                        href={expense.documentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-md border px-3 py-1 text-xs hover:bg-slate-100"
+                      >
+                        View
+                      </a>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+
+                    <form action={deleteTruckExpense}>
+                      <input type="hidden" name="id" value={expense.id} />
+
+                      <button className="rounded-md border border-red-300 px-3 py-1 text-xs text-red-600 hover:bg-red-50">
+                        Delete
+                      </button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             ))}

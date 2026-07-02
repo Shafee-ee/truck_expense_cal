@@ -54,7 +54,6 @@ export default function TruckExpenseForm({ trucks, action }) {
           <option value="NATIONAL_PERMIT">National Permit</option>
           <option value="FITNESS">Fitness</option>
 
-          <option value="SALARY">Salary</option>
           <option value="WASHING">Washing</option>
           <option value="ADD_BLUE">AdBlue</option>
           <option value="OTHER">Other</option>
