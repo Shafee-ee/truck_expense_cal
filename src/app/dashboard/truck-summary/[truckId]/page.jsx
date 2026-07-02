@@ -1,4 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { getTruckExpenseDocument } from "@/lib/truckExpensesDocuments";
+import TruckMaintenanceView from "@/components/TruckMaintenanceView";
+import Link from "next/link";
 
 export default async function TruckDetailPage({ params }) {
   const { truckId } = await params;
@@ -20,7 +23,12 @@ export default async function TruckDetailPage({ params }) {
     return <div className="p-6">Truck not found.</div>;
   }
 
-  const expenses = truck.truckExpenses;
+  const expenses = await Promise.all(
+    truck.truckExpenses.map(async (expense) => ({
+      ...expense,
+      documentUrl: await getTruckExpenseDocument(expense.documentPath),
+    })),
+  );
 
   const totalMaintenance = expenses.reduce(
     (sum, expense) => sum + expense.amount,
@@ -104,14 +112,28 @@ export default async function TruckDetailPage({ params }) {
     return acc;
   }, {});
 
+  const sortedCategories = Object.entries(categoryCounts).sort(
+    (a, b) => b[1] - a[1],
+  );
+
   const mostFrequentCategory =
-    Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0] ?? null;
+    sortedCategories.length > 0 ? sortedCategories[0] : null;
+
+  const hasDominantCategory =
+    sortedCategories.length === 1 ||
+    (sortedCategories.length > 1 &&
+      sortedCategories[0][1] > sortedCategories[1][1]);
 
   return (
     <div className="space-y-6 p-6">
       <div className="rounded-xl border bg-white p-6">
+        <Link
+          href="/dashboard/truck-summary"
+          className="mb-4 inline-flex items-center text-sm font-medium text-slate-600 transition hover:text-slate-900"
+        >
+          ← Back to Fleet Summary
+        </Link>
         <h1 className="text-3xl font-bold">{truck.numberPlate}</h1>
-
         <p className="mt-2 text-slate-500">
           {truck.vehicleType || "Truck"} • Registered{" "}
           {truck.registrationDate
@@ -158,149 +180,22 @@ export default async function TruckDetailPage({ params }) {
           />
 
           <SnapshotItem
-            title="Most Frequent"
+            title="Most Frequent Category"
             value={
-              mostFrequentCategory
+              hasDominantCategory && mostFrequentCategory
                 ? formatCategory(mostFrequentCategory[0])
-                : "-"
+                : "No dominant category"
             }
             subValue={
-              mostFrequentCategory ? `${mostFrequentCategory[1]} entries` : ""
+              hasDominantCategory && mostFrequentCategory
+                ? `${mostFrequentCategory[1]} maintenance records`
+                : "Needs more maintenance history"
             }
           />
         </div>
       </div>
 
-      <div className="mt-8 rounded-xl border bg-white p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Monthly Expense Breakdown</h2>
-
-          <p className="text-sm text-slate-500">Current Month</p>
-        </div>
-
-        <div className="space-y-5">
-          {categoryTotals.map((category) => (
-            <div
-              key={category.label}
-              className="grid grid-cols-12 items-center gap-4"
-            >
-              <div className="col-span-2 font-medium">
-                {formatCategory(category.label)}{" "}
-              </div>
-
-              <div className="col-span-2">
-                ₹{category.total.toLocaleString("en-IN")}
-              </div>
-
-              <div className="col-span-1 text-sm text-slate-500">
-                {category.percentage}%
-              </div>
-
-              <div className="col-span-7 h-2 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className="h-full rounded-full bg-amber-400"
-                  style={{
-                    width: `${category.percentage}%`,
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-xl border bg-white p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Expense History</h2>
-
-          <p className="text-sm text-slate-500">
-            {expenses.length} {expenses.length === 1 ? "entry" : "entries"}
-          </p>
-        </div>
-
-        <div className="overflow-x-auto">
-          {expenses.length === 0 ? (
-            <div className="py-12 text-center text-slate-500">
-              No maintenance records found.
-            </div>
-          ) : (
-            <table className="min-w-full text-sm">
-              <thead className="border-b bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-slate-600">
-                    Date
-                  </th>
-
-                  <th className="px-4 py-3 text-left font-medium text-slate-600">
-                    Category
-                  </th>
-
-                  <th className="px-4 py-3 text-left font-medium text-slate-600">
-                    Vendor
-                  </th>
-
-                  <th className="px-4 py-3 text-right font-medium text-slate-600">
-                    Amount
-                  </th>
-
-                  <th className="px-4 py-3 text-left font-medium text-slate-600">
-                    Notes
-                  </th>
-
-                  <th className="px-4 py-3 text-center font-medium text-slate-600">
-                    Document
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {expenses.map((expense, index) => (
-                  <tr
-                    key={expense.id}
-                    className={`border-b transition-colors hover:bg-slate-100 ${
-                      index % 2 === 0 ? "bg-white" : "bg-slate-50/50"
-                    }`}
-                  >
-                    <td className="px-4 py-3">
-                      {new Date(expense.expenseDate).toLocaleDateString(
-                        "en-GB",
-                      )}
-                    </td>
-
-                    <td className="px-4 py-3">
-                      {formatCategory(expense.category)}{" "}
-                    </td>
-
-                    <td className="px-4 py-3">{expense.vendor || "-"}</td>
-
-                    <td className="px-4 py-3 text-right font-medium text-emerald-600">
-                      ₹{expense.amount.toLocaleString("en-IN")}
-                    </td>
-
-                    <td className="px-4 py-3 text-slate-600">
-                      {expense.notes ? (
-                        expense.notes
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}{" "}
-                    </td>
-
-                    <td className="px-4 py-3 text-center">
-                      {expense.documentPath ? (
-                        <button className="rounded-md border border-slate-300 px-3 py-1 text-xs font-medium transition hover:bg-slate-100">
-                          View
-                        </button>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+      <TruckMaintenanceView expenses={expenses} />
     </div>
   );
 }
