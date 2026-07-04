@@ -8,16 +8,11 @@ import TruckCombobox from "@/components/TruckCombobox";
 import { createTrip } from "@/app/trips/new/actions";
 export default function CreateTripForm({ trucks, cities }) {
   const router = useRouter();
-  const [revenueMode, setRevenueMode] = useState("FIXED");
+  const [freightPricingMode, setFreightPricingMode] = useState("FIXED");
   const [loadType, setLoadType] = useState("EXTERNAL");
   const [isPending, startTransition] = useTransition();
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [truckNumber, setTruckNumber] = useState("");
-  const [estimatedQty, setEstimatedQty] = useState("");
-  const [ratePerUnit, setRatePerUnit] = useState("");
-
-  const estimatedRevenue =
-    (Number(estimatedQty) || 0) * (Number(ratePerUnit) || 0);
 
   const inputClass =
     "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200";
@@ -154,9 +149,9 @@ export default function CreateTripForm({ trucks, cities }) {
               onChange={(e) => setRevenueMode(e.target.value)}
             />
             <div>
-              <p className="font-medium">Fixed Gross Amount</p>
+              <p className="font-medium">Total Amount</p>
               <p className="text-xs text-slate-500">
-                Enter the total agreed freight amount.
+                Enter the agreed freight amount.
               </p>
             </div>
           </label>
@@ -170,9 +165,9 @@ export default function CreateTripForm({ trucks, cities }) {
               onChange={(e) => setRevenueMode(e.target.value)}
             />
             <div>
-              <p className="font-medium">Rate × Quantity</p>
+              <p className="font-medium">Rate Per Tonne</p>
               <p className="text-xs text-slate-500">
-                Revenue will be calculated from quantity and rate.
+                Revenue will be calculated using quantity × rate.
               </p>
             </div>
           </label>
@@ -182,46 +177,39 @@ export default function CreateTripForm({ trucks, cities }) {
       {revenueMode == "VARIABLE" && (
         <>
           <div>
-            <label className="block text-sm font-medium">Estimated Qty</label>
+            <label className="block text-sm font-medium">
+              Quantity (Tonnes)
+            </label>
 
             <input
               name="estimatedQty"
               type="number"
               step="0.01"
               required={revenueMode === "VARIABLE"}
-              value={estimatedQty}
-              onChange={(e) => setEstimatedQty(e.target.value)}
               className={inputClass}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium">Rate/Unit</label>
+            <label className="block text-sm font-medium">
+              Rate (₹ / Tonne)
+            </label>
 
             <input
               type="number"
               name="ratePerUnit"
               step="0.01"
               required={revenueMode === "VARIABLE"}
-              value={ratePerUnit}
-              onChange={(e) => setRatePerUnit(e.target.value)}
               className={inputClass}
             />
-          </div>
-
-          <div className="rounded-md border border-green-200 bg-green-50 p-3">
-            <p className="text-sm text-slate-600">Estimated Revenue</p>
-
-            <p className="text-xl font-bold text-green-700">
-              ₹ {estimatedRevenue.toLocaleString("en-IN")}
-            </p>
           </div>
         </>
       )}
       {loadType === "EXTERNAL" && (
         <div>
-          <label className={inputClass}>Mamool</label>
-
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Mamool
+          </label>
           <input
             name="mamool"
             max="3000"
@@ -243,7 +231,9 @@ export default function CreateTripForm({ trucks, cities }) {
       )}
       {revenueMode === "FIXED" && (
         <div>
-          <label className="block text-sm font-medium">Gross Amount</label>
+          <label className="block text-sm font-medium">
+            Freight Amount(Gross)
+          </label>
 
           <input
             name="grossAmount"
@@ -254,7 +244,7 @@ export default function CreateTripForm({ trucks, cities }) {
           />
 
           <p className="text-xs text-gray-500 mt-1">
-            If provided, Gross Amount overrides Qty × Rate calculations.
+            Enter the total freight agreed with the customer.
           </p>
         </div>
       )}

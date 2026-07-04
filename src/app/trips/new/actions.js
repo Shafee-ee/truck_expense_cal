@@ -6,8 +6,8 @@ export async function createTrip(formData) {
   const truckId = formData.get("truckId");
   const source = formData.get("source");
   const destination = formData.get("destination");
-  const revenueMode = formData.get("revenueMode");
 
+  const revenueMode = formData.get("revenueMode");
   const loadType = formData.get("loadType");
 
   const mamool =
@@ -16,26 +16,47 @@ export async function createTrip(formData) {
       : Math.min(Number(formData.get("mamool")) || 0, 3000);
 
   const estimatedQty = Number(formData.get("estimatedQty")) || null;
-
   const ratePerUnit = Number(formData.get("ratePerUnit")) || null;
-
   const grossAmount = Number(formData.get("grossAmount")) || null;
 
+  // These will eventually move to Settlement
   const customerDiesel = Number(formData.get("customerDiesel")) || 0;
-
   const customerAdvance = Number(formData.get("customerAdvance")) || 0;
-
   const tds = Number(formData.get("tds")) || 0;
-
   const charges = Number(formData.get("charges")) || 0;
-
   const damageAmount = Number(formData.get("damageAmount")) || 0;
-
   const damageNotes = formData.get("damageNotes") || null;
-
   const billNumber = formData.get("billNumber") || null;
-
   const transporter = formData.get("transporter") || null;
+
+  // Basic validation
+  if (!truckId) {
+    return { error: "Truck is required." };
+  }
+
+  if (!source?.trim()) {
+    return { error: "Source is required." };
+  }
+
+  if (!destination?.trim()) {
+    return { error: "Destination is required." };
+  }
+
+  if (revenueMode === "VARIABLE") {
+    if (!estimatedQty || estimatedQty <= 0) {
+      return { error: "Quantity must be greater than zero." };
+    }
+
+    if (!ratePerUnit || ratePerUnit <= 0) {
+      return { error: "Rate must be greater than zero." };
+    }
+  }
+
+  if (revenueMode === "FIXED") {
+    if (!grossAmount || grossAmount <= 0) {
+      return { error: "Freight amount must be greater than zero." };
+    }
+  }
 
   try {
     const existingActiveTrip = await prisma.trip.findFirst({
@@ -47,7 +68,7 @@ export async function createTrip(formData) {
 
     if (existingActiveTrip) {
       return {
-        error: "Truck already has an active trip",
+        error: "Truck already has an active trip.",
       };
     }
 
@@ -58,11 +79,10 @@ export async function createTrip(formData) {
         destination,
 
         loadType,
-
         revenueMode,
+
         estimatedQty,
         ratePerUnit,
-
         grossAmount,
 
         customerDiesel,

@@ -2,7 +2,6 @@ export const runtime = "nodejs";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
-import AddPaymentForm from "@/components/AddPaymentForm";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
@@ -11,7 +10,6 @@ import BillUploader from "./BillUploader";
 import AddExpenseForm from "@/components/AddExpenseForm";
 import CloseTripButton from "@/components/CloseTripButton";
 import StartTripButton from "@/components/StartTripButton";
-import DeletePaymentButton from "@/components/DeletePaymentButton";
 import UpdateActualQtyForm from "@/components/UpdateActualQtyForm";
 import EditExpenseForm from "@/components/EditExpenseForm";
 import MamoolEditor from "@/components/MamoolEditor";
@@ -20,12 +18,10 @@ import {
   startTrip,
   closeTrip,
   updateActualQty,
-  addPayment,
   deleteExpense,
   addExpense,
   replaceBill,
   updateMamool,
-  deletePayment,
 } from "./actions";
 
 import {
@@ -284,45 +280,13 @@ export default async function TripDetailPage(props) {
             )}
           </div>
         )}
-        <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-6 shadow-sm">
-          <SettlementDetails trip={trip} />
-        </div>
+
         {/*Trip Lifecyle Action*/}
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-          {trip.status === "PLANNED" && <StartTripButton tripId={id} />}
-          {trip.status === "ACTIVE" && (
-            <details className="rounded-lg border border-red-200 bg-red-50">
-              <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-red-700">
-                Review & Close Trip
-              </summary>
-              <div className="border-t border-red-200 px-5 py-5 text-sm">
-                <p className="font-medium text-red-700">
-                  Note: This action is final. Once closed, this trip cannot be
-                  edited.
-                </p>
-                <ul className="space-y-2 text-zinc-700">
-                  <li>•Truck is correct</li>
-                  <li>•Route is correct</li>
-                  <li>•All expenses are entered</li>
-                  <li>•All bills are uploaded</li>
-                  <li>•Revenue and balance look correct</li>
-                </ul>
-                {!hasRevenue && trip.revenueMode === "VARIABLE" && (
-                  <p className="text-red-600 font-semibold">
-                    Cannot close trip: Actual quantity is missing, so revenue is
-                    0.
-                  </p>
-                )}
-                {hasOutstanding && (
-                  <p className="mt-3 text-sm font-medium text-amber-600">
-                    Outstanding Amount: ₹{formatCurrency(outstanding)}
-                  </p>
-                )}
-                <CloseTripButton id={id} canClose={canClose} />
-              </div>
-            </details>
-          )}
-        </div>
+        {trip.status === "PLANNED" && (
+          <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <StartTripButton tripId={id} />
+          </div>
+        )}
         {editingExpense && (
           <EditExpenseForm expense={editingExpense} tripId={id} />
         )}
@@ -480,79 +444,44 @@ export default async function TripDetailPage(props) {
             )}
           </div>
         )}
-        <AddPaymentForm tripId={id} tripStatus={trip.status} />{" "}
-        {/*Payment List / cash flow*/}
-        {trip.payments.length > 0 && (
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-zinc-800">
-                Payment Ledger
-              </h2>
 
-              <span className="text-sm text-zinc-500">
-                {trip.payments.length} entries
-              </span>
+        <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-6 shadow-sm">
+          <SettlementDetails trip={trip} />
+        </div>
+
+        {trip.status === "ACTIVE" && (
+          <details className="rounded-lg border border-red-200 bg-red-50">
+            <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-red-700">
+              Review & Close Trip
+            </summary>
+            <div className="border-t border-red-200 px-5 py-5 text-sm">
+              <p className="font-medium text-red-700">
+                Note: This action is final. Once closed, this trip cannot be
+                edited.
+              </p>
+              <ul className="space-y-2 text-zinc-700">
+                <li>•Truck is correct</li>
+                <li>•Route is correct</li>
+                <li>•All expenses are entered</li>
+                <li>•All bills are uploaded</li>
+                <li>•Revenue and balance look correct</li>
+              </ul>
+              {!hasRevenue && trip.revenueMode === "VARIABLE" && (
+                <p className="text-red-600 font-semibold">
+                  Cannot close trip: Actual quantity is missing, so revenue is
+                  0.
+                </p>
+              )}
+              {hasOutstanding && (
+                <p className="mt-3 text-sm font-medium text-amber-600">
+                  Outstanding Amount: ₹{formatCurrency(outstanding)}
+                </p>
+              )}
+              <CloseTripButton id={id} canClose={canClose} />
             </div>
-            <table className="w-full overflow-hidden rounded-lg text-sm">
-              <thead className="bg-zinc-50 text-zinc-500">
-                <tr className="border-b border-zinc-200">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
-                    Date
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
-                    Mode
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
-                    Amount
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
-                    Note
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {trip.payments.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="border-b border-zinc-100 transition hover:bg-zinc-50"
-                  >
-                    <td className="px-4 py-3 text-zinc-600">
-                      {new Date(p.paymentDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3">{p.type}</td>
-                    <td className="px-4 py-3">{p.mode}</td>
-                    <td className="px-4 py-3 text-right font-medium text-zinc-800">
-                      ₹{p.amount}
-                    </td>
-                    <td className="px-4 py-3">{p.note || "-"}</td>
-                    <td className="px-4 py-3">
-                      <DeletePaymentButton tripId={id} paymentId={p.id} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="font-semibold border-t">
-                  <td colSpan="3" className="px-4 py-3">
-                    Total Received
-                  </td>
-
-                  <td className="px-4 py-3 text-right font-semibold">
-                    ₹{totalPayments.toFixed(0)}
-                  </td>
-
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          </details>
         )}
+
         {/*Closed trip audit {read only}*/}
         {trip.status === "CLOSED" && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
