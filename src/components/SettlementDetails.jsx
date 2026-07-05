@@ -119,6 +119,9 @@ export default function SettlementForm({ trip }) {
 
   return (
     <form action={handleSubmit} className="space-y-4">
+      <h3 className="text-lg font-semibold text-slate-800 border-b pb-2">
+  Customer Settlement
+</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">
@@ -240,6 +243,35 @@ export default function SettlementForm({ trip }) {
           className="border p-2 rounded-lg w-full"
         />
       </div>
+
+     <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+  <p className="text-sm text-slate-600">
+    Calculated GC Balance
+  </p>
+
+  <p className="text-2xl font-bold text-emerald-700">
+    ₹{(
+      (Number(trip.grossAmount) || 0) -
+      (Number(trip.customerDiesel) || 0) -
+      (Number(trip.customerAdvance) || 0) -
+      (Number(trip.tds) || 0) -
+      (Number(trip.charges) || 0) -
+      (Number(trip.damageAmount) || 0)
+    ).toLocaleString("en-IN")}
+  </p>
+</div>
+
+{trip.loadType === "EXTERNAL" && (
+  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+    <h3 className="text-lg font-semibold text-slate-800">
+      Transporter Settlement
+    </h3>
+
+    <p className="text-sm text-slate-500 mt-1">
+      Coming next...
+    </p>
+  </div>
+)}
 
       <button
         disabled={isPending}
