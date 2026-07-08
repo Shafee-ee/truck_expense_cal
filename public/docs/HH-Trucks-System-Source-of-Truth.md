@@ -4342,6 +4342,7 @@ Edit functionality for maintenance deferred; delete + recreate is sufficient.
 The remaining effort is concentrated on financial reporting and business logic rather than additional CRUD screens.
 
 This session established the ownership model that the remaining accounting features will build upon.
+
 #####
 
 HH Trucks / Logisco — Current Architecture (End of Today)
@@ -4356,15 +4357,15 @@ Trip
 Almost every financial event belongs to a Trip.
 
 Truck
-   │
-   └── Trip
-         ├── Revenue
-         ├── Expenses
-         ├── Settlement
-         ├── Documents
-         ├── Driver
-         ├── Transporter (External only)
-         └── Profit
+│
+└── Trip
+├── Revenue
+├── Expenses
+├── Settlement
+├── Documents
+├── Driver
+├── Transporter (External only)
+└── Profit
 
 This is the architecture we're moving toward.
 
@@ -4405,9 +4406,9 @@ Trip lifecycle
 Current flow:
 
 PLANNED
-      ↓
+↓
 ACTIVE
-      ↓
+↓
 CLOSED
 
 Only one ACTIVE trip per truck.
@@ -4622,3 +4623,334 @@ Finance Engine (lib/finance.js): ~40% (structure exists, centralization pending)
 Dashboard/KPIs: ~30% (ready to be redesigned using the finance engine)
 
 The project has reached an important point. Earlier, we were building screens. Now the focus has shifted to building the accounting model that those screens represent. Once lib/finance.js, Transporter Settlement, and the Company Ledger are in place, the remaining work will be primarily reporting, KPIs, and polish rather than redesigning the underlying architecture.
+
+########
+
+HH Trucks / Logisco Progress Summary (Current State)
+Completed in this session
+
+1. Payment System Refactor ✅
+   Removed the old Payment model.
+   Split payments into:
+   CustomerPayment
+   TransporterPayment
+   Updated:
+   Prisma schema
+   Server actions
+   Payment forms
+   Finance utilities
+   Fixed all major references from payments → customerPayments / transporterPayments.
+2. Removed actualQty Completely ✅
+
+Decision:
+
+A trip has one quantity.
+
+Revenue is calculated from:
+
+Fixed revenue (grossAmount)
+Variable revenue (estimatedQty × ratePerUnit)
+
+Removed:
+
+Prisma field
+Revenue calculation
+UI
+References throughout project 3. Three Business Workflows
+Scenario 1 — Company Load (Own Goods) ✅
+Own truck
+Fixed revenue
+Expenses
+Settlement
+Customer payments
+Closed successfully
+Scenario 2 — External Customer + Logisco Truck ✅
+Own truck
+Variable revenue
+Customer settlement
+Customer payments
+Partial outstanding
+No transporter involved
+Ready to close (or closed depending on final step)
+
+Verified:
+
+Revenue
+Expenses
+Outstanding
+Settlement calculations
+Scenario 3 — External Customer + Third-Party Truck ✅
+
+Implemented and tested:
+
+Variable revenue
+Customer settlement
+Transporter settlement
+Commission calculation
+Customer payments
+Transporter payments
+Partial outstanding
+Partial transporter payable
+Closed successfully
+
+Verified:
+
+Commission
+Outstanding
+Transporter payable
+Payment history
+Settlement calculations
+Finance Model (Final Decision)
+Settlement
+
+Represents:
+
+Financial agreement for the trip.
+
+Includes:
+
+Customer
+
+Gross Amount
+Diesel
+Advance
+TDS
+Charges
+Damage
+
+Transporter
+
+Freight
+Advance Paid
+Other Charges
+
+Produces:
+
+GC Balance
+Transporter Payable
+Payments
+
+Represents:
+
+Actual money movement after settlement.
+
+Customer Payments
+
+Installments received
+
+Transporter Payments
+
+Installments paid
+
+Settlement may contain an advance already received before settlement.
+
+Payment history tracks payments made afterwards.
+
+This model was agreed upon and retained.
+
+Commission Logic ✅
+
+Commission only applies when:
+
+Third-party truck
+
+Formula:
+
+Estimated Quantity × Commission/Tonne
+
+Displayed inside:
+
+Transporter Settlement
+
+Label:
+
+Logisco Commission
+Major Refactor Decisions
+Revenue
+Fixed
+↓
+
+grossAmount
+
+or
+
+Variable
+↓
+
+estimatedQty × ratePerUnit
+Removed
+actualQty
+Payment History
+
+Kept permanently.
+
+Reason:
+
+Provides audit trail.
+
+TODO (Cleanup) 1.
+
+Hide Transporter Settlement
+
+when truck belongs to Logisco.
+
+2.
+
+Hide Transporter Payments
+
+when truck belongs to Logisco.
+
+3.
+
+Hide Commission/Tonne
+
+when transporter isn't involved.
+
+4.
+
+Move Mamool
+
+Current:
+
+Header
+
+Preferred:
+
+Settlement (or Expense section)
+
+5.
+
+Lock Settlement after trip closes
+
+Current:
+
+Editable forever.
+
+Desired:
+
+After CLOSED
+
+Settlement becomes read-only.
+
+Payments remain editable.
+
+6.
+
+Dashboard Cleanup
+
+Still has some old references:
+
+payments
+
+Need replacing with:
+
+customerPayments
+
+(and transporterPayments where appropriate)
+
+7.
+
+Third-party Profit Calculation
+
+Current:
+
+Revenue
+
+- Expenses
+- Mamool
+
+Incorrect.
+
+Needs to include transporter cost.
+
+Something like:
+
+Revenue
+
+- Transporter Freight
+- Expenses
+- Mamool
+
+(or whatever final accounting formula Logisco uses).
+
+Next Feature
+Accounts Page
+
+Purpose:
+
+Single place showing:
+
+Receivables
+
+Customer
+
+Outstanding
+
+Received
+
+Trips
+
+Ageing (optional)
+
+Payables
+
+Transporter
+
+Payable
+
+Paid
+
+Remaining
+
+Trips
+
+The page should answer:
+
+Who owes Logisco money?
+
+Who does Logisco owe?
+
+using the existing settlement and payment data.
+
+Overall Project Status
+Core Fleet Module
+
+✅ Complete
+
+Maintenance
+
+✅ Complete
+
+Compliance
+
+✅ Complete
+
+Trip Workflow
+
+✅ Complete
+
+Settlement System
+
+✅ Complete
+
+Customer Payments
+
+✅ Complete
+
+Transporter Payments
+
+✅ Complete
+
+Finance Architecture
+
+✅ Complete
+
+Accounts
+
+⬜ Next
+
+Dashboards / KPIs
+
+⬜ After Accounts
+
+At this point, the project has moved from building core functionality to reporting and refinement. The operational workflow—from creating a trip through settlement, payment tracking, and closure—is in place. The remaining work is primarily the Accounts module, dashboard calculations, KPIs, and the UI cleanup items listed above.
