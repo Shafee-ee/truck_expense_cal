@@ -14,7 +14,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export async function startTrip(id, startDate) {
@@ -79,7 +79,8 @@ export async function closeTrip(id, endDate) {
         where: { id },
         include: {
           expenses: true,
-          payments: true,
+          customerPayments: true,
+          transporterPayments: true,
         },
       });
 
@@ -164,73 +165,6 @@ export async function closeTrip(id, endDate) {
   }
 }
 
-export async function updateActualQty(formData) {
-  const tripId = formData.get("tripId");
-
-  const actualQty = Number(formData.get("actualQty"));
-
-  try {
-    if (!tripId) {
-      return {
-        error: "Trip ID missing",
-      };
-    }
-
-    if (!actualQty || actualQty <= 0) {
-      return {
-        error: "Actual quantity must be greater than 0",
-      };
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      const freshTrip = await tx.trip.findUnique({
-        where: { id: tripId },
-        select: {
-          status: true,
-        },
-      });
-
-      if (!freshTrip) {
-        return {
-          error: "Trip not found",
-        };
-      }
-
-      if (freshTrip.status !== "ACTIVE") {
-        return {
-          error: "Only ACTIVE trips can be modified",
-        };
-      }
-
-      await tx.trip.update({
-        where: { id: tripId },
-        data: {
-          actualQty,
-        },
-      });
-
-      return {
-        success: true,
-      };
-    });
-
-    if (result?.error) {
-      return result;
-    }
-
-    revalidatePath(`/trips/${tripId}`);
-
-    return {
-      success: true,
-    };
-  } catch (error) {
-    console.error(error);
-
-    return {
-      error: "Failed to update actual quantity",
-    };
-  }
-}
 
 export async function updateMamool(formData) {
   const tripId = formData.get("tripId");
@@ -269,90 +203,71 @@ export async function updateMamool(formData) {
   }
 }
 
-//add payment
-export async function addPayment(formData) {
-  "use server";
 
+//Add Transporter Payment
+export async function addTransporterPayment(formData) {
   const tripId = formData.get("tripId");
 
   if (!tripId) {
-    return {
-      error: "Trip ID missing",
-    };
+    return { error: "Trip ID missing" };
   }
 
-  const paymentAmount = Number(formData.get("amount"));
+  const amount = Number(formData.get("amount")) || 0;
 
-  if (!paymentAmount || paymentAmount <= 0) {
-    return {
-      error: "Invalid payment amount",
-    };
+  if (amount <= 0) {
+    return { error: "Invalid amount" };
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    const freshTrip = await tx.trip.findUnique({
-      where: { id: tripId },
-      include: {
-        payments: true,
-      },
-    });
-
-    if (!freshTrip) {
-      return {
-        error: "Trip not found",
-      };
-    }
-
-    if (freshTrip.status !== "ACTIVE" && freshTrip.status !== "CLOSED") {
-      return {
-        error: "Payments cannot be added to planned trips",
-      };
-    }
-
-    const outstanding = calculateOutstanding(freshTrip);
-
-    if (paymentAmount > outstanding) {
-      return {
-        error: `Payment exceeds outstanding balance of ₹${outstanding.toFixed(0)}`,
-      };
-    }
-
-    const existingPayment = await tx.payment.findFirst({
-      where: {
-        tripId,
-        amount: paymentAmount,
-        type: formData.get("type"),
-        mode: formData.get("mode"),
-      },
-    });
-
-    if (existingPayment) {
-      return {
-        error: "Possible duplicate payment detected",
-      };
-    }
-
-    await tx.payment.create({
-      data: {
-        tripId,
-        amount: paymentAmount,
-        type: formData.get("type"),
-        mode: formData.get("mode"),
-        paymentDate: new Date(),
-        note: formData.get("note") || null,
-      },
-    });
+  await prisma.transporterPayment.create({
+    data: {
+      tripId,
+      amount,
+      mode: formData.get("mode"),
+      paymentDate: new Date(),
+      note: formData.get("note") || null,
+    },
   });
 
-  if (result?.error) {
-    return result;
-  }
-
   revalidatePath(`/trips/${tripId}`);
+
+  return {
+    success: true,
+  };
 }
 
+//add customer payment
+export async function addCustomerPayment(formData) {
+  const tripId = formData.get("tripId");
+
+  if (!tripId) {
+    return { error: "Trip ID missing" };
+  }
+
+  const amount = Number(formData.get("amount")) || 0;
+
+  if (amount <= 0) {
+    return { error: "Invalid amount" };
+  }
+
+  await prisma.customerPayment.create({
+    data: {
+      tripId,
+      amount,
+      type: formData.get("type"),
+      mode: formData.get("mode"),
+      paymentDate: new Date(),
+      note: formData.get("note") || null,
+    },
+  });
+
+  revalidatePath(`/trips/${tripId}`);
+
+  return {
+    success: true,
+  };
+}
 //delete payment
-export async function deletePayment(formData) {
+export async function deleteCustomerPayment(formData) {
   "use server";
 
   const tripId = formData.get("tripId");
@@ -367,7 +282,7 @@ export async function deletePayment(formData) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.findUnique({
+      const payment = await tx.customerPayment.findUnique({
         where: {
           id: paymentId,
         },
@@ -385,7 +300,7 @@ export async function deletePayment(formData) {
         };
       }
 
-      await tx.payment.delete({
+      await tx.customerPayment.delete({
         where: {
           id: paymentId,
         },
@@ -774,8 +689,6 @@ export async function updateExpense(formData) {
 
 export async function updateSettlement(tripId, formData) {
   try {
-    const clientName = formData.get("clientName") || null;
-
     const billNumber = formData.get("billNumber") || null;
 
     const grossAmount = Number(formData.get("grossAmount")) || 0;
@@ -792,6 +705,21 @@ export async function updateSettlement(tripId, formData) {
 
     const damageNotes = formData.get("damageNotes") || null;
 
+    const commissionPerTonne = Number(formData.get("commissionPerTonne")) || 0;
+
+    const clientCompanyId = formData.get("clientCompanyId") || null;
+
+    const transporterCompanyId = formData.get("transporterCompanyId") || null;
+
+    const transporterFreight = Number(formData.get("transporterFreight")) || 0;
+
+    const transporterAdvance = Number(formData.get("transporterAdvance")) || 0;
+
+    const transporterCharges = Number(formData.get("transporterCharges")) || 0;
+
+    const transporterPayable =
+      transporterFreight - transporterAdvance - transporterCharges;
+
     const gcBalance =
       grossAmount -
       customerDiesel -
@@ -800,13 +728,60 @@ export async function updateSettlement(tripId, formData) {
       charges -
       damageAmount;
 
+    let finalTransporterCompanyId = transporterCompanyId;
+
+    let finalClientCompanyId = clientCompanyId;
+
+    if (!finalClientCompanyId) {
+      const clientName = formData.get("clientCompany")?.trim();
+
+      if (clientName) {
+        let company = await prisma.company.findFirst({
+          where: {
+            name: clientName,
+          },
+        });
+
+        if (!company) {
+          company = await prisma.company.create({
+            data: {
+              name: clientName,
+            },
+          });
+        }
+
+        finalClientCompanyId = company.id;
+      }
+    }
+
+    if (!finalTransporterCompanyId) {
+      const transporterName = formData.get("transporterCompany")?.trim();
+
+      if (transporterName) {
+        let company = await prisma.company.findFirst({
+          where: {
+            name: transporterName,
+          },
+        });
+
+        if (!company) {
+          company = await prisma.company.create({
+            data: {
+              name: transporterName,
+            },
+          });
+        }
+
+        finalTransporterCompanyId = company.id;
+      }
+    }
+
     await prisma.trip.update({
       where: {
         id: tripId,
       },
 
       data: {
-        clientName,
         billNumber,
 
         grossAmount,
@@ -819,8 +794,32 @@ export async function updateSettlement(tripId, formData) {
 
         damageAmount,
         damageNotes,
-
+        commissionPerTonne,
         gcBalance,
+
+        clientCompany: finalClientCompanyId
+          ? {
+              connect: {
+                id: finalClientCompanyId,
+              },
+            }
+          : {
+              disconnect: true,
+            },
+
+        transporterFreight,
+        transporterCompany: finalTransporterCompanyId
+          ? {
+              connect: {
+                id: finalTransporterCompanyId,
+              },
+            }
+          : {
+              disconnect: true,
+            },
+        transporterAdvance,
+        transporterCharges,
+        transporterPayable,
       },
     });
 

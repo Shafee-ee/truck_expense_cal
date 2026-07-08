@@ -8,7 +8,7 @@ export default function CloseTripButton({ id, canClose }) {
   const [showDate, setShowDate] = useState(false);
 
   const [endDate, setEndDate] = useState(
-    new Date().toISOString().split("T")[0],
+    new Date().toISOString().split("T")[0]
   );
 
   async function handleClose() {

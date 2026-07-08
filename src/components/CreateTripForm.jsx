@@ -8,7 +8,7 @@ import TruckCombobox from "@/components/TruckCombobox";
 import { createTrip } from "@/app/trips/new/actions";
 export default function CreateTripForm({ trucks, cities }) {
   const router = useRouter();
-  const [freightPricingMode, setFreightPricingMode] = useState("FIXED");
+  const [revenueMode, setRevenueMode] = useState("FIXED");
   const [loadType, setLoadType] = useState("EXTERNAL");
   const [isPending, startTransition] = useTransition();
   const [selectedTruck, setSelectedTruck] = useState(null);

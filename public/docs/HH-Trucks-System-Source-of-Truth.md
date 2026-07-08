@@ -4342,3 +4342,283 @@ Edit functionality for maintenance deferred; delete + recreate is sufficient.
 The remaining effort is concentrated on financial reporting and business logic rather than additional CRUD screens.
 
 This session established the ownership model that the remaining accounting features will build upon.
+#####
+
+HH Trucks / Logisco — Current Architecture (End of Today)
+Overall philosophy
+
+The project is no longer just a truck expense tracker.
+
+It is becoming a transport operations ERP centered around a single entity:
+
+Trip
+
+Almost every financial event belongs to a Trip.
+
+Truck
+   │
+   └── Trip
+         ├── Revenue
+         ├── Expenses
+         ├── Settlement
+         ├── Documents
+         ├── Driver
+         ├── Transporter (External only)
+         └── Profit
+
+This is the architecture we're moving toward.
+
+What is finished
+Fleet
+Truck CRUD
+Company assignment
+Fleet Register
+Compliance dates
+Maintenance Dashboard
+Maintenance Entries
+Truck statements
+Truck expense history
+
+This section is essentially complete.
+
+Trips
+Trip creation
+
+Now supports:
+
+Truck
+Source
+Destination
+Load Type
+Company
+External
+Revenue Type
+Total Amount
+Rate per Tonne
+
+Validation has been cleaned up.
+
+The confusing terminology has been replaced.
+
+Trip lifecycle
+
+Current flow:
+
+PLANNED
+      ↓
+ACTIVE
+      ↓
+CLOSED
+
+Only one ACTIVE trip per truck.
+
+Expenses
+
+Trip expenses are working.
+
+Bills can be uploaded.
+
+Expenses affect trip profitability.
+
+Settlement
+
+We removed the duplicate Payment form.
+
+Everything financial now belongs inside Settlement.
+
+This is a much cleaner architecture.
+
+Current Settlement handles:
+
+Client
+Bill Number
+Gross Amount
+Customer Diesel
+Customer Advance
+TDS
+Charges
+Damage
+Damage Notes
+GC Balance
+UI
+
+Large cleanup today.
+
+Sidebar fixed
+Main content scrolls
+Trip form much cleaner
+Settlement beginning to look professional
+What we intentionally postponed
+Transporter Settlement
+
+This is the next major feature.
+
+Only appears for:
+
+Load Type = EXTERNAL
+
+It will contain things like:
+
+Transporter
+
+Transport Cost
+
+Commission
+
+Amount Payable
+
+Amount Paid
+
+Balance
+
+This does not belong in Trip Creation.
+
+It belongs during settlement because those numbers are usually known after delivery.
+
+Company Ledger (new module)
+
+Today's biggest design decision.
+
+We realized operators don't actually care about one trip.
+
+They care about companies.
+
+Example:
+
+ABC Logistics
+
+Trips : 27
+
+We owe
+₹2,84,000
+
+They owe
+₹45,000
+
+Net
+₹2,39,000 payable
+
+Clicking ABC Logistics should show:
+
+Trip A
+
+Trip B
+
+Trip C
+
+...
+
+Paid
+
+Pending
+
+Balance
+
+This becomes a completely separate page.
+
+Probably:
+
+Companies
+
+↓
+
+Company Detail
+
+↓
+
+Trip Ledger
+
+This will solve a real operational problem.
+
+Refactoring status
+
+Today was not heavy refactoring.
+
+Today mostly added domain knowledge.
+
+We introduced:
+
+better revenue model
+cleaner settlement architecture
+removal of duplicate payment flow
+clearer financial ownership
+
+The big refactor is still ahead.
+
+Tomorrow's refactor
+
+This is where lib/finance.js becomes the heart of the system.
+
+Instead of computing numbers everywhere:
+
+GC Balance
+
+Outstanding
+
+Profit
+
+Revenue
+
+Expense
+
+Transport Payable
+
+Net Margin
+
+we will have functions like:
+
+calculateRevenue()
+
+calculateExpenses()
+
+calculateGCBalance()
+
+calculateOutstanding()
+
+calculateTransporterSettlement()
+
+calculateTripProfit()
+
+Everything in the app will call these.
+
+That removes duplicate math across the project.
+
+KPIs
+
+Tomorrow is also KPI day.
+
+We'll redesign the dashboard around business questions.
+
+Instead of random numbers we'll answer things like:
+
+Revenue today
+Revenue this month
+Outstanding receivables
+Outstanding payables
+Most profitable truck
+Least profitable truck
+Trips in progress
+External vs Company trips
+Company balances
+Monthly profit
+Top expense categories
+
+The dashboard should answer questions an owner asks within seconds.
+
+Current project maturity
+
+Fleet & Maintenance: ~95%
+
+Trip Operations: ~90%
+
+Settlement: ~75%
+
+Transporter Accounting: ~20% (architecture decided, implementation pending)
+
+Company Ledger: ~10% (designed conceptually)
+
+Finance Engine (lib/finance.js): ~40% (structure exists, centralization pending)
+
+Dashboard/KPIs: ~30% (ready to be redesigned using the finance engine)
+
+The project has reached an important point. Earlier, we were building screens. Now the focus has shifted to building the accounting model that those screens represent. Once lib/finance.js, Transporter Settlement, and the Company Ledger are in place, the remaining work will be primarily reporting, KPIs, and polish rather than redesigning the underlying architecture.

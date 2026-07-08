@@ -7,7 +7,7 @@ export function calculateRevenue(trip) {
     return trip.grossAmount || 0;
   }
 
-  return (trip.actualQty || 0) * (trip.ratePerUnit || 0);
+return (trip.estimatedQty || 0) * (trip.ratePerUnit || 0);
 }
 
 export function calculateExpenses(expenses = []) {
@@ -21,7 +21,7 @@ export function calculatePayments(payments = []) {
 export function calculateOutstanding(trip) {
   const receivable = trip.gcBalance || 0;
 
-  const payments = calculatePayments(trip.payments || []);
+  const payments = calculatePayments(trip.customerPayments || []);
 
   return Math.max(receivable - payments, 0);
 }

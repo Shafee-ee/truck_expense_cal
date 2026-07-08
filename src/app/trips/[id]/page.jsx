@@ -7,14 +7,15 @@ import BillUploader from "./BillUploader";
 import AddExpenseForm from "@/components/AddExpenseForm";
 import CloseTripButton from "@/components/CloseTripButton";
 import StartTripButton from "@/components/StartTripButton";
-import UpdateActualQtyForm from "@/components/UpdateActualQtyForm";
 import EditExpenseForm from "@/components/EditExpenseForm";
 import MamoolEditor from "@/components/MamoolEditor";
 import SettlementDetails from "@/components/SettlementDetails";
+
+import CustomerPaymentForm from "@/components/CustomerPaymentForm";
+import TransporterPaymentForm from "@/components/TransporterPaymentForm";
 import {
   startTrip,
   closeTrip,
-  updateActualQty,
   deleteExpense,
   addExpense,
   replaceBill,
@@ -34,7 +35,7 @@ const formatCurrency = (num) => new Intl.NumberFormat("en-IN").format(num);
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 async function getSignedUrl(path) {
@@ -58,7 +59,18 @@ export default async function TripDetailPage(props) {
     include: {
       truck: true,
       expenses: true,
-      payments: true,
+
+      customerPayments: true,
+      transporterPayments: true,
+
+      clientCompany: true,
+      transporterCompany: true,
+    },
+  });
+
+  const companies = await prisma.company.findMany({
+    orderBy: {
+      name: "asc",
     },
   });
 
@@ -82,9 +94,15 @@ export default async function TripDetailPage(props) {
     return acc;
   }, {});
 
-  const totalPayments = calculatePayments(trip.payments);
-
+  const totalPayments = calculatePayments(trip.customerPayments);
   const outstanding = calculateOutstanding(trip);
+
+  const transporterPaid = calculatePayments(trip.transporterPayments);
+
+  const transporterRemaining = Math.max(
+    (trip.transporterPayable || 0) - transporterPaid,
+    0
+  );
   const hasRevenue = revenue > 0;
   const hasOutstanding = outstanding > 0;
   const canClose = hasRevenue && trip.expenses.length > 0;
@@ -261,22 +279,6 @@ export default async function TripDetailPage(props) {
             </p>
           </div>
         </div>
-        {trip.status === "ACTIVE" && (
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-zinc-800">
-                Actual Quantity
-              </h2>
-
-              <p className="mt-1 text-sm text-zinc-500">
-                Update delivered quantity for final revenue calculation
-              </p>
-            </div>
-            {trip.status === "ACTIVE" && trip.revenueMode === "VARIABLE" && (
-              <UpdateActualQtyForm tripId={id} actualQty={trip.actualQty} />
-            )}
-          </div>
-        )}
 
         {/*Trip Lifecyle Action*/}
         {trip.status === "PLANNED" && (
@@ -311,7 +313,7 @@ export default async function TripDetailPage(props) {
 
                         <span>₹{amount.toFixed(0)}</span>
                       </div>
-                    ),
+                    )
                   )}
                 </div>
               </div>
@@ -419,7 +421,7 @@ export default async function TripDetailPage(props) {
                             </td>
                           </tr>
                         );
-                      }),
+                      })
                     )}
                   </tbody>
                   <tfoot>
@@ -443,7 +445,23 @@ export default async function TripDetailPage(props) {
         )}
 
         <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-6 shadow-sm">
-          <SettlementDetails trip={trip} />
+          <SettlementDetails trip={trip} companies={companies} />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <CustomerPaymentForm
+            tripId={trip.id}
+            tripStatus={trip.status}
+            payments={trip.customerPayments}
+          />
+
+          {trip.loadType === "EXTERNAL" && (
+            <TransporterPaymentForm
+              tripId={trip.id}
+              tripStatus={trip.status}
+              payments={trip.transporterPayments}
+            />
+          )}
         </div>
 
         {trip.status === "ACTIVE" && (
@@ -465,8 +483,7 @@ export default async function TripDetailPage(props) {
               </ul>
               {!hasRevenue && trip.revenueMode === "VARIABLE" && (
                 <p className="text-red-600 font-semibold">
-                  Cannot close trip: Actual quantity is missing, so revenue is
-                  0.
+                  Cannot close trip: Revenue has not been calculated.
                 </p>
               )}
               {hasOutstanding && (

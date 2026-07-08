@@ -8,7 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Payment {
+model CustomerPayment {
   id          String      @id @default(uuid())
   tripId      String
   amount      Float
@@ -20,30 +20,52 @@ model Payment {
   trip        Trip        @relation(fields: [tripId], references: [id])
 }
 
+model TransporterPayment {
+  id String @id @default(uuid())
+
+  tripId String
+
+  amount Float
+
+  mode PaymentMode
+
+  paymentDate DateTime
+
+  note String?
+
+  createdAt DateTime @default(now())
+
+  trip Trip @relation(fields: [tripId], references: [id])
+}
+
 model Company {
   id         String   @id @default(uuid())
   name       String
   isInternal Boolean  @default(false)
   createdAt  DateTime @default(now())
-  trucks     Truck[]
+
+  trucks Truck[]
+
+  customerTrips    Trip[] @relation("CustomerTrips")
+  transporterTrips Trip[] @relation("TransporterTrips")
 }
 
 model Truck {
-  id               String @id @default(uuid())
-  numberPlate      String @unique
-  companyId        String
+  id          String @id @default(uuid())
+  numberPlate String @unique
+  companyId   String
 
-  vehicleType      VehicleType?
+  vehicleType VehicleType?
 
   registrationDate DateTime?
 
-  createdAt        DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  trips            Trip[]
+  trips Trip[]
 
-  company          Company @relation(fields: [companyId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
 
-  truckExpenses    TruckExpense[]
+  truckExpenses TruckExpense[]
 }
 
 model Expense {
@@ -58,69 +80,85 @@ model Expense {
 }
 
 model TruckExpense {
-  id           String @id @default(cuid())
+  id String @id @default(cuid())
 
-  truckId      String
+  truckId String
 
-  category      TruckExpenseCategory
+  category TruckExpenseCategory
 
-  amount        Float
+  amount Float
 
-  vendor        String?
+  vendor String?
 
-  note        String?
+  note String?
 
-  expenseDate   DateTime
+  expenseDate DateTime
 
-  expiryDate    DateTime?   // NEW
+  expiryDate DateTime? // NEW
 
-  month         Int
+  month Int
 
-  year          Int
+  year Int
 
-  documentPath  String?
+  documentPath String?
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  truck         Truck @relation(fields: [truckId], references: [id])
+  truck Truck @relation(fields: [truckId], references: [id])
 
   @@index([truckId, category, expenseDate])
 }
 
 model Trip {
-  id              String      @id @default(uuid())
-  truckId         String
-  source          String
-  destination     String
-  estimatedQty    Float?
-  actualQty       Float?
-  ratePerUnit     Float?
-  startDate       DateTime?
-  endDate         DateTime?
-  status          TripStatus  @default(PLANNED)
-  createdAt       DateTime    @default(now())
-  finalBalance    Float?
-  finalExpenses   Float?
-  finalRevenue    Float?
-  closedAt        DateTime?
-  closedBy        String?
-  grossAmount     Float?
-  revenueMode     RevenueMode @default(FIXED)
-  loadType        LoadType    @default(EXTERNAL)
-  mamool          Float       @default(0)
-  billNumber      String?
-  charges         Float?      @default(0)
-  customerAdvance Float?      @default(0)
-  customerDiesel  Float?      @default(0)
-  damageAmount    Float?      @default(0)
-  damageNotes     String?
-  gcBalance       Float?
-  tds             Float?      @default(0)
-  transporter     String?
-  clientName      String?
-  expenses        Expense[]
-  payments        Payment[]
-  truck           Truck       @relation(fields: [truckId], references: [id])
+  id            String     @id @default(uuid())
+  truckId       String
+  source        String
+  destination   String
+  estimatedQty  Float?
+  ratePerUnit   Float?
+  startDate     DateTime?
+  endDate       DateTime?
+  status        TripStatus @default(PLANNED)
+  createdAt     DateTime   @default(now())
+  finalBalance  Float?
+  finalExpenses Float?
+  finalRevenue  Float?
+  closedAt      DateTime?
+  closedBy      String?
+  grossAmount   Float?
+
+  transporterFreight Float?
+  commissionPerTonne Float? @default(0)
+  transporterAdvance Float? @default(0)
+
+  transporterCharges Float? @default(0)
+
+  transporterPayable Float?
+
+  clientCompanyId String?
+
+  clientCompany Company? @relation("CustomerTrips", fields: [clientCompanyId], references: [id])
+
+  transporterCompanyId String?
+
+  transporterCompany Company? @relation("TransporterTrips", fields: [transporterCompanyId], references: [id])
+
+  revenueMode         RevenueMode          @default(FIXED)
+  loadType            LoadType             @default(EXTERNAL)
+  mamool              Float                @default(0)
+  billNumber          String?
+  charges             Float?               @default(0)
+  customerAdvance     Float?               @default(0)
+  customerDiesel      Float?               @default(0)
+  damageAmount        Float?               @default(0)
+  damageNotes         String?
+  gcBalance           Float?
+  tds                 Float?               @default(0)
+  expenses            Expense[]
+  customerPayments    CustomerPayment[]
+  transporterPayments TransporterPayment[]
+
+  truck Truck @relation(fields: [truckId], references: [id])
 }
 
 enum TripStatus {
@@ -153,7 +191,7 @@ enum TruckExpenseCategory {
   ROAD_TAX
   PERMIT
   NATIONAL_PERMIT
-  FITNESS 
+  FITNESS
   WASHING
   ADD_BLUE
   OTHER
@@ -180,4 +218,3 @@ enum LoadType {
   COMPANY
   EXTERNAL
 }
-

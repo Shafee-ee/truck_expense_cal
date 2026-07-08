@@ -62,7 +62,7 @@ export async function getDashboardData(monthParam) {
     },
     include: {
       truck: true,
-      payments: true,
+      customerPayments: true,
       expenses: true,
     },
   });
@@ -77,7 +77,7 @@ export async function getDashboardData(monthParam) {
     },
     include: {
       expenses: true,
-      payments: true,
+      customerPayments: true,
       truck: true,
     },
   });
@@ -105,7 +105,7 @@ export async function getDashboardData(monthParam) {
     },
     include: {
       expenses: true,
-      payments: true,
+      customerPayments: true,
     },
   });
 
@@ -116,7 +116,7 @@ export async function getDashboardData(monthParam) {
       },
     },
     include: {
-      payments: true,
+      customerPayments: true,
       truck: true,
     },
   });
@@ -164,7 +164,7 @@ export async function getDashboardData(monthParam) {
 
     const receivable = trip.gcBalance || 0;
 
-    const received = calculatePayments(trip.payments || []);
+    const received = calculatePayments(trip.customerPayments || []);
 
     const outstanding = calculateOutstanding(trip);
 

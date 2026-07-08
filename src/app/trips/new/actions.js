@@ -27,7 +27,6 @@ export async function createTrip(formData) {
   const damageAmount = Number(formData.get("damageAmount")) || 0;
   const damageNotes = formData.get("damageNotes") || null;
   const billNumber = formData.get("billNumber") || null;
-  const transporter = formData.get("transporter") || null;
 
   // Basic validation
   if (!truckId) {
@@ -92,7 +91,6 @@ export async function createTrip(formData) {
         damageAmount,
         damageNotes,
         billNumber,
-        transporter,
 
         gcBalance:
           (grossAmount || 0) -
