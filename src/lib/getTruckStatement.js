@@ -17,7 +17,7 @@ export async function getTruckStatement(truckId, monthParam) {
 
         include: {
           expenses: true,
-          payments: true,
+          customerPayments: true,
         },
 
         orderBy: {
@@ -44,7 +44,7 @@ export async function getTruckStatement(truckId, monthParam) {
 
   const maintenanceCost = truck.truckExpenses.reduce(
     (sum, e) => sum + e.amount,
-    0,
+    0
   );
 
   const summary = calculateTruckMetrics({

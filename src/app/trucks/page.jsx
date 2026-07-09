@@ -28,7 +28,7 @@ export default async function TrucksPage(props) {
         include: {
           expenses: true,
 
-          payments: true,
+          customerPayments: true,
         },
       },
 
@@ -46,7 +46,7 @@ export default async function TrucksPage(props) {
     .map((truck) => {
       const maintenanceCost = truck.truckExpenses.reduce(
         (sum, expense) => sum + expense.amount,
-        0,
+        0
       );
 
       const metrics = calculateTruckMetrics({
@@ -77,25 +77,25 @@ export default async function TrucksPage(props) {
 
   const fleetRevenue = rankedTrucks.reduce(
     (sum, truck) => sum + truck.metrics.totalRevenue,
-    0,
+    0
   );
 
   const fleetProfit = rankedTrucks.reduce(
     (sum, truck) => sum + truck.metrics.netProfit,
-    0,
+    0
   );
 
   const fleetOutstanding = rankedTrucks.reduce(
     (sum, truck) => sum + truck.metrics.outstanding,
-    0,
+    0
   );
 
   const activeTrucks = rankedTrucks.filter(
-    (truck) => truck.metrics.tripCount > 0,
+    (truck) => truck.metrics.tripCount > 0
   ).length;
 
   const lossTrucks = rankedTrucks.filter(
-    (truck) => truck.metrics.netProfit < 0,
+    (truck) => truck.metrics.netProfit < 0
   ).length;
   return (
     <div
@@ -156,7 +156,7 @@ export default async function TrucksPage(props) {
               selectedMonth ||
               `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
                 2,
-                "0",
+                "0"
               )}`
             }
             className="
