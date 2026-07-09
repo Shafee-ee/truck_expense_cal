@@ -8,7 +8,7 @@ import {
   ComboboxOptions,
 } from "@headlessui/react";
 
-export default function CompanyCombobox({
+export default function CompanyComboBox({
   companies,
   selectedCompany,
   onChange,
@@ -20,7 +20,7 @@ export default function CompanyCombobox({
     if (!query) return companies;
 
     return companies.filter((company) =>
-      company.name.toLowerCase().includes(query.toLowerCase()),
+      company.name.toLowerCase().includes(query.toLowerCase())
     );
   }, [companies, query]);
 

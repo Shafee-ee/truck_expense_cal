@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import toast from "react-hot-toast";
-import CompanyCombobox from "./CompanyComboBox";
+import CompanyComboBox from "./CompanyComboBox";
 
 import { updateSettlement } from "@/app/trips/[id]/actions";
 export default function SettlementForm({ trip, companies }) {
@@ -212,7 +212,7 @@ export default function SettlementForm({ trip, companies }) {
             Customer Company
           </label>
 
-          <CompanyCombobox
+          <CompanyComboBox
             companies={companies}
             selectedCompany={selectedClient}
             onChange={setSelectedClient}
@@ -376,7 +376,7 @@ export default function SettlementForm({ trip, companies }) {
               <label className="block text-sm font-medium mb-1">
                 Transporter Company
               </label>
-              <CompanyCombobox
+              <CompanyComboBox
                 companies={companies}
                 selectedCompany={selectedTransporter}
                 onChange={setSelectedTransporter}

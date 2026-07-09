@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import CompanyCombobox from "@/components/CompanyCombobox";
+import CompanyComboBox from "@/components/CompanyComboBox";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -64,7 +64,7 @@ export default function CreateTruckForm({ companies }) {
       <div>
         <label className="block text-sm font-medium mb-1">Owner Company</label>
 
-        <CompanyCombobox
+        <CompanyComboBox
           companies={companies}
           selectedCompany={selectedCompany}
           onChange={setSelectedCompany}
