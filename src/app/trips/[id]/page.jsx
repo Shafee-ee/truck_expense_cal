@@ -323,7 +323,6 @@ export default async function TripDetailPage(props) {
 
             {trip.expenses.length > 0 && (
               <div className="mt-6 border-t border-zinc-200 pt-6">
-                {" "}
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-zinc-800">
                     Expense Ledger

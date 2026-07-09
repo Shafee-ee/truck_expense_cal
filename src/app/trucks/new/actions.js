@@ -48,11 +48,9 @@ export async function createTruck(formData) {
       });
 
       if (!company) {
-        company = await prisma.company.create({
-          data: {
-            name: companyName,
-          },
-        });
+        return {
+          error: "Company does not exist. Please create it first.",
+        };
       }
 
       finalCompanyId = company.id;

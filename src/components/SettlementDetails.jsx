@@ -39,14 +39,15 @@ export default function SettlementForm({ trip, companies }) {
     });
   }
 
-  if (!isEditing) {
+  if (!isEditing || trip.status === "CLOSED") {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setIsEditing(true)}
-            className="
+          {trip.status === "ACTIVE" && (
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="
             rounded-lg
             border
             border-amber-300
@@ -58,9 +59,10 @@ export default function SettlementForm({ trip, companies }) {
             text-amber-800
             hover:bg-amber-100
           "
-          >
-            Edit Settlement
-          </button>
+            >
+              Edit Settlement
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
@@ -130,13 +132,15 @@ export default function SettlementForm({ trip, companies }) {
             </p>
           </div>
 
-          <div>
-            <p className="text-zinc-500">Commission / Tonne</p>
+          {trip.loadType === "EXTERNAL" && (
+            <div>
+              <p className="text-zinc-500">Commission / Tonne</p>
 
-            <p className="font-semibold text-zinc-800">
-              ₹{trip.commissionPerTonne?.toFixed(2) || "0.00"}
-            </p>
-          </div>
+              <p className="font-semibold text-zinc-800">
+                ₹{trip.commissionPerTonne?.toFixed(2) || "0.00"}
+              </p>
+            </div>
+          )}
         </div>
 
         {trip.loadType === "EXTERNAL" && (
@@ -323,20 +327,22 @@ export default function SettlementForm({ trip, companies }) {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Commission / Tonne
-          </label>
+        {trip.loadType === "EXTERNAL" && (
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Commission / Tonne
+            </label>
 
-          <input
-            name="commissionPerTonne"
-            type="number"
-            step="0.01"
-            defaultValue={trip.commissionPerTonne || 0}
-            placeholder="Commission per tonne"
-            className="border p-2 rounded-lg w-full"
-          />
-        </div>
+            <input
+              name="commissionPerTonne"
+              type="number"
+              step="0.01"
+              defaultValue={trip.commissionPerTonne || 0}
+              placeholder="Commission per tonne"
+              className="border p-2 rounded-lg w-full"
+            />
+          </div>
+        )}
       </div>
       <div>
         <label className="block text-sm font-medium mb-1">Damage Notes</label>

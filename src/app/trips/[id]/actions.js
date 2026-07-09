@@ -108,11 +108,17 @@ export async function closeTrip(id, endDate) {
         };
       }
 
-      const missingBills = freshTrip.expenses.some((e) => !e.billPath);
+      const billRequiredCategories = ["FUEL", "TOLL", "REPAIR"];
+
+      const missingBills = freshTrip.expenses.some(
+        (expense) =>
+          billRequiredCategories.includes(expense.category) && !expense.billPath
+      );
 
       if (missingBills) {
         return {
-          error: "Cannot close trip until all expense bills are uploaded",
+          error:
+            "Fuel, Toll and Repair expenses require supporting bills before closing the trip.",
         };
       }
 
@@ -165,7 +171,6 @@ export async function closeTrip(id, endDate) {
   }
 }
 
-
 export async function updateMamool(formData) {
   const tripId = formData.get("tripId");
 
@@ -202,7 +207,6 @@ export async function updateMamool(formData) {
     };
   }
 }
-
 
 //Add Transporter Payment
 export async function addTransporterPayment(formData) {
