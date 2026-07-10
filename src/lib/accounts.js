@@ -114,10 +114,49 @@ export async function getAccountsData() {
     ),
   };
 
+  const outstandingCustomerTrips = trips
+    .filter(
+      (trip) =>
+        trip.clientCompany &&
+        !trip.clientCompany.isInternal &&
+        calculateOutstanding(trip) > 0
+    )
+    .map((trip) => ({
+      id: trip.id,
+      truck: trip.truck.numberPlate,
+      source: trip.source,
+      destination: trip.destination,
+      customer: trip.clientCompany.name,
+      receivable: trip.gcBalance || 0,
+      received: calculatePayments(trip.customerPayments),
+      outstanding: calculateOutstanding(trip),
+    }));
+
+  const outstandingTransporterTrips = trips
+    .filter(
+      (trip) =>
+        trip.transporterCompany &&
+        (trip.transporterPayable || 0) >
+          calculatePayments(trip.transporterPayments)
+    )
+    .map((trip) => ({
+      id: trip.id,
+      truck: trip.truck.numberPlate,
+      source: trip.source,
+      destination: trip.destination,
+      transporter: trip.transporterCompany.name,
+      payable: trip.transporterPayable || 0,
+      paid: calculatePayments(trip.transporterPayments),
+      remaining:
+        (trip.transporterPayable || 0) -
+        calculatePayments(trip.transporterPayments),
+    }));
+
   return {
     customerReceivables,
     transporterPayables,
+    outstandingCustomerTrips,
+    outstandingTransporterTrips,
     totals,
-    trips,
   };
 }
