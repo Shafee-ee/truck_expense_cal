@@ -20,33 +20,31 @@ export default async function CompaniesPage() {
         <h1 className="text-3xl font-bold">Companies</h1>
 
         <Link
-          href="/companies/new"
+          href="/dashboard/companies/new"
           className="rounded-lg bg-black px-4 py-2 text-white"
         >
           + New Company
         </Link>
       </div>
 
-      <Table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Trucks</th>
-          </tr>
-        </thead>
+      <Table
+        columns={[
+          { key: "name", label: "Name" },
+          { key: "type", label: "Type" },
+          { key: "trucks", label: "Trucks" },
+        ]}
+      >
+        {companies.map((company) => (
+          <TableRow key={company.id}>
+            <td className="px-4 py-3">{company.name}</td>
 
-        <tbody>
-          {companies.map((company) => (
-            <TableRow key={company.id}>
-              <td>{company.name}</td>
+            <td className="px-4 py-3">
+              {company.isInternal ? "Internal" : "Customer"}
+            </td>
 
-              <td>{company.isInternal ? "Internal" : "External"}</td>
-
-              <td>{company.trucks.length}</td>
-            </TableRow>
-          ))}
-        </tbody>
+            <td className="px-4 py-3">{company.trucks.length}</td>
+          </TableRow>
+        ))}
       </Table>
     </div>
   );
