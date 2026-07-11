@@ -104,7 +104,7 @@ export default async function AccountsPage() {
         </section>
       )}
 
-      {outstandingTransporterTrips.length > 0 && (
+      {outstandingCustomerTrips.length > 0 && (
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Outstanding Customer Trips</h2>
 
@@ -142,40 +142,44 @@ export default async function AccountsPage() {
           </Table>
         </section>
       )}
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Outstanding Transporter Trips</h2>
+      {outstandingTransporterTrips.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold">
+            Outstanding Transporter Trips
+          </h2>
 
-        <Table
-          columns={[
-            { key: "truck", label: "Truck" },
-            { key: "route", label: "Route" },
-            { key: "transporter", label: "Transporter" },
-            { key: "payable", label: "Payable" },
-            { key: "paid", label: "Paid" },
-            { key: "remaining", label: "Remaining" },
-          ]}
-        >
-          {outstandingTransporterTrips.map((trip) => (
-            <TableRow key={trip.id}>
-              <td className="px-4 py-3 font-medium">{trip.truck}</td>
+          <Table
+            columns={[
+              { key: "truck", label: "Truck" },
+              { key: "route", label: "Route" },
+              { key: "transporter", label: "Transporter" },
+              { key: "payable", label: "Payable" },
+              { key: "paid", label: "Paid" },
+              { key: "remaining", label: "Remaining" },
+            ]}
+          >
+            {outstandingTransporterTrips.map((trip) => (
+              <TableRow key={trip.id}>
+                <td className="px-4 py-3 font-medium">{trip.truck}</td>
 
-              <td className="px-4 py-3">
-                {trip.source} → {trip.destination}
-              </td>
+                <td className="px-4 py-3">
+                  {trip.source} → {trip.destination}
+                </td>
 
-              <td className="px-4 py-3">{trip.transporter}</td>
+                <td className="px-4 py-3">{trip.transporter}</td>
 
-              <td className="px-4 py-3">₹{trip.payable.toLocaleString()}</td>
+                <td className="px-4 py-3">₹{trip.payable.toLocaleString()}</td>
 
-              <td className="px-4 py-3">₹{trip.paid.toLocaleString()}</td>
+                <td className="px-4 py-3">₹{trip.paid.toLocaleString()}</td>
 
-              <td className="px-4 py-3 font-semibold text-red-600">
-                ₹{trip.remaining.toLocaleString()}
-              </td>
-            </TableRow>
-          ))}
-        </Table>
-      </section>
+                <td className="px-4 py-3 font-semibold text-red-600">
+                  ₹{trip.remaining.toLocaleString()}
+                </td>
+              </TableRow>
+            ))}
+          </Table>
+        </section>
+      )}
     </div>
   );
 }

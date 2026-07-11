@@ -61,6 +61,17 @@ export default function Sidebar() {
         </Link>
 
         <Link
+          href="/dashboard/companies"
+          className={
+            pathname.startsWith("/dashboard/companies")
+              ? activeClass
+              : inactiveClass
+          }
+        >
+          Companies
+        </Link>
+
+        <Link
           href="/trips"
           className={
             pathname.startsWith("/trips") ? activeClass : inactiveClass
@@ -109,6 +120,17 @@ export default function Sidebar() {
           }
         >
           Fleet Register Page
+        </Link>
+
+        <Link
+          href="/dashboard/accounts"
+          className={
+            pathname.startsWith("/dashboard/accounts")
+              ? activeClass
+              : inactiveClass
+          }
+        >
+          Accounts
         </Link>
       </nav>
       {/* FOOTER */}
