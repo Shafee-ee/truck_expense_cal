@@ -7,7 +7,7 @@ export function calculateRevenue(trip) {
     return trip.grossAmount || 0;
   }
 
-return (trip.estimatedQty || 0) * (trip.ratePerUnit || 0);
+  return (trip.estimatedQty || 0) * (trip.ratePerUnit || 0);
 }
 
 export function calculateExpenses(expenses = []) {
@@ -19,7 +19,10 @@ export function calculatePayments(payments = []) {
 }
 
 export function calculateOutstanding(trip) {
-  const receivable = trip.gcBalance || 0;
+  const receivable =
+    trip.gcBalance && trip.gcBalance > 0
+      ? trip.gcBalance
+      : calculateRevenue(trip);
 
   const payments = calculatePayments(trip.customerPayments || []);
 
@@ -101,12 +104,12 @@ export function calculateTruckMetrics({
 }) {
   const tripProfit = trips.reduce(
     (sum, trip) => sum + calculateTripProfit(trip),
-    0,
+    0
   );
 
   const totalRevenue = trips.reduce(
     (sum, trip) => sum + calculateRevenue(trip),
-    0,
+    0
   );
 
   const totalExpenses = trips.reduce((sum, trip) => {
@@ -125,7 +128,7 @@ export function calculateTruckMetrics({
 
   const totalDays = trips.reduce(
     (sum, trip) => sum + calculateTripDays(trip),
-    0,
+    0
   );
 
   const earningsPerDay = totalDays > 0 ? tripProfit / totalDays : tripProfit;

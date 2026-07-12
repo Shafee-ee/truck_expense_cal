@@ -61,11 +61,9 @@ export default function Sidebar() {
         </Link>
 
         <Link
-          href="/dashboard/companies"
+          href="/companies"
           className={
-            pathname.startsWith("/dashboard/companies")
-              ? activeClass
-              : inactiveClass
+            pathname.startsWith("/companies") ? activeClass : inactiveClass
           }
         >
           Companies

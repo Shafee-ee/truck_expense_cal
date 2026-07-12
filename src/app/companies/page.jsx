@@ -42,8 +42,14 @@ export default async function CompaniesPage() {
       <Table columns={columns}>
         {companies.map((company) => (
           <TableRow key={company.id}>
-            <td>{company.name}</td>
-
+            <td>
+              <Link
+                href={`companies/${company.id}`}
+                className="font-medium text-blue-600 hover:underline"
+              >
+                {company.name}
+              </Link>
+            </td>
             <td>{company.isInternal ? "Internal" : "External"}</td>
 
             <td>{company.trucks.length}</td>

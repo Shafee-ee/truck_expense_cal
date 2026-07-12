@@ -4,24 +4,24 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
-import { createCompany } from "@/app/companies/new/actions";
-
-export default function CreateCompanyForm() {
+export default function CreateCompanyForm({
+  company = null,
+  action,
+  successMessage,
+}) {
   const router = useRouter();
 
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData) {
     startTransition(async () => {
-      const result = await createCompany(formData);
-
+      const result = await action(formData);
       if (result?.error) {
         toast.error(result.error);
         return;
       }
 
-      toast.success("Company created successfully");
-
+      toast.success(successMessage);
       router.push("/companies");
       router.refresh();
     });
@@ -35,14 +35,20 @@ export default function CreateCompanyForm() {
         <input
           type="text"
           name="name"
+          defaultValue={company?.name || ""}
           className="w-full rounded border p-2"
           required
         />
       </div>
 
       <div className="flex items-center gap-2">
-        <input id="internal" type="checkbox" name="isInternal" value="true" />
-
+        <input
+          id="internal"
+          type="checkbox"
+          name="isInternal"
+          value="true"
+          defaultChecked={company?.isInternal}
+        />
         <label htmlFor="internal">Internal Company</label>
       </div>
 
