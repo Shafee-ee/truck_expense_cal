@@ -30,6 +30,7 @@ export default function CreateCompanyForm({
   return (
     <form action={handleSubmit} className="space-y-4">
       <div>
+        {company && <input type="hidden" name="id" value={company.id} />}
         <label className="mb-1 block text-sm font-medium">Company Name</label>
 
         <input
