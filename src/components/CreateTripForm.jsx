@@ -97,6 +97,36 @@ export default function CreateTripForm({ trucks, cities }) {
         </datalist>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium">Distance (KM)</label>
+
+          <input
+            type="number"
+            name="tripDistance"
+            step="0.1"
+            min="0"
+            required
+            className={inputClass}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium">
+            Freight Weight (Tonnes)
+          </label>
+
+          <input
+            type="number"
+            name="freightWeight"
+            step="0.01"
+            min="0"
+            required
+            className={inputClass}
+          />
+        </div>
+      </div>
+
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
         <label className="block text-sm font-medium mb-2">Load Type</label>
         <label className="flex items-center gap-3 cursor-pointer rounded-md border border-transparent p-2 hover:bg-white">
@@ -167,7 +197,7 @@ export default function CreateTripForm({ trucks, cities }) {
             <div>
               <p className="font-medium">Rate Per Tonne</p>
               <p className="text-xs text-slate-500">
-                Revenue will be calculated using quantity × rate.
+                Revenue will be calculated using freight weight × rate.
               </p>
             </div>
           </label>
@@ -176,20 +206,6 @@ export default function CreateTripForm({ trucks, cities }) {
 
       {revenueMode == "VARIABLE" && (
         <>
-          <div>
-            <label className="block text-sm font-medium">
-              Quantity (Tonnes)
-            </label>
-
-            <input
-              name="estimatedQty"
-              type="number"
-              step="0.01"
-              required={revenueMode === "VARIABLE"}
-              className={inputClass}
-            />
-          </div>
-
           <div>
             <label className="block text-sm font-medium">
               Rate (₹ / Tonne)

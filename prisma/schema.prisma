@@ -114,6 +114,10 @@ model Trip {
   truckId       String
   source        String
   destination   String
+
+    tripDistance  Float?
+  freightWeight Float?
+  
   estimatedQty  Float?
   ratePerUnit   Float?
   startDate     DateTime?
@@ -123,6 +127,10 @@ model Trip {
   finalBalance  Float?
   finalExpenses Float?
   finalRevenue  Float?
+  
+
+
+
   closedAt      DateTime?
   closedBy      String?
   grossAmount   Float?

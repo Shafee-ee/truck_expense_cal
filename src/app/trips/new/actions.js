@@ -6,7 +6,8 @@ export async function createTrip(formData) {
   const truckId = formData.get("truckId");
   const source = formData.get("source");
   const destination = formData.get("destination");
-
+  const tripDistance = Number(formData.get("tripDistance")) || null;
+  const freightWeight = Number(formData.get("freightWeight")) || null;
   const revenueMode = formData.get("revenueMode");
   const loadType = formData.get("loadType");
 
@@ -15,7 +16,7 @@ export async function createTrip(formData) {
       ? 0
       : Math.min(Number(formData.get("mamool")) || 0, 3000);
 
-  const estimatedQty = Number(formData.get("estimatedQty")) || null;
+  const estimatedQty = freightWeight;
   const ratePerUnit = Number(formData.get("ratePerUnit")) || null;
   const grossAmount = Number(formData.get("grossAmount")) || null;
 
@@ -41,11 +42,13 @@ export async function createTrip(formData) {
     return { error: "Destination is required." };
   }
 
+  if (!tripDistance || tripDistance <= 0) {
+    return { error: "Distance must be greater than zero." };
+  }
+  if (!freightWeight || freightWeight <= 0) {
+    return { error: "Freight weight must be greater than zero." };
+  }
   if (revenueMode === "VARIABLE") {
-    if (!estimatedQty || estimatedQty <= 0) {
-      return { error: "Quantity must be greater than zero." };
-    }
-
     if (!ratePerUnit || ratePerUnit <= 0) {
       return { error: "Rate must be greater than zero." };
     }
@@ -77,6 +80,8 @@ export async function createTrip(formData) {
         source,
         destination,
 
+        tripDistance,
+        freightWeight,
         loadType,
         revenueMode,
 
