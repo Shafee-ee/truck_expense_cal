@@ -4954,3 +4954,386 @@ Dashboards / KPIs
 ⬜ After Accounts
 
 At this point, the project has moved from building core functionality to reporting and refinement. The operational workflow—from creating a trip through settlement, payment tracking, and closure—is in place. The remaining work is primarily the Accounts module, dashboard calculations, KPIs, and the UI cleanup items listed above.
+
+#####
+
+HH Trucks Progress Summary
+What was completed
+
+1. Company module completed
+
+The company workflow is now complete.
+
+Implemented:
+
+Create Company
+Company List
+Company Detail page
+Edit Company
+Reusable CreateCompanyForm used for both create and edit
+Edit button added to Company Detail page (much better UX)
+
+Current flow:
+
+Companies
+↓
+Click Company
+↓
+Company Detail
+↓
+Edit Company
+
+This now feels like a complete CRUD flow (delete intentionally postponed).
+
+2. Trip creation upgraded
+
+Added two important operational fields.
+
+Trip Distance
+tripDistance Float?
+Freight Weight
+freightWeight Float?
+
+Both are now collected during trip creation.
+
+Reason:
+
+Operators already know these values when accepting the trip.
+
+3. Revenue model improved
+
+Previously:
+
+Quantity
+Rate/Tonne
+
+Now:
+
+Freight Weight
+Rate/Tonne
+
+Internally:
+
+estimatedQty = freightWeight
+
+This keeps all existing finance logic working while moving toward a cleaner data model.
+
+4. Validation updated
+
+Now mandatory for every trip:
+
+Truck
+Source
+Destination
+Distance
+Freight Weight
+
+Additionally:
+
+Variable Revenue:
+
+Rate per tonne required
+
+Fixed Revenue:
+
+Gross Amount required 5. Database verified
+
+Verified using Supabase SQL.
+
+Fixed Trip
+
+Distance = 350
+Freight Weight = 25
+Estimated Qty = 25
+Revenue = FIXED
+Gross = 45000
+
+Variable Trip
+
+Distance = 352
+Freight Weight = 28
+Estimated Qty = 28
+Rate = 1800
+Revenue = VARIABLE
+
+Everything persisted correctly.
+
+Important design decisions
+Freight Weight becomes the operational truth
+
+Instead of:
+
+Quantity
+
+the project now thinks in terms of
+
+Freight Weight
+
+because that's what operators actually know.
+
+Estimated Quantity only exists for backward compatibility.
+
+Eventually it can disappear completely.
+
+Truck recommendation discussion
+
+We discussed what data is actually required.
+
+Initially we considered storing truck state.
+
+AVAILABLE
+ON_TRIP
+MAINTENANCE
+INACTIVE
+
+Then realised almost all of this can be derived.
+
+Examples:
+
+Available
+
+Derived from
+
+Truck has ACTIVE trip?
+
+Maintenance
+
+Already available from maintenance/compliance.
+
+No separate state required.
+
+Business Intelligence discussion
+
+We identified what determines the "best truck".
+
+Already available
+
+Truck maintenance history
+
+Compliance
+
+Insurance
+Permit
+Fitness
+Road Tax
+
+Current trip
+
+Truck expenses
+
+Revenue
+
+Trip profitability
+
+Last trip history
+
+Newly added
+
+Trip Distance
+
+Freight Weight
+
+These are critical.
+
+Can be derived
+
+Availability
+
+Truck utilization
+
+Revenue per km
+
+Cost per km
+
+Fuel per km
+
+Maintenance cost per km
+
+Profit per km
+
+Trips completed
+
+Downtime
+
+Idle days
+
+Needs verification (completed)
+
+You spoke with Jeevan.
+
+Confirmed:
+
+Operators already know
+
+Distance
+Freight Weight
+
+when accepting a trip.
+
+Therefore both belong on Create Trip.
+
+Transporter settlement discussion
+
+Still intentionally unchanged.
+
+Reason:
+
+The business rules are still not completely understood.
+
+We decided to postpone changes until the workflow is clearer instead of guessing.
+
+Commission / Tonne
+
+Discussion revealed this is not yet fully understood.
+
+Need further clarification from operations before redesigning transporter settlement.
+
+Mamool discussion
+
+Current state
+
+Mamool lives on Trip.
+
+Future plan
+
+Treat it as a normal Expense.
+
+Eventually:
+
+Expense Category
+
+Fuel
+Toll
+Loading
+Unloading
+Driver Payment
+Mamool
+...
+
+Then:
+
+Remove
+
+Trip.mamool
+
+Finance calculations become simpler because mamool is just another expense.
+
+Not doing this now.
+
+Reason:
+
+Avoid breaking existing trips.
+
+Next major milestone
+
+Originally
+
+Truck Intelligence
+
+Now
+
+Fleet Register Excel Import
+↓
+Populate real trucks
+↓
+Truck Intelligence
+
+Reason:
+
+Truck recommendation without real trucks isn't useful.
+
+Excel Import plan
+
+Import directly from the spreadsheet operators already maintain.
+
+Import:
+
+Truck Number
+Company
+Vehicle Type
+Registration Date
+Insurance
+Road Tax
+Permit
+National Permit
+Fitness
+
+The importer should adapt to their existing Excel sheet, not require them to change their workflow.
+
+Planned Truck Intelligence
+
+Once real data exists:
+
+Recommend truck based on:
+
+Compliance validity
+Maintenance history
+Maintenance cost
+Fuel efficiency
+Profitability
+Distance suitability
+Freight weight suitability (future, if truck capacity is added)
+Current availability
+Last known location (future)
+Revenue per km
+Cost per km
+Maintenance cost per km
+
+No manual truck state required.
+
+Everything should be derived where possible.
+
+Small cleanups
+Create Trip
+
+Change helper text
+
+Current
+
+Revenue will be calculated using quantity × rate.
+
+Replace with
+
+Revenue will be calculated using freight weight × rate.
+Mamool
+
+Move to Expense module later.
+
+Settlement
+
+Need a future pass once transporter workflow is fully understood.
+
+Company module
+
+Delete Company still not implemented.
+
+Keep it that way for now.
+
+When implemented:
+
+Prevent deletion if:
+
+Company owns trucks
+Company is referenced by trips
+
+Otherwise allow deletion.
+
+Current project status
+
+The operational workflow is now substantially more complete.
+
+Companies ✅
+↓
+Trucks ✅
+↓
+Trips ✅
+↓
+Settlement ✅ (needs transporter refinement)
+↓
+Payments ✅
+↓
+Maintenance ✅
+↓
+Accounts ✅
+
+The next logical feature is not another CRUD page. It is onboarding real operational data through an Excel importer, followed by the Truck Intelligence engine that uses that data to recommend the most suitable truck for a new trip.
