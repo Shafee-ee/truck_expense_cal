@@ -14,6 +14,19 @@
 
 Goal is to make it look like IMOS style platform managment system
 
+#####
+
+Rule 1
+
+Once we choose an architecture, we finish it.
+
+No redesigns unless:
+
+it's actually broken, or
+the business requirement changes.
+
+I won't derail the current implementation.
+
 # HH Trucks — Data Model (Source of Truth)
 
 ## 1. Core Concept
@@ -5337,3 +5350,245 @@ Maintenance ✅
 Accounts ✅
 
 The next logical feature is not another CRUD page. It is onboarding real operational data through an Excel importer, followed by the Truck Intelligence engine that uses that data to recommend the most suitable truck for a new trip.
+###############
+
+Yes. I actually think we should put this into your HH-Trucks-System-Source-of-Truth.md.
+
+Not the Excel files themselves, but a section called Migration Data Sources. That way, months from now, we won't need the original spreadsheets to understand how the importers are supposed to work.
+
+I'd add something like this:
+
+# Data Migration Sources
+
+HH Trucks includes an import framework for migrating existing Excel-based data into the system.
+
+## Import Pipeline
+
+Every importer follows the same pipeline:
+
+Excel File
+↓
+Excel Reader (readExcel)
+↓
+Mapper
+↓
+Validator
+↓
+Preview
+↓
+Database Import
+
+The parser (`src/lib/imports/excel.js`) is generic and reusable.
+It converts Excel worksheets into raw JavaScript objects.
+
+Each importer is responsible for:
+
+- Mapping Excel columns to HH Trucks domain objects.
+- Validating data.
+- Creating an import preview.
+- Importing into the existing Prisma models.
+
+---
+
+# 1. Fleet Register
+
+Source:
+VEHICLE DETAILS.xlsx
+
+Purpose:
+Imports the master fleet.
+
+Creates / Updates:
+
+- Truck
+- Compliance TruckExpense records
+
+Mapped fields:
+
+Vehicle No
+→ Truck.numberPlate
+
+Vehicle Type
+→ Truck.vehicleType
+
+REG date
+→ Truck.registrationDate
+
+Fitness Certificate
+→ TruckExpense (FITNESS)
+
+Road Tax
+→ TruckExpense (ROAD_TAX)
+
+Insurance
+→ TruckExpense (INSURANCE)
+
+Permit
+→ TruckExpense (PERMIT)
+
+National Permit
+→ TruckExpense (NATIONAL_PERMIT)
+
+Notes:
+
+- "LTT" is currently preserved as a string.
+- "N/A" values become null.
+- Some permit dates may be stored as text and should be validated.
+- Company selection is currently expected during import.
+
+---
+
+# 2. Trip Register
+
+Sources:
+
+- AS Transport File 25-26.xlsx
+- LOGISCO Transport File 2025-2026.xlsx
+
+Purpose:
+Imports historical trips.
+
+Creates:
+
+- Trip
+- Expense
+- Customer / Transporter payments (future)
+
+Typical mappings:
+
+Vehicle No
+→ Truck lookup
+
+From
+→ Trip.source
+
+Destination
+→ Trip.destination
+
+Qty
+→ Trip.freightWeight
+
+Rate/MT
+→ Trip.ratePerUnit
+
+Gross Amount
+→ Trip.grossAmount
+
+Diesel
+→ Expense(FUEL)
+
+Toll
+→ Expense(TOLL)
+
+Police
+→ Expense(POLICE)
+
+Other Expenses
+→ Expense(OTHER)
+
+Advance
+→ Customer/Transporter payment
+
+Transporter
+→ Company lookup
+
+Bill No
+→ Trip.billNumber
+
+Notes:
+Trip import should never create duplicate trucks.
+Trucks are expected to exist from the Fleet Register import.
+
+---
+
+# 3. FASTag Import
+
+Source:
+FASTag statement (.xlsx)
+
+Purpose:
+Imports actual toll transactions.
+
+Creates:
+Trip Expenses (TOLL)
+
+Typical mappings:
+
+Vehicle Number
+→ Truck lookup
+
+Transaction Date
+→ Expense date
+
+Plaza Name
+→ Expense note / location
+
+Debit Amount
+→ Expense amount
+
+Notes:
+This is transaction history, not toll-rate reference data.
+Future versions should attempt to match toll transactions with trips.
+
+---
+
+# 4. Maintenance Import
+
+Source:
+Pending (ATS maintenance workbook)
+
+Purpose:
+Imports historical truck maintenance.
+
+Creates:
+TruckExpense
+
+Expected categories:
+
+- TYRE
+- REPAIR
+- ELECTRICAL
+- WASHING
+- ADD_BLUE
+- OTHER
+
+Status:
+Importer not yet designed because the workbook has not been analyzed.
+
+---
+
+# Current Import Framework Status
+
+Completed:
+
+- Generic Excel parser
+- Fleet mapper
+
+Pending:
+
+- Validators
+- Generic preview UI
+- Database reconciliation
+- Import execution
+- Duplicate detection
+- Generic import framework
+
+Architecture:
+
+Excel
+↓
+Parser
+↓
+Mapper
+↓
+Validator
+↓
+Preview
+↓
+Importer
+
+I would also add one sentence at the top:
+
+These Excel workbooks represent the client's legacy system and are the reference documents for all importers. Future changes to import logic should be based on these source formats rather than assumptions.
+
+That makes it clear that if we ever revisit this six months from now, we don't have to rediscover how the spreadsheets were structured—we have a permanent design reference in the project documentation.

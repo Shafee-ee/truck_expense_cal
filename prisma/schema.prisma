@@ -21,51 +21,36 @@ model CustomerPayment {
 }
 
 model TransporterPayment {
-  id String @id @default(uuid())
-
-  tripId String
-
-  amount Float
-
-  mode PaymentMode
-
+  id          String      @id @default(uuid())
+  tripId      String
+  amount      Float
+  mode        PaymentMode
   paymentDate DateTime
-
-  note String?
-
-  createdAt DateTime @default(now())
-
-  trip Trip @relation(fields: [tripId], references: [id])
+  note        String?
+  createdAt   DateTime    @default(now())
+  trip        Trip        @relation(fields: [tripId], references: [id])
 }
 
 model Company {
-  id         String   @id @default(uuid())
-  name       String
-  isInternal Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  trucks Truck[]
-
-  customerTrips    Trip[] @relation("CustomerTrips")
-  transporterTrips Trip[] @relation("TransporterTrips")
+  id               String   @id @default(uuid())
+  name             String
+  isInternal       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  customerTrips    Trip[]   @relation("CustomerTrips")
+  transporterTrips Trip[]   @relation("TransporterTrips")
+  trucks           Truck[]
 }
 
 model Truck {
-  id          String @id @default(uuid())
-  numberPlate String @unique
-  companyId   String
-
-  vehicleType VehicleType?
-
+  id               String         @id @default(uuid())
+  numberPlate      String         @unique
+  companyId        String?
+  createdAt        DateTime       @default(now())
   registrationDate DateTime?
-
-  createdAt DateTime @default(now())
-
-  trips Trip[]
-
-  company Company @relation(fields: [companyId], references: [id])
-
-  truckExpenses TruckExpense[]
+  vehicleType      VehicleType?
+  trips            Trip[]
+  company          Company?      @relation(fields: [companyId], references: [id])
+  truckExpenses    TruckExpense[]
 }
 
 model Expense {
@@ -80,93 +65,73 @@ model Expense {
 }
 
 model TruckExpense {
-  id String @id @default(cuid())
-
-  truckId String
-
-  category TruckExpenseCategory
-
-  amount Float
-
-  vendor String?
-
-  note String?
-
-  expenseDate DateTime
-
-  expiryDate DateTime? // NEW
-
-  month Int
-
-  year Int
-
+  id           String               @id @default(cuid())
+  truckId      String
+  category     TruckExpenseCategory
+  amount       Float
+  vendor       String?
+  expenseDate  DateTime
+  month        Int
+  year         Int
+  createdAt    DateTime             @default(now())
   documentPath String?
-
-  createdAt DateTime @default(now())
-
-  truck Truck @relation(fields: [truckId], references: [id])
+  expiryDate   DateTime?
+  note         String?
+  truck        Truck                @relation(fields: [truckId], references: [id])
 
   @@index([truckId, category, expenseDate])
 }
 
 model Trip {
-  id            String     @id @default(uuid())
-  truckId       String
-  source        String
-  destination   String
-
-    tripDistance  Float?
-  freightWeight Float?
-  
-  estimatedQty  Float?
-  ratePerUnit   Float?
-  startDate     DateTime?
-  endDate       DateTime?
-  status        TripStatus @default(PLANNED)
-  createdAt     DateTime   @default(now())
-  finalBalance  Float?
-  finalExpenses Float?
-  finalRevenue  Float?
-  
-
-
-
-  closedAt      DateTime?
-  closedBy      String?
-  grossAmount   Float?
-
-  transporterFreight Float?
-  commissionPerTonne Float? @default(0)
-  transporterAdvance Float? @default(0)
-
-  transporterCharges Float? @default(0)
-
-  transporterPayable Float?
-
-  clientCompanyId String?
-
-  clientCompany Company? @relation("CustomerTrips", fields: [clientCompanyId], references: [id])
-
+  id                   String               @id @default(uuid())
+  truckId              String
+  source               String
+  destination          String
+  estimatedQty         Float?
+  ratePerUnit          Float?
+  startDate            DateTime?
+  endDate              DateTime?
+  status               TripStatus           @default(PLANNED)
+  createdAt            DateTime             @default(now())
+  finalBalance         Float?
+  finalExpenses        Float?
+  finalRevenue         Float?
+  closedAt             DateTime?
+  closedBy             String?
+  grossAmount          Float?
+  revenueMode          RevenueMode          @default(FIXED)
+  loadType             LoadType             @default(EXTERNAL)
+  mamool               Float                @default(0)
+  billNumber           String?
+  charges              Float?               @default(0)
+  customerAdvance      Float?               @default(0)
+  customerDiesel       Float?               @default(0)
+  damageAmount         Float?               @default(0)
+  damageNotes          String?
+  gcBalance            Float?
+  tds                  Float?               @default(0)
+  clientCompanyId      String?
+  transporterAdvance   Float?               @default(0)
+  transporterCharges   Float?               @default(0)
   transporterCompanyId String?
+  transporterFreight   Float?
+  transporterPayable   Float?
+  commissionPerTonne   Float?               @default(0)
+  freightWeight        Float?
+  tripDistance         Float?
+  customerPayments     CustomerPayment[]
+  expenses             Expense[]
+  transporterPayments  TransporterPayment[]
+  clientCompany        Company?             @relation("CustomerTrips", fields: [clientCompanyId], references: [id])
+  transporterCompany   Company?             @relation("TransporterTrips", fields: [transporterCompanyId], references: [id])
+  truck                Truck                @relation(fields: [truckId], references: [id])
+}
 
-  transporterCompany Company? @relation("TransporterTrips", fields: [transporterCompanyId], references: [id])
-
-  revenueMode         RevenueMode          @default(FIXED)
-  loadType            LoadType             @default(EXTERNAL)
-  mamool              Float                @default(0)
-  billNumber          String?
-  charges             Float?               @default(0)
-  customerAdvance     Float?               @default(0)
-  customerDiesel      Float?               @default(0)
-  damageAmount        Float?               @default(0)
-  damageNotes         String?
-  gcBalance           Float?
-  tds                 Float?               @default(0)
-  expenses            Expense[]
-  customerPayments    CustomerPayment[]
-  transporterPayments TransporterPayment[]
-
-  truck Truck @relation(fields: [truckId], references: [id])
+model ImportSession {
+  id        String   @id @default(cuid())
+  type      String
+  data      Json
+  createdAt DateTime @default(now())
 }
 
 enum TripStatus {
@@ -186,9 +151,9 @@ enum ExpenseCategory {
   POLICE
   LOADING
   UNLOADING
-  DRIVER_PAYMENT
   REPAIR
   OTHER
+  DRIVER_PAYMENT
 }
 
 enum TruckExpenseCategory {
