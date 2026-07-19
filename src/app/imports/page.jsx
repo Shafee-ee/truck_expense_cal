@@ -52,13 +52,6 @@ export default function ImportsPage() {
             status={step.status}
             href={step.href}
           />
-
-          <ImportSummary
-    total={preview.totalRows}
-    success={preview.validRows}
-    warnings={preview.warningCount}
-    errors={preview.errorCount}
-/>
         ))}
       </div>
     </main>

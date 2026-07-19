@@ -1,7 +1,8 @@
+import { normalizeVehicleType } from "@/lib/imports/utils/normalize";
 export function mapFleetRows(rows) {
   return rows.map((row) => ({
     numberPlate: row["Vehicle No"]?.trim() ?? null,
-    vehicleType: row["Vehicle Type"]?.trim() ?? null,
+    vehicleType: normalizeVehicleType(row["Vehicle Type"]),
     registrationDate: row["REG date"],
 
     compliance: {

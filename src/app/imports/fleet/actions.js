@@ -2,40 +2,24 @@
 import { prisma } from "@/lib/prisma";
 import { processFleetImport } from "@/lib/imports/fleet/processFleetImport";
 
-export async function previewFleetImport(previousState, formData) {
-  const file = formData.get("file");
-
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Please select an Excel file.");
-  }
-
-  const comparison = await processFleetImport(file);
-
-  return {
-    summary: {
-      total: comparison.length,
-      create: comparison.filter((r) => r.action === "CREATE").length,
-      update: comparison.filter((r) => r.action === "UPDATE").length,
-      unchanged: comparison.filter((r) => r.action === "UNCHANGED").length,
-      errors: comparison.filter((r) => r.action === "ERROR").length,
-    },
-    rows: comparison,
-  };
-}
-
 export async function importFleetRows(previousState, formData) {
   const file = formData.get("file");
 
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Please select an Excel file.");
+  if (!file || file.size === 0) {
+    throw new Error("Please select a file.");
   }
 
   const comparison = await processFleetImport(file);
+
   let created = 0;
   let updated = 0;
   let skipped = 0;
 
   for (const item of comparison) {
+    console.log({
+      truck: item.row.numberPlate,
+      action: item.action,
+    });
     switch (item.action) {
       case "CREATE":
         await prisma.truck.create({
@@ -69,6 +53,11 @@ export async function importFleetRows(previousState, formData) {
     }
   }
 
+  console.log("Returning:", {
+    created,
+    updated,
+    skipped,
+  });
   return {
     created,
     updated,
