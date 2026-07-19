@@ -2,17 +2,17 @@
 
 import { useRouter } from "next/navigation";
 
-export default function TruckSummaryTable({ trucks, expenses }) {
+export default function TruckSummaryTable({ trucks, expenses, stats }) {
   const router = useRouter();
   const summary = trucks
     .map((truck) => {
       const truckExpenses = expenses.filter(
-        (expense) => expense.truckId === truck.id,
+        (expense) => expense.truckId === truck.id
       );
 
       const total = truckExpenses.reduce(
         (sum, expense) => sum + expense.amount,
-        0,
+        0
       );
 
       const lastExpense = truckExpenses[0] ?? null;
@@ -55,6 +55,33 @@ export default function TruckSummaryTable({ trucks, expenses }) {
           </select>
         </div>
       </div>
+
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-lg border bg-white p-4">
+          <p className="text-sm text-slate-500">Total Trucks</p>
+          <p className="mt-2 text-3xl font-bold">{stats.totalTrucks}</p>
+        </div>
+
+        <div className="rounded-lg border bg-white p-4">
+          <p className="text-sm text-slate-500">Active Trucks</p>
+          <p className="mt-2 text-3xl font-bold">{stats.trucksWithExpenses}</p>
+        </div>
+
+        <div className="rounded-lg border bg-white p-4">
+          <p className="text-sm text-slate-500">Total Maintenance</p>
+          <p className="mt-2 text-3xl font-bold text-emerald-600">
+            ₹{stats.totalExpense.toLocaleString("en-IN")}
+          </p>
+        </div>
+
+        <div className="rounded-lg border bg-white p-4">
+          <p className="text-sm text-slate-500">Average / Truck</p>
+          <p className="mt-2 text-3xl font-bold">
+            ₹{Math.round(stats.averagePerTruck).toLocaleString("en-IN")}
+          </p>
+        </div>
+      </div>
+
       <div className="overflow-hidden rounded-lg border">
         <table className="w-full">
           <thead className="bg-slate-50">
@@ -88,15 +115,21 @@ export default function TruckSummaryTable({ trucks, expenses }) {
                 </td>
 
                 <td className="p-4">
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${
-                      truck.company.isInternal
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-blue-100 text-blue-700"
-                    }`}
-                  >
-                    {truck.company.name}
-                  </span>
+                  {truck.company ? (
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-medium ${
+                        truck.company.isInternal
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-blue-100 text-blue-700"
+                      }`}
+                    >
+                      {truck.company.name}
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
+                      Unassigned
+                    </span>
+                  )}
                 </td>
 
                 <td className="p-4">
@@ -126,7 +159,7 @@ export default function TruckSummaryTable({ trucks, expenses }) {
                     <p>
                       {truck.lastExpense
                         ? new Date(
-                            truck.lastExpense.expenseDate,
+                            truck.lastExpense.expenseDate
                           ).toLocaleDateString("en-IN")
                         : "—"}
                     </p>

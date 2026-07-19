@@ -20,9 +20,29 @@ export default async function TruckSummaryPage() {
     },
   });
 
+  const totalExpense = expenses.reduce(
+    (sum, expense) => sum + expense.amount,
+    0
+  );
+
+  const trucksWithExpenses = new Set(expenses.map((expense) => expense.truckId))
+    .size;
+
+  const averagePerTruck =
+    trucksWithExpenses === 0 ? 0 : totalExpense / trucksWithExpenses;
+
   return (
     <div className="p-6">
-      <TruckSummaryTable trucks={trucks} expenses={expenses} />
+      <TruckSummaryTable
+        trucks={trucks}
+        expenses={expenses}
+        stats={{
+          totalTrucks: trucks.length,
+          trucksWithExpenses,
+          totalExpense,
+          averagePerTruck,
+        }}
+      />
     </div>
   );
 }

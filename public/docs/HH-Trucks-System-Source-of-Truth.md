@@ -5592,3 +5592,278 @@ I would also add one sentence at the top:
 These Excel workbooks represent the client's legacy system and are the reference documents for all importers. Future changes to import logic should be based on these source formats rather than assumptions.
 
 That makes it clear that if we ever revisit this six months from now, we don't have to rediscover how the spreadsheets were structured—we have a permanent design reference in the project documentation.
+
+######
+
+HH Trucks – Current State
+Overall Project Status
+
+The core operational modules are now largely complete.
+
+✅ Companies
+Company management complete.
+Supports internal and external companies.
+Used throughout trips, accounts and settlements.
+✅ Trips
+Trip creation complete.
+Customer and transporter separation complete.
+Settlement system complete.
+Driver payment integrated.
+Mamool/business rules implemented.
+Outstanding calculations working.
+✅ Accounts
+Receivables
+Payables
+Customer payments
+Transporter payments
+Dashboard cards
+Company filtering
+
+Accounts module is considered complete.
+
+✅ Fleet
+
+Completed:
+
+Truck creation
+Fleet register
+Vehicle type
+Registration date
+Company optional
+Fleet import from Excel
+
+Reason company is optional:
+
+The Fleet Register Excel supplied by the operator does not contain ownership information.
+
+This was an intentional architectural decision after discovering the source data.
+
+✅ Maintenance
+
+Completed:
+
+Truck expense model
+Expense categories
+Vendor
+Amount
+Expense history
+Truck maintenance page
+Maintenance summary
+Maintenance detail page
+Maintenance Excel importer
+
+Importer:
+
+Reads period correctly.
+Maps trucks correctly.
+Maps categories correctly.
+Imports using createMany().
+Successfully tested.
+
+Dashboard fixed:
+
+Trucks without companies now display "Unassigned" instead of crashing.
+Architectural Discovery
+
+This is probably the biggest thing we learned.
+
+The Excel files are not a normalized database.
+
+Instead:
+
+Fleet Register knows
+
+Truck
+Registration
+Vehicle type
+
+It does NOT know
+
+Company
+
+Maintenance knows
+
+Truck
+Expenses
+
+It does NOT know
+
+Company
+
+Trips know
+
+Company
+Truck
+
+This means:
+
+Truck ownership cannot be derived from Fleet or Maintenance imports.
+
+Making companyId optional was the correct decision based on the available data.
+
+Current Dashboard
+
+Truck Summary now shows
+
+Total Trucks
+Active Trucks
+Total Maintenance Spend
+Average per Truck (placeholder metric)
+
+Table displays
+
+Truck
+Owner
+Total Expense
+Last Expense
+Updated
+
+"Owner"
+
+Company badge
+or
+Unassigned
+Things To Improve Later
+
+Truck Summary
+
+Current cards are functional but not final.
+
+Possible replacements:
+
+Instead of
+
+Average / Truck
+
+consider
+
+Highest Maintenance Truck
+Maintenance Entries
+Current Month Spend
+Highest Single Expense
+
+Need discussion later.
+
+Filtering
+
+Truck Summary currently has placeholder controls.
+
+Need:
+
+Search
+Company filter
+Category filter
+Month filter
+Sort options
+
+Business Intelligence (Future)
+
+Eventually calculate things like
+
+Cost per truck
+Cost per month
+Cost per km (once distance exists)
+Highest maintenance truck
+Maintenance trends
+Preventive maintenance alerts
+Tyre cost analysis
+Fuel efficiency
+
+This is a later phase.
+
+Fleet Import
+
+Current behavior
+
+Creates
+
+numberPlate
+vehicleType
+registrationDate
+
+Does not assign company.
+
+This is intentional because source Excel has no company information.
+
+Do not "fix" this by assigning fake companies.
+
+Maintenance Import
+
+Current behavior
+
+Imports
+
+truck
+category
+vendor
+amount
+expenseDate
+month
+year
+
+Future cleanup
+
+Prevent duplicate imports.
+
+Likely:
+
+deleteMany({
+month,
+year,
+})
+
+createMany(...)
+
+Needs discussion before implementing.
+
+Important Business Question
+
+Need to ask operator eventually:
+
+"When a brand new truck enters the fleet, do you already know which company owns it?"
+
+If yes
+
+→ truck creation should require company.
+
+If no
+
+→ Unassigned is correct.
+
+This is a business rule, not a coding problem.
+
+Files Likely Needed Next Chat
+
+Dashboard
+
+src/app/dashboard/truck-summary/page.jsx
+src/components/TruckSummaryTable.jsx
+
+Maintenance
+
+src/app/imports/maintenance/actions.js
+
+Fleet Import
+
+src/app/imports/fleet/actions.js
+
+Trips (if ownership discussion continues)
+
+src/app/trips/new/page.jsx
+
+or wherever trip creation assigns company/truck.
+
+Current Goal
+
+Maintenance module is effectively complete.
+
+Next focus should be making the system feel like a polished product rather than adding more database tables.
+
+Priority order I'd suggest:
+
+Finish Truck Summary UX (filters, search, month selection).
+Review the overall dashboard for polish and consistency.
+Build Business Intelligence features on top of the now-complete operational data.
+Finally, revisit ownership/workflow questions after confirming the operator's real-world process.
+
+One last thing: over the past few sessions we've uncovered several cases where the spreadsheets don't encode business rules that the application needs. That isn't a sign the project is falling apart. It's a normal part of replacing spreadsheet workflows with software. Each time we've hit one of those cases, we've stopped to understand the business instead of hardcoding assumptions. That will make the finished system more reliable.
