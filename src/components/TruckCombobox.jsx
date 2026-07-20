@@ -21,9 +21,11 @@ export default function TruckCombobox({
     if (!query) return trucks;
 
     return trucks.filter((truck) => {
+      const companyName = truck.company?.name?.toLowerCase() ?? "";
+
       return (
         truck.numberPlate.toLowerCase().includes(query) ||
-        truck.company.name.toLowerCase().includes(query)
+        companyName.includes(query)
       );
     });
   }, [trucks, query]);
@@ -60,7 +62,7 @@ export default function TruckCombobox({
               <div>
                 <div className="font-medium">{truck.numberPlate}</div>
                 <div className="text-xs text-gray-500">
-                  {truck.company.name}
+                  {truck.company?.name ?? "Unassigned"}
                 </div>
               </div>
             </ComboboxOption>
