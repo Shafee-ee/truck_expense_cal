@@ -103,6 +103,7 @@ model Trip {
   loadType             LoadType             @default(EXTERNAL)
   mamool               Float                @default(0)
   billNumber           String?
+  gcNumber             String?
   charges              Float?               @default(0)
   customerAdvance      Float?               @default(0)
   customerDiesel       Float?               @default(0)

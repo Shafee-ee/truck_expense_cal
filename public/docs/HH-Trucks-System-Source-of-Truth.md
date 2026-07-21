@@ -5867,3 +5867,240 @@ Build Business Intelligence features on top of the now-complete operational data
 Finally, revisit ownership/workflow questions after confirming the operator's real-world process.
 
 One last thing: over the past few sessions we've uncovered several cases where the spreadsheets don't encode business rules that the application needs. That isn't a sign the project is falling apart. It's a normal part of replacing spreadsheet workflows with software. Each time we've hit one of those cases, we've stopped to understand the business instead of hardcoding assumptions. That will make the finished system more reliable.
+
+###
+
+HH Trucks – Current State (Updated)
+Overall Status
+
+The core business modules are complete.
+
+✅ Companies
+CRUD complete.
+Internal/External company support.
+Integrated with Trips, Accounts and Settlements.
+✅ Trips
+Trip creation complete.
+Customer / Transporter separation.
+Driver payments.
+Settlement workflow.
+Mamool logic.
+Outstanding calculations.
+Revenue modes (Fixed / Per Tonne).
+✅ Accounts
+Receivables.
+Payables.
+Customer payments.
+Transporter payments.
+Company filtering.
+Dashboard cards.
+
+Accounts module is considered complete.
+
+✅ Fleet
+
+Completed
+
+Truck CRUD.
+Fleet Register.
+Registration details.
+Vehicle Type.
+Company is optional.
+Fleet Excel Import.
+Architectural decision
+
+Fleet Register does not contain ownership information.
+
+Therefore:
+
+Truck.companyId
+
+is intentionally nullable.
+
+Truck ownership will be assigned later from Trip data if appropriate.
+
+✅ Maintenance
+
+Completed
+
+Truck Expense model.
+Expense history.
+Categories.
+Vendor.
+Notes.
+Documents.
+Dashboard.
+Truck detail page.
+Maintenance Import.
+
+Importer
+
+Reads Excel.
+Detects month/year.
+Maps trucks.
+Maps categories.
+Imports successfully.
+
+Future cleanup
+
+Prevent duplicate imports by replacing monthly data instead of inserting duplicates.
+
+✅ Truck Summary
+
+Completed
+
+Summary cards.
+Truck maintenance totals.
+Last maintenance.
+Owner column.
+
+Improvement
+
+Trucks without owners display
+
+Unassigned
+
+instead of crashing.
+
+Excel Import Architecture
+
+Current import order should be:
+
+1. Fleet Register
+2. Maintenance Register
+3. Trip Register
+
+FASTag is removed from the migration pipeline.
+
+Reason:
+
+FASTag statements contain
+
+Truck
+Date
+Toll
+Plaza
+
+but cannot identify which trip a toll belongs to.
+
+Instead, FASTag should eventually become a helper while creating or closing trips (or be ignored entirely if manual toll entry is simpler).
+
+Major Architectural Discovery
+
+The Excel files are independent operational sheets, not one relational database.
+
+Fleet knows
+
+Truck
+Registration
+
+Maintenance knows
+
+Truck
+Expenses
+
+Trips know
+
+Truck
+Company
+Customer
+Transporter
+
+Therefore:
+
+No importer should invent relationships that don't exist in its source file.
+
+Each importer contributes only the information it genuinely knows.
+
+Production Fix Completed
+
+Today we intentionally made
+
+Truck.companyId
+
+nullable.
+
+Fixes completed
+
+Truck Summary
+Truck Combobox
+
+Both now safely handle
+
+company == null
+
+Production build now succeeds locally.
+
+Future Improvements
+Truck Summary
+
+Replace
+
+Average / Truck
+
+with more useful metrics such as
+
+Highest Maintenance Truck
+Highest Single Expense
+Maintenance Entries
+Current Month Spend
+Filters
+
+Need
+
+Search
+Company
+Category
+Month
+Sorting
+Business Intelligence
+
+Later
+
+Cost / KM
+Cost / Month
+Fuel efficiency
+Maintenance trends
+Tyre analysis
+Preventive maintenance
+Truck profitability
+Outstanding Business Question
+
+Ask the operator:
+
+When a new truck is added, do you already know which company owns it?
+
+If yes
+
+Truck creation should require Company.
+
+If no
+
+Current nullable ownership model is correct.
+
+Files We'll Probably Need
+src/components/TruckSummaryTable.jsx
+
+src/app/dashboard/truck-summary/page.jsx
+
+src/app/imports/fleet/actions.js
+
+src/app/imports/maintenance/actions.js
+
+src/components/TruckCombobox.jsx
+
+src/app/trips/new/page.jsx
+Immediate Goal
+
+Stop adding new modules.
+
+Focus on polishing what exists.
+
+Priority:
+
+Truck Summary UX.
+Dashboard polish.
+Business Intelligence.
+Operator workflow review after historical imports are complete.
+
+I think the biggest lesson from the last few days is this: the architecture wasn't the problem. We discovered that the spreadsheets were never intended to describe the complete business. Once we stopped trying to force every Excel file to answer every question, the design became much simpler. The remaining work is mostly refinement rather than restructuring.
