@@ -79,6 +79,7 @@ model TruckExpense {
   note         String?
   truck        Truck                @relation(fields: [truckId], references: [id])
 
+
   @@index([truckId, category, expenseDate])
 }
 
@@ -121,11 +122,12 @@ model Trip {
   freightWeight        Float?
   tripDistance         Float?
   customerPayments     CustomerPayment[]
-  expenses             Expense[]
+ 
   transporterPayments  TransporterPayment[]
   clientCompany        Company?             @relation("CustomerTrips", fields: [clientCompanyId], references: [id])
   transporterCompany   Company?             @relation("TransporterTrips", fields: [transporterCompanyId], references: [id])
   truck                Truck                @relation(fields: [truckId], references: [id])
+  expenses Expense[]
 }
 
 model ImportSession {
@@ -158,6 +160,12 @@ enum ExpenseCategory {
 }
 
 enum TruckExpenseCategory {
+  FUEL
+  TOLL
+  LOADING
+  POLICE
+  DRIVER_PAYMENT
+
   TYRE
   REPAIR
   ELECTRICAL
@@ -168,6 +176,7 @@ enum TruckExpenseCategory {
   FITNESS
   WASHING
   ADD_BLUE
+
   OTHER
 }
 

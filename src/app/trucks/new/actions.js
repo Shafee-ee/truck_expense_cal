@@ -72,8 +72,6 @@ export async function createTruck(formData) {
       success: true,
     };
   } catch (error) {
-    console.error(error);
-
     return {
       error: "Failed to create truck",
     };

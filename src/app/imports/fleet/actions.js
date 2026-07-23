@@ -16,10 +16,6 @@ export async function importFleetRows(previousState, formData) {
   let skipped = 0;
 
   for (const item of comparison) {
-    console.log({
-      truck: item.row.numberPlate,
-      action: item.action,
-    });
     switch (item.action) {
       case "CREATE":
         await prisma.truck.create({
@@ -53,11 +49,6 @@ export async function importFleetRows(previousState, formData) {
     }
   }
 
-  console.log("Returning:", {
-    created,
-    updated,
-    skipped,
-  });
   return {
     created,
     updated,

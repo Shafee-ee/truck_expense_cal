@@ -4,8 +4,6 @@ export async function compareTripRows(rows) {
   const comparison = [];
 
   for (const [index, row] of rows.entries()) {
-    console.log("Row:", index + 1, row);
-
     if (!row.vehicleNumber) {
       throw new Error(`Vehicle number is missing in row ${index + 1}`);
     }
@@ -29,13 +27,10 @@ export async function compareTripRows(rows) {
 
     let trip = null;
 
-    if (row.gcNumber || row.billNumber) {
+    if (row.gcNumber) {
       trip = await prisma.trip.findFirst({
         where: {
-          OR: [
-            ...(row.gcNumber ? [{ gcNumber: row.gcNumber }] : []),
-            ...(row.billNumber ? [{ billNumber: row.billNumber }] : []),
-          ],
+          gcNumber: row.gcNumber,
         },
       });
     }
@@ -45,6 +40,7 @@ export async function compareTripRows(rows) {
       action: !trip ? "CREATE" : "UPDATE",
       changes: [],
       truck,
+      trip,
       row,
     });
   }

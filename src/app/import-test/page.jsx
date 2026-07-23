@@ -12,8 +12,6 @@ async function uploadExcel(formData) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const rows = readExcel(buffer);
-
-  console.log(rows);
 }
 
 export default function ImportTestPage() {

@@ -1,56 +1,54 @@
-import { prisma } from '@/lib/prisma'
-import { notFound, redirect } from 'next/navigation'
+import { prisma } from "@/lib/prisma";
+import { notFound, redirect } from "next/navigation";
 
-
-export const runtime = 'nodejs'
+export const runtime = "nodejs";
 
 async function updateFixedCost(formData) {
-    'use server'
+  "use server";
 
-    const id = formData.get('id')
-    const dailyFixedCost = Number(formData.get('dailyFixedCost'))
+  const id = formData.get("id");
+  const dailyFixedCost = Number(formData.get("dailyFixedCost"));
 
-    if (!dailyFixedCost || dailyFixedCost <= 0) {
-        throw new Error('Daily fixed cost must be greater than 0')
-    }
+  if (!dailyFixedCost || dailyFixedCost <= 0) {
+    throw new Error("Daily fixed cost must be greater than 0");
+  }
 
-    await prisma.truck.update({
-        where: { id },
-        data: { dailyFixedCost },
-    })
+  await prisma.truck.update({
+    where: { id },
+    data: { dailyFixedCost },
+  });
 
-    redirect('/trips')
+  redirect("/trips");
 }
 
 export default async function EditTruckPag(props) {
+  const params = await props.params;
+  const id = params.id;
 
-    const params = await props.params
-    const id = params.id
-    console.log('Truck ID:', id)
+  const truck = await prisma.truck.findUnique({
+    where: { id },
+  });
 
-    const truck = await prisma.truck.findUnique({
-        where: { id },
-    })
+  if (!truck) notFound();
 
-    if (!truck) notFound()
-
-    return (
-        <div className='p-6 max-w-md'>
-            <h1 className='text-2xl font-bold mb-4'>Edit Truck:{truck.numberPlate}</h1>
-            <form action={updateFixedCost} className='space-y-4'>
-                <input type="hidden" name="id" value={truck.id} />
-                <input type="number"
-                    name="dailyFixedCost"
-                    step="0.01"
-                    defaultValue={truck.dailyFixedCost ?? ''}
-                    placeholder='Daily Fixed Cost'
-                    className='border p-2 w-full'
-                    required />
-                <button className='bg-black text-white px-4 py-2'>
-                    update
-                </button>
-            </form>
-
-        </div>
-    )
+  return (
+    <div className="p-6 max-w-md">
+      <h1 className="text-2xl font-bold mb-4">
+        Edit Truck:{truck.numberPlate}
+      </h1>
+      <form action={updateFixedCost} className="space-y-4">
+        <input type="hidden" name="id" value={truck.id} />
+        <input
+          type="number"
+          name="dailyFixedCost"
+          step="0.01"
+          defaultValue={truck.dailyFixedCost ?? ""}
+          placeholder="Daily Fixed Cost"
+          className="border p-2 w-full"
+          required
+        />
+        <button className="bg-black text-white px-4 py-2">update</button>
+      </form>
+    </div>
+  );
 }

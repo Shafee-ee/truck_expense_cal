@@ -1,12 +1,23 @@
+function parseExcelDate(value) {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  const [day, month, year] = value.toString().trim().split("-");
+
+  return new Date(Number(year), Number(month) - 1, Number(day));
+}
 export function mapTripRows(rows) {
   return rows.map((row) => ({
     gcNumber: row["GC No."]?.toString().trim() || null,
     billNumber: row["Bill No"]?.toString().trim() || null,
 
     vehicleNumber: row["Vehicle No."] ?? row["Vehicle No"] ?? null,
-    startDate: row["Load Date"] || row["Date"] || null,
-    endDate: row["Discharge Date"] || null,
-
+    startDate: parseExcelDate(row["Load Date"] || row["Date"]),
+    endDate: parseExcelDate(row["Discharge Date"]),
+    billedDetails: row["Billed Details"]?.toString().trim() || null,
     source: row["From"]?.toString().trim() || null,
     destination: row["Destination"]?.toString().trim() || null,
 

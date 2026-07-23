@@ -9,7 +9,7 @@ import TruckExpenseForm from "@/components/TruckExpenseForm";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 async function createTruckExpense(formData) {
@@ -23,22 +23,6 @@ async function createTruckExpense(formData) {
   const expiryDate = formData.get("expiryDate");
   const expenseDate = formData.get("expenseDate");
   const file = formData.get("document");
-
-  console.log({
-    hasFile: !!file,
-    fileType: file?.constructor?.name,
-    fileSize: file?.size,
-    fileName: file?.name,
-  });
-
-  console.log({
-    truckId,
-    category,
-    amount,
-    expenseDate,
-  });
-
-  console.log("createTruckExpense called");
 
   if (!truckId || !category || !amount || !expenseDate) {
     throw new Error("Missing required fields");
@@ -213,7 +197,7 @@ export default async function TruckExpensesPage(props) {
 
   const totalExpenses = expenses.reduce(
     (sum, expense) => sum + expense.amount,
-    0,
+    0
   );
 
   const categoryGroups = {
@@ -250,13 +234,13 @@ export default async function TruckExpensesPage(props) {
         percentage:
           totalExpenses === 0 ? 0 : Math.round((total / totalExpenses) * 100),
       };
-    },
+    }
   );
 
   const truckSummaries = trucks
     .map((truck) => {
       const truckExpenses = expenses.filter(
-        (expense) => expense.truckId === truck.id,
+        (expense) => expense.truckId === truck.id
       );
 
       if (truckExpenses.length === 0) return null;
@@ -270,7 +254,7 @@ export default async function TruckExpensesPage(props) {
 
       const total = truckExpenses.reduce(
         (sum, expense) => sum + expense.amount,
-        0,
+        0
       );
 
       return {
@@ -289,14 +273,14 @@ export default async function TruckExpensesPage(props) {
   const truckMaintenance = trucks
     .map((truck) => {
       const truckExpenses = expenses.filter(
-        (expense) => expense.truckId === truck.id,
+        (expense) => expense.truckId === truck.id
       );
 
       if (truckExpenses.length === 0) return null;
 
       const total = truckExpenses.reduce(
         (sum, expense) => sum + expense.amount,
-        0,
+        0
       );
 
       return {

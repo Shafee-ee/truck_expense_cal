@@ -428,13 +428,6 @@ export async function addExpense(formData) {
   const note = formData.get("note") || null;
   const file = formData.get("bill");
 
-  console.log({
-    hasFile: !!file,
-    fileType: file?.constructor?.name,
-    fileSize: file?.size,
-    fileName: file?.name,
-  });
-
   if (!amount || amount <= 0) {
     return {
       error: "Invalid expense amount",
@@ -481,8 +474,6 @@ export async function addExpense(formData) {
         error: "Only ACTIVE trips can be modified",
       };
     }
-
-    console.log("billPath:", billPath);
 
     await tx.expense.create({
       data: {

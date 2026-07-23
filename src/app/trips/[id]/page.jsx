@@ -52,8 +52,6 @@ export default async function TripDetailPage(props) {
 
   const editingExpenseId = searchParams.editExpense;
 
-  console.log("ID:", id);
-
   const trip = await prisma.trip.findUnique({
     where: { id },
     include: {

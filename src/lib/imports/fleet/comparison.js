@@ -29,14 +29,6 @@ export async function compareFleetRows(rows) {
         const oldValue = truck[field.key];
         const newValue = row[field.key];
 
-        console.log({
-          truck: row.numberPlate,
-          field: field.label,
-          oldValue,
-          newValue,
-          compare: compareValues(oldValue, newValue),
-        });
-
         if (!compareValues(oldValue, newValue)) {
           changes.push({
             field: field.label,
