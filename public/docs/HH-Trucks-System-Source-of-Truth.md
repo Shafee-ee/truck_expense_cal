@@ -6104,3 +6104,322 @@ Business Intelligence.
 Operator workflow review after historical imports are complete.
 
 I think the biggest lesson from the last few days is this: the architecture wasn't the problem. We discovered that the spreadsheets were never intended to describe the complete business. Once we stopped trying to force every Excel file to answer every question, the design became much simpler. The remaining work is mostly refinement rather than restructuring.
+#######
+
+HH Trucks – Trip Import Refactor
+Current Situation
+
+We currently have two importers:
+
+lib/imports/trips/
+lib/imports/trip-record/
+
+They are almost identical.
+
+The second one was created by copying the first and modifying it for the new Excel format.
+
+This has created duplicate logic, duplicate maintenance and confusion.
+
+Decision:
+
+Delete
+
+lib/imports/trip-record/
+
+and rebuild the existing
+
+lib/imports/trips/
+
+to support the new Trip Register workbook.
+
+There should only be one Trip importer in the project.
+
+Goal
+
+Replace the old Trip importer with the new operational Trip Register importer.
+
+After this refactor:
+
+one importer
+one comparison
+one process
+one expense creator
+one import page
+
+No duplicate implementations.
+
+Overall Flow
+
+The importer should work like this:
+
+Excel
+↓
+readExcel()
+↓
+mapTripRows()
+↓
+compareTripRows()
+↓
+processTripImport()
+↓
+Prisma
+Database
+
+Already available.
+
+The Prisma schema is complete.
+
+Important models:
+
+Trip
+Truck
+Company
+Expense
+
+Important enums already exist.
+
+ExpenseCategory
+
+FUEL
+TOLL
+POLICE
+LOADING
+UNLOADING
+REPAIR
+OTHER
+DRIVER_PAYMENT
+
+There is NO
+
+RTO
+
+Therefore RTO expenses are currently imported as
+
+OTHER
+
+No schema changes are planned.
+
+Finance
+
+Already complete.
+
+Available helper functions:
+
+calculateRevenue()
+calculateExpenses()
+calculatePayments()
+calculateOutstanding()
+calculateTripProfit()
+calculateTruckMetrics()
+
+The importer should use these instead of duplicating calculations.
+
+Business Rules
+Revenue
+
+If
+
+revenueMode == FIXED
+
+Revenue comes from
+
+grossAmount
+
+Otherwise
+
+Qty × Rate
+Profit
+Revenue
+-
+
+Expenses
+-
+
+Mamool
+Imported trips
+
+Imported trips should be
+
+status = CLOSED
+
+because they are historical records.
+
+Load Type
+
+Current business rule:
+
+Billed Details == GJ
+
+↓
+
+COMPANY
+
+everything else
+
+↓
+
+EXTERNAL
+Import Process
+
+For every row:
+
+Find Truck
+
+↓
+
+Find existing Trip using GC Number
+
+↓
+
+If found
+
+UPDATE
+
+Else
+
+CREATE
+
+↓
+
+Create trip expenses
+
+↓
+
+Calculate
+
+finalRevenue
+finalExpenses
+finalBalance
+
+↓
+
+Save trip
+
+Excel
+
+The importer targets the new operational workbook (not the legacy Trip Register).
+
+It contains columns like:
+
+LOAD Date
+Unload Date
+Vehicle No.
+GC No.
+Bill No
+Qty
+Rate/MT
+Gross Amount
+
+Diesel
+Advance
+TOLL
+Load & Unload
+RTO EXPENSES
+POLICE
+Driver Balance
+Other Expenses
+
+Transporter
+
+The mapper should only be responsible for converting Excel rows into a clean JS object.
+
+No business logic belongs in the mapper.
+
+Files to Build
+
+Work one file at a time.
+
+1
+lib/imports/trips/index.js
+
+Responsibilities
+
+parse dates
+map Excel columns
+normalize values
+
+Nothing else.
+
+2
+lib/imports/trips/comparison.js
+
+Responsibilities
+
+verify truck exists
+locate existing trip
+return
+CREATE
+UPDATE
+ERROR
+3
+lib/imports/trips/createTripExpenses.js
+
+Responsibilities
+
+Create Expense records from imported values.
+
+Mappings
+
+Diesel → FUEL
+TOLL → TOLL
+Load & Unload → LOADING
+Police → POLICE
+Driver Balance → DRIVER_PAYMENT
+RTO → OTHER
+Other Expenses → OTHER
+4
+lib/imports/trips/processTripImport.js
+
+Main import engine.
+
+Responsibilities
+
+call mapper
+compare rows
+create/update trips
+create expenses
+calculate finance
+save final values
+
+No UI code.
+
+5
+
+Create
+
+app/imports/trips/actions.js
+
+Responsibilities
+
+validate uploaded file
+call
+processTripImport()
+return summary
+
+No business logic.
+
+Important Working Rules
+
+Follow these rules throughout the refactor:
+
+Work on one file at a time.
+Always mention the target file before making changes.
+Never assume project structure or schema.
+If a file is not needed, explicitly say "No changes needed."
+Do not duplicate logic that already exists elsewhere.
+Keep business rules inside processTripImport.js, not the mapper.
+Keep explanations brief unless asked.
+Do not introduce new Prisma fields or enums without confirmation.
+Current Cleanup
+
+Delete:
+
+lib/imports/trip-record/
+
+Completely.
+
+The project should contain only:
+
+lib/imports/trips/
+
+Then rebuild that importer cleanly from the ground up.

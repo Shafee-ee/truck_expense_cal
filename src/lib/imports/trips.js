@@ -5,40 +5,91 @@ function parseExcelDate(value) {
     return value;
   }
 
-  const [day, month, year] = value.toString().trim().split("-");
+  const text = value.toString().trim();
+
+  const parts = text.split(/[.-]/);
+
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  const [day, month, year] = parts;
 
   return new Date(Number(year), Number(month) - 1, Number(day));
 }
 export function mapTripRows(rows) {
-  return rows.map((row) => ({
-    gcNumber: row["GC No."]?.toString().trim() || null,
-    billNumber: row["Bill No"]?.toString().trim() || null,
+  rows.forEach((row) => {
+    const parsedLoadDate = parseExcelDate(
+      row["Load Date"] ?? row["Load Date "] ?? row["Date"] ?? row["Date "]
+    );
 
-    vehicleNumber: row["Vehicle No."] ?? row["Vehicle No"] ?? null,
-    startDate: parseExcelDate(row["Load Date"] || row["Date"]),
-    endDate: parseExcelDate(row["Discharge Date"]),
-    billedDetails: row["Billed Details"]?.toString().trim() || null,
-    source: row["From"]?.toString().trim() || null,
-    destination: row["Destination"]?.toString().trim() || null,
+    const parsedDischargeDate = parseExcelDate(
+      row["Discharge Date"] ??
+        row["Discharge date"] ??
+        row["Date"] ??
+        row["Date "]
+    );
+    if (row["GC No."] != null && (!parsedLoadDate || !parsedDischargeDate)) {
+      console.log("MISSING TRIP DATES", {
+        rowNumber: rows.indexOf(row) + 1,
+        gc: row["GC No."],
+        rawLoadDate:
+          row["Load Date"] ?? row["Load Date "] ?? row["Date"] ?? row["Date "],
+        rawDischargeDate:
+          row["Discharge Date"] ??
+          row["Discharge date"] ??
+          row["Date"] ??
+          row["Date "],
+        parsedLoadDate,
+        parsedDischargeDate,
+        row,
+      });
+    }
+  });
+  return rows
+    .filter((row) => row["GC No."] != null)
+    .map((row) => {
+      console.log(row["GC No."]);
 
-    freightWeight: Number(row["Qty"]) || null,
-    ratePerUnit: Number(row["Rate/MT"]) || null,
-    grossAmount: Number(row["Gross Amount"]) || null,
+      return {
+        gcNumber: row["GC No."]?.toString().trim() || null,
+        billNumber: row["Bill No"]?.toString().trim() || null,
 
-    transporter: row["Transporter"]?.toString().trim() || null,
+        vehicleNumber: row["Vehicle No."] ?? row["Vehicle No"] ?? null,
 
-    diesel: Number(row["Diesel"]) || 0,
-    advance: Number(row["Advance"]) || 0,
+        startDate: parseExcelDate(
+          row["Load Date"] ?? row["Load Date "] ?? row["Date"] ?? row["Date "]
+        ),
 
-    toll: Number(row["TOLL"]) || 0,
-    loading: Number(row["Load & Unload"]) || 0,
-    rto: Number(row["RTO EXPENSES"]) || 0,
-    police: Number(row["POLICE"]) || 0,
-    driver: Number(row["Driver Balance"]) || 0,
-    other: Number(row["Other Expenses"]) || 0,
+        endDate: parseExcelDate(
+          row["Discharge Date"] ??
+            row["Discharge date"] ??
+            row["Date"] ??
+            row["Date "]
+        ),
+        billedDetails: row["Billed Details"]?.toString().trim() || null,
+        source: row["From"]?.toString().trim() || null,
+        destination: row["Destination"]?.toString().trim() || null,
 
-    tds: Number(row["TDS"]) || 0,
-    charges: Number(row["THAPAL CHARGES"]) || 0,
-    damageAmount: Number(row["Damage Amount"]) || 0,
-  }));
+        freightWeight: Number(row["Qty"]) || null,
+        ratePerUnit: Number(row["Rate/MT"]) || null,
+        grossAmount: Number(row["Gross Amount"]) || null,
+
+        transporter: row["Transporter"]?.toString().trim() || null,
+
+        diesel: Number(row["Diesel"]) || 0,
+        advance: Number(row["Advance"]) || 0,
+
+        toll: Number(row["TOLL"]) || 0,
+        loading: Number(row["Load & Unload"]) || 0,
+        rto: Number(row["RTO EXPENSES"]) || 0,
+        police: Number(row["POLICE"]) || 0,
+        driver: Number(row["Driver Balance"]) || 0,
+        other: Number(row["Other Expenses"]) || 0,
+
+        tds: Number(row["TDS"]) || 0,
+        charges: Number(row["THAPAL CHARGES"]) || 0,
+        damageAmount: Number(row["Damage Amount"]) || 0,
+      };
+    });
 }
