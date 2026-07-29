@@ -95,7 +95,7 @@ export default function Sidebar() {
               : inactiveClass
           }
         >
-          Maintaenance Dashboard
+          Truck Summary
         </Link>
 
         <Link
@@ -117,7 +117,7 @@ export default function Sidebar() {
               : inactiveClass
           }
         >
-          Fleet Register Page
+          Fleet Register
         </Link>
 
         <Link
@@ -129,6 +129,15 @@ export default function Sidebar() {
           }
         >
           Accounts
+        </Link>
+
+        <Link
+          href="/imports"
+          className={
+            pathname.startsWith("/imports") ? activeClass : inactiveClass
+          }
+        >
+          Migration Wizard
         </Link>
       </nav>
       {/* FOOTER */}

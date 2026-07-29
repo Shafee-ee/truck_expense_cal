@@ -1,20 +1,13 @@
 function parseExcelDate(value) {
-  console.log("RAW DATE:", value);
-
   if (!value) return null;
 
   if (value instanceof Date) {
-    console.log("IS DATE:", value);
     return value;
   }
 
   const text = value.toString().trim();
 
-  console.log("TEXT:", text);
-
   const parts = text.split(/[./-]/);
-
-  console.log("PARTS:", parts);
 
   if (parts.length !== 3) {
     console.log("FAILED");
@@ -24,8 +17,6 @@ function parseExcelDate(value) {
   const [day, month, year] = parts;
 
   const date = new Date(Number(year), Number(month) - 1, Number(day));
-
-  console.log("PARSED:", date);
 
   return date;
 }

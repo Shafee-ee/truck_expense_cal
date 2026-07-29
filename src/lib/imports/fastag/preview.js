@@ -12,8 +12,14 @@ export async function previewFastagRows(rows, truckNumberPlate) {
 
     const errors = [];
 
-    if (row.vehicleNumber !== truckNumberPlate) {
-      errors.push("Vehicle does not match this trip.");
+    const excelVehicle = row.vehicleNumber?.replace(/\s+/g, "").toUpperCase();
+
+    const tripVehicle = truckNumberPlate?.replace(/\s+/g, "").toUpperCase();
+
+    if (excelVehicle !== tripVehicle) {
+      errors.push(
+        `Vehicle does not match this trip. Excel: ${row.vehicleNumber}, Trip: ${truckNumberPlate}`
+      );
     }
 
     preview.push({

@@ -2,23 +2,25 @@
 
 import { useActionState } from "react";
 import { importMaintenanceRows } from "./actions";
+import SubmitButton from "@/components/ui/SubmitButton";
+import FormLoadingOverlay from "@/components/ui/FormLoadingOverlay";
 
 export default function MaintenanceImportPage() {
   const [state, formAction] = useActionState(importMaintenanceRows, null);
 
   return (
     <main className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Vehicle Maintenance Import</h1>
+      <h1 className="mb-6 text-2xl font-bold">Vehicle Maintenance Import</h1>
 
-      <form action={formAction}>
+      <form action={formAction} className="space-y-4">
+        <FormLoadingOverlay
+          title="Importing Vehicle Maintenance"
+          message="Please wait while HH Trucks processes your Excel file."
+        />
+
         <input type="file" name="file" accept=".xlsx,.xls" required />
 
-        <button
-          type="submit"
-          className="ml-4 rounded bg-black px-4 py-2 text-white"
-        >
-          Import
-        </button>
+        <SubmitButton>Import</SubmitButton>
       </form>
 
       {state?.error && <p className="mt-4 text-red-600">{state.error}</p>}

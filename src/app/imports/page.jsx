@@ -1,32 +1,23 @@
 import ImportCard from "@/components/imports/ImportCard";
 
-const steps = [
+const imports = [
   {
     title: "Trip Register",
     description:
-      "Import historical trips and automatically discover transport companies.",
+      "Import trips and automatically create customers and transport companies.",
     href: "/imports/trips",
-    status: "Not Started",
   },
   {
     title: "Fleet Register",
     description:
-      "Import trucks and compliance information from the vehicle register.",
+      "Import trucks and compliance information from the fleet register.",
     href: "/imports/fleet",
-    status: "Waiting",
   },
   {
     title: "Vehicle Maintenance",
     description:
-      "Import tyre, repair, electrical and other maintenance history.",
+      "Import maintenance history including tyres, repairs and compliance expenses.",
     href: "/imports/maintenance",
-    status: "Waiting",
-  },
-  {
-    title: "FASTag Statement",
-    description: "Import historical toll transactions from FASTag statements.",
-    href: "/imports/fastag",
-    status: "Optional",
   },
 ];
 
@@ -37,20 +28,19 @@ export default function ImportsPage() {
         <h1 className="text-3xl font-bold">Migration Wizard</h1>
 
         <p className="mt-2 text-gray-500">
-          Upload your existing Excel files to migrate historical data into HH
-          Trucks.
+          Import historical Excel data to migrate your existing records into HH
+          Trucks.{" "}
         </p>
       </div>
 
       <div className="space-y-4">
-        {steps.map((step, index) => (
+        {imports.map((item, index) => (
           <ImportCard
-            key={step.title}
+            key={item.title}
             step={index + 1}
-            title={step.title}
-            description={step.description}
-            status={step.status}
-            href={step.href}
+            title={item.title}
+            description={item.description}
+            href={item.href}
           />
         ))}
       </div>
