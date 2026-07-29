@@ -49,19 +49,24 @@ model Truck {
   registrationDate DateTime?
   vehicleType      VehicleType?
   trips            Trip[]
-  company          Company?      @relation(fields: [companyId], references: [id])
+  company          Company?       @relation(fields: [companyId], references: [id])
   truckExpenses    TruckExpense[]
 }
 
 model Expense {
-  id          String          @id @default(uuid())
-  tripId      String
-  category    ExpenseCategory
-  amount      Float
-  note        String?
-  expenseDate DateTime
-  billPath    String?
-  trip        Trip            @relation(fields: [tripId], references: [id])
+  id                  String          @id @default(uuid())
+  tripId              String
+  category            ExpenseCategory
+  amount              Float
+  note                String?
+  expenseDate         DateTime
+  billPath            String?
+  fastagPlazaCode     String?
+  fastagPlazaName     String?
+  fastagProcessingAt  DateTime?
+  fastagTagId         String?
+  fastagTransactionId String?         @unique
+  trip                Trip            @relation(fields: [tripId], references: [id])
 }
 
 model TruckExpense {
@@ -78,7 +83,6 @@ model TruckExpense {
   expiryDate   DateTime?
   note         String?
   truck        Truck                @relation(fields: [truckId], references: [id])
-
 
   @@index([truckId, category, expenseDate])
 }
@@ -104,7 +108,6 @@ model Trip {
   loadType             LoadType             @default(EXTERNAL)
   mamool               Float                @default(0)
   billNumber           String?
-  gcNumber             String?
   charges              Float?               @default(0)
   customerAdvance      Float?               @default(0)
   customerDiesel       Float?               @default(0)
@@ -121,13 +124,13 @@ model Trip {
   commissionPerTonne   Float?               @default(0)
   freightWeight        Float?
   tripDistance         Float?
+  gcNumber             String?
   customerPayments     CustomerPayment[]
- 
+  expenses             Expense[]
   transporterPayments  TransporterPayment[]
   clientCompany        Company?             @relation("CustomerTrips", fields: [clientCompanyId], references: [id])
   transporterCompany   Company?             @relation("TransporterTrips", fields: [transporterCompanyId], references: [id])
   truck                Truck                @relation(fields: [truckId], references: [id])
-  expenses Expense[]
 }
 
 model ImportSession {
@@ -160,12 +163,6 @@ enum ExpenseCategory {
 }
 
 enum TruckExpenseCategory {
-  FUEL
-  TOLL
-  LOADING
-  POLICE
-  DRIVER_PAYMENT
-
   TYRE
   REPAIR
   ELECTRICAL
@@ -176,8 +173,12 @@ enum TruckExpenseCategory {
   FITNESS
   WASHING
   ADD_BLUE
-
   OTHER
+  FUEL
+  TOLL
+  LOADING
+  POLICE
+  DRIVER_PAYMENT
 }
 
 enum PaymentMode {

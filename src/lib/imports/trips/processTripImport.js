@@ -22,15 +22,6 @@ export async function processTripImport(file) {
 
   const comparison = await compareTripRows(filteredRows);
 
-  console.log(
-    comparison.filter(
-      (item) =>
-        item.action === "UPDATE" &&
-        item.trip &&
-        (!item.trip.startDate || !item.trip.endDate)
-    )
-  );
-
   const summary = {
     created: 0,
     updated: 0,
@@ -48,21 +39,15 @@ export async function processTripImport(file) {
       : null;
     switch (item.action) {
       case "CREATE": {
-        console.log("START", item.row.gcNumber);
-
         await createOrUpdateTrip(item, transporterCompany);
 
-        console.log("END", item.row.gcNumber);
         summary.created++;
         break;
       }
 
       case "UPDATE": {
-        console.log("START", item.row.gcNumber);
-
         await createOrUpdateTrip(item, transporterCompany);
 
-        console.log("END", item.row.gcNumber);
         summary.updated++;
         break;
       }

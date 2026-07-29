@@ -67,16 +67,6 @@ export async function createOrUpdateTrip(item, transporterCompany) {
     transporterCompany?.id
   );
 
-  if (isUpdate) {
-    console.log({
-      gc: tripData.gcNumber,
-      rowStartDate: item.row.startDate,
-      rowEndDate: item.row.endDate,
-      tripStartDate: tripData.startDate,
-      tripEndDate: tripData.endDate,
-    });
-  }
-
   if (isUpdate && !transporterCompany && item.trip.transporterCompanyId) {
     tripData.transporterCompany = {
       disconnect: true,

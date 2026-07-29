@@ -10,6 +10,8 @@ import StartTripButton from "@/components/StartTripButton";
 import EditExpenseForm from "@/components/EditExpenseForm";
 import MamoolEditor from "@/components/MamoolEditor";
 import SettlementDetails from "@/components/SettlementDetails";
+import ExpenseSummary from "@/components/ExpenseSummary";
+import FastagImportForm from "@/components/FastagImportForm";
 
 import CustomerPaymentForm from "@/components/CustomerPaymentForm";
 import TransporterPaymentForm from "@/components/TransporterPaymentForm";
@@ -83,14 +85,27 @@ export default async function TripDetailPage(props) {
     trip.status === "CLOSED"
       ? trip.finalExpenses || 0
       : calculateExpenses(trip.expenses);
-  const expensesBreakdown = (trip.expenses ?? []).reduce((acc, curr) => {
-    if (!acc[curr.category]) {
-      acc[curr.category] = 0;
-    }
-    acc[curr.category] += curr.amount;
+  const expensesBreakdown = {};
 
-    return acc;
-  }, {});
+  for (const expense of trip.expenses ?? []) {
+    const signedUrl = expense.billPath
+      ? await getSignedUrl(expense.billPath)
+      : null;
+
+    if (!expensesBreakdown[expense.category]) {
+      expensesBreakdown[expense.category] = {
+        total: 0,
+        entries: [],
+      };
+    }
+
+    expensesBreakdown[expense.category].total += expense.amount;
+
+    expensesBreakdown[expense.category].entries.push({
+      ...expense,
+      signedUrl,
+    });
+  }
 
   const totalPayments = calculatePayments(trip.customerPayments);
   const outstanding = calculateOutstanding(trip);
@@ -304,158 +319,23 @@ export default async function TripDetailPage(props) {
             </p>
           </div>
           {Object.keys(expensesBreakdown).length > 0 && (
-            <div className="bg-white p-4 rounded border mb-4">
-              <h3 className="font-semibold mb-2">Running Expense Totals</h3>
+            <ExpenseSummary
+              breakdown={expensesBreakdown}
+              tripId={id}
+              tripStatus={trip.status}
+              replaceBill={replaceBill}
+              onDeleteExpense={deleteExpense}
+            />
+          )}
 
-              <div className="space-y-1 text-sm">
-                {Object.entries(expensesBreakdown).map(([category, amount]) => (
-                  <div key={category} className="flex justify-between">
-                    <span>{category}</span>
-
-                    <span>₹{amount.toFixed(0)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {trip.status === "ACTIVE" && (
+            <FastagImportForm
+              tripId={trip.id}
+              truckNumberPlate={trip.truck.numberPlate}
+            />
           )}
 
           {trip.status === "ACTIVE" && <AddExpenseForm tripId={id} />}
-
-          {trip.expenses.length > 0 && (
-            <div className="mt-6 border-t border-zinc-200 pt-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-zinc-800">
-                  Expense Ledger
-                </h2>
-
-                <span className="text-sm text-zinc-500">
-                  {trip.expenses.length} entries
-                </span>
-              </div>
-              <table className="w-full overflow-hidden rounded-lg text-sm">
-                <thead className="bg-zinc-50 text-zinc-500">
-                  <tr className="border-b border-zinc-200">
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
-                      Date
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
-                      Category
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide">
-                      Amount
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
-                      Note
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                      Bill
-                    </th>
-                    {trip.status === "ACTIVE" && (
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide">
-                        Actions
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {await Promise.all(
-                    trip.expenses.map(async (e) => {
-                      const signedUrl = e.billPath
-                        ? await getSignedUrl(e.billPath)
-                        : null;
-
-                      return (
-                        <tr
-                          key={e.id}
-                          className={`border-b border-zinc-100 hover:bg-zinc-50 transition ${
-                            !e.billPath ? "bg-red-50" : ""
-                          }`}
-                        >
-                          <td className="px-4 py-3 text-zinc-600">
-                            {new Date(e.expenseDate).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-3 text-sm">{e.category}</td>
-                          <td className="px-4 py-3 text-right font-medium text-zinc-800">
-                            ₹{e.amount}
-                          </td>
-                          <td className="px-4 py-3 text-sm">{e.note || "-"}</td>
-
-                          <td>
-                            {trip.status === "ACTIVE" ? (
-                              <BillUploader
-                                id={id}
-                                expenseId={e.id}
-                                signedUrl={signedUrl}
-                                replaceBill={replaceBill}
-                              />
-                            ) : signedUrl ? (
-                              <a
-                                href={signedUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                View Bill
-                              </a>
-                            ) : (
-                              <span className="text-xs font-medium text-red-500">
-                                No Bill
-                              </span>
-                            )}
-                          </td>
-
-                          {trip.status === "ACTIVE" && (
-                            <td className="px-4 py-3 text-sm align-middle">
-                              <div className="flex items-center gap-3">
-                                <Link
-                                  href={`/trips/${id}?editExpense=${e.id}`}
-                                  className="inline-flex rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100"
-                                >
-                                  Edit
-                                </Link>
-
-                                <form action={deleteExpense}>
-                                  <input
-                                    type="hidden"
-                                    name="tripId"
-                                    value={id}
-                                  />
-
-                                  <input
-                                    type="hidden"
-                                    name="expenseId"
-                                    value={e.id}
-                                  />
-
-                                  <button className="text-xs font-medium text-red-600 hover:text-red-700">
-                                    Delete
-                                  </button>
-                                </form>
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-                <tfoot>
-                  <tr className="font-semibold border-t">
-                    <td colSpan="2" className="px-4 py-3">
-                      Total
-                    </td>
-
-                    <td className="px-4 py-3 text-right font-semibold">
-                      ₹{totalExpenses.toFixed(0)}
-                    </td>
-
-                    <td></td>
-                    <td></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
         </div>
 
         <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-6 shadow-sm">

@@ -1,56 +1,39 @@
 function parseExcelDate(value) {
+  console.log("RAW DATE:", value);
+
   if (!value) return null;
 
   if (value instanceof Date) {
+    console.log("IS DATE:", value);
     return value;
   }
 
   const text = value.toString().trim();
 
-  const parts = text.split(/[.-]/);
+  console.log("TEXT:", text);
+
+  const parts = text.split(/[./-]/);
+
+  console.log("PARTS:", parts);
 
   if (parts.length !== 3) {
+    console.log("FAILED");
     return null;
   }
 
   const [day, month, year] = parts;
 
-  return new Date(Number(year), Number(month) - 1, Number(day));
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+  console.log("PARSED:", date);
+
+  return date;
 }
 export function mapTripRows(rows) {
-  rows.forEach((row) => {
-    const parsedLoadDate = parseExcelDate(
-      row["Load Date"] ?? row["Load Date "] ?? row["Date"] ?? row["Date "]
-    );
-
-    const parsedDischargeDate = parseExcelDate(
-      row["Discharge Date"] ??
-        row["Discharge date"] ??
-        row["Date"] ??
-        row["Date "]
-    );
-    if (row["GC No."] != null && (!parsedLoadDate || !parsedDischargeDate)) {
-      console.log("MISSING TRIP DATES", {
-        rowNumber: rows.indexOf(row) + 1,
-        gc: row["GC No."],
-        rawLoadDate:
-          row["Load Date"] ?? row["Load Date "] ?? row["Date"] ?? row["Date "],
-        rawDischargeDate:
-          row["Discharge Date"] ??
-          row["Discharge date"] ??
-          row["Date"] ??
-          row["Date "],
-        parsedLoadDate,
-        parsedDischargeDate,
-        row,
-      });
-    }
-  });
+  console.log(Object.keys(rows[0]));
   return rows
     .filter((row) => row["GC No."] != null)
     .map((row) => {
-      console.log(row["GC No."]);
-
       return {
         gcNumber: row["GC No."]?.toString().trim() || null,
         billNumber: row["Bill No"]?.toString().trim() || null,
@@ -58,11 +41,16 @@ export function mapTripRows(rows) {
         vehicleNumber: row["Vehicle No."] ?? row["Vehicle No"] ?? null,
 
         startDate: parseExcelDate(
-          row["Load Date"] ?? row["Load Date "] ?? row["Date"] ?? row["Date "]
+          row["LOAD Date "] ??
+            row["Load Date"] ??
+            row["Load Date "] ??
+            row["Date"] ??
+            row["Date "]
         ),
 
         endDate: parseExcelDate(
-          row["Discharge Date"] ??
+          row["Unload Date"] ??
+            row["Discharge Date"] ??
             row["Discharge date"] ??
             row["Date"] ??
             row["Date "]
