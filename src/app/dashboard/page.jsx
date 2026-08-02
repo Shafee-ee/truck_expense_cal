@@ -10,6 +10,15 @@ export default async function DashboardPage(props) {
   const data = await getDashboardData(selectedMonth);
 
   const truckProfitability = data.truckProfitability ?? [];
+  const fleetMetrics = data.fleetMetrics ?? {};
+
+  const lossTrips = data.lossTrips ?? [];
+
+  const outstandingTrips = data.outstandingTrips ?? [];
+
+  const companyReceivables = data.companyReceivables ?? [];
+
+  const topActiveTrips = data.topActiveTrips ?? [];
 
   const operationalProfit = data.operationalProfit ?? 0;
 
@@ -359,13 +368,13 @@ export default async function DashboardPage(props) {
           </div>
 
           <div className="mt-6">
-            {data.lossTrips?.length === 0 ? (
+            {lossTrips?.length === 0 ? (
               <p className="text-sm text-gray-500">
                 No loss-making trips this month
               </p>
             ) : (
               <div className="space-y-3">
-                {data.lossTrips?.map((trip) => (
+                {lossTrips?.map((trip) => (
                   <div
                     key={trip.id}
                     className="
@@ -429,14 +438,46 @@ export default async function DashboardPage(props) {
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="rounded-xl bg-green-50 p-4">
+              <p className="text-xs text-gray-500">Best Truck</p>
+
+              <p className="mt-2 font-semibold">
+                {fleetMetrics?.mostProfitableTruck?.truckNumber ?? "-"}
+              </p>
+
+              <p className="text-green-600 font-bold">
+                ₹
+                {formatCurrency(
+                  fleetMetrics?.mostProfitableTruck?.netProfit ?? 0
+                )}
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-red-50 p-4">
+              <p className="text-xs text-gray-500">Worst Truck</p>
+
+              <p className="mt-2 font-semibold">
+                {fleetMetrics?.leastProfitableTruck?.truckNumber ?? "-"}
+              </p>
+
+              <p className="text-red-600 font-bold">
+                ₹
+                {formatCurrency(
+                  fleetMetrics?.leastProfitableTruck?.netProfit ?? 0
+                )}
+              </p>
+            </div>
+          </div>
+
           <div className="mt-6">
-            {data.truckProfitability?.length === 0 ? (
+            {truckProfitability?.length === 0 ? (
               <p className="text-sm text-gray-500">
                 No truck profitability data
               </p>
             ) : (
               <div className="space-y-3">
-                {data.truckProfitability.slice(0, 5).map((truck) => (
+                {truckProfitability.slice(0, 5).map((truck) => (
                   <div
                     key={truck.truckNumber}
                     className="
@@ -459,14 +500,22 @@ export default async function DashboardPage(props) {
                       </p>
                     </div>
 
-                    <div className="mt-2 text-sm text-gray-500">
-                      Trips Completed:
-                      {truck.tripCount}
-                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-500">
+                      <p>Trips: {truck.tripCount}</p>
 
-                    <div className="text-sm text-gray-500">
-                      Earnings/Day: ₹
-                      {formatCurrency(Math.round(truck.earningsPerDay))}
+                      <p>
+                        Avg Profit: ₹
+                        {formatCurrency(Math.round(truck.averageProfitPerTrip))}
+                      </p>
+
+                      <p>
+                        Maintenance: ₹{formatCurrency(truck.maintenanceCost)}
+                      </p>
+
+                      <p>
+                        Earnings/Day: ₹
+                        {formatCurrency(Math.round(truck.earningsPerDay))}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -610,7 +659,7 @@ export default async function DashboardPage(props) {
       <div className="space-y-4 pt-2">
         <h2 className="text-base font-semibold">Company Receivables</h2>
 
-        {data.companyReceivables?.length === 0 ? (
+        {companyReceivables?.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-2xl p-6 text-sm text-gray-500">
             No outstanding receivables
           </div>
@@ -628,7 +677,7 @@ export default async function DashboardPage(props) {
               <div className="text-center">Trips</div>
             </div>
 
-            {data.companyReceivables.map((company) => (
+            {companyReceivables.map((company) => (
               <div
                 key={company.company}
                 className="grid grid-cols-5 items-center px-6 py-5 border-b border-gray-100 hover:bg-gray-50 transition"

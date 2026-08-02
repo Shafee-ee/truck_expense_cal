@@ -48,6 +48,7 @@ model Truck {
   createdAt        DateTime       @default(now())
   registrationDate DateTime?
   vehicleType      VehicleType?
+  currentOdometer  Float?
   trips            Trip[]
   company          Company?       @relation(fields: [companyId], references: [id])
   truckExpenses    TruckExpense[]
@@ -124,6 +125,8 @@ model Trip {
   commissionPerTonne   Float?               @default(0)
   freightWeight        Float?
   tripDistance         Float?
+    startOdometer        Float?
+  endOdometer          Float?
   gcNumber             String?
   customerPayments     CustomerPayment[]
   expenses             Expense[]

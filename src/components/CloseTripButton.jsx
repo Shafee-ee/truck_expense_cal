@@ -4,16 +4,30 @@ import { useState } from "react";
 import { closeTrip } from "@/app/trips/[id]/actions";
 import toast from "react-hot-toast";
 
-export default function CloseTripButton({ id, canClose }) {
+export default function CloseTripButton({
+  id,
+  canClose,
+  startOdometer,
+  tripDistance,
+}) {
   const [showDate, setShowDate] = useState(false);
 
   const [endDate, setEndDate] = useState(
     new Date().toISOString().split("T")[0]
   );
 
-  async function handleClose() {
-    const result = await closeTrip(id, endDate);
+  const hasSuggestion = startOdometer != null && tripDistance != null;
 
+  const suggestedOdometer = hasSuggestion
+    ? Number(startOdometer) + Number(tripDistance)
+    : null;
+
+  const [endOdometer, setEndOdometer] = useState(
+    suggestedOdometer ? suggestedOdometer.toString() : ""
+  );
+
+  async function handleClose() {
+    const result = await closeTrip(id, endDate, endOdometer);
     if (result?.error) {
       toast.error(result.error);
       return;
@@ -53,6 +67,31 @@ export default function CloseTripButton({ id, canClose }) {
           px-3
           py-2
         "
+      />
+
+      {hasSuggestion && (
+        <p className="text-sm text-zinc-600">
+          Suggested Closing Odometer:{" "}
+          <span className="font-medium">
+            {suggestedOdometer.toLocaleString()}
+          </span>
+        </p>
+      )}
+
+      <input
+        type="number"
+        step="1"
+        min="1"
+        placeholder="Closing Odometer"
+        value={endOdometer}
+        onChange={(e) => setEndOdometer(e.target.value)}
+        className="
+    rounded-lg
+    border
+    border-zinc-300
+    px-3
+    py-2
+  "
       />
 
       <button

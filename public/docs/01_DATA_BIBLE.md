@@ -1561,7 +1561,31 @@ HH Trucks follows these principles.
 
 ###
 
-generator client {
+Truck
+
+- currentOdometer
+
+Trip
+
+- startOdometer
+- endOdometer
+
+####
+
+Distance Strategy
+
+Historical data:
+
+- tripDistance
+
+Future operational data:
+
+- startOdometer
+- endOdometer
+
+Actual Distance:
+endOdometer - startOdometer
+#####generator client {
 provider = "prisma-client-js"
 engineType = "binary"
 }
@@ -1611,6 +1635,7 @@ companyId String?
 createdAt DateTime @default(now())
 registrationDate DateTime?
 vehicleType VehicleType?
+currentOdometer Float?
 trips Trip[]
 company Company? @relation(fields: [companyId], references: [id])
 truckExpenses TruckExpense[]
@@ -1624,6 +1649,11 @@ amount Float
 note String?
 expenseDate DateTime
 billPath String?
+fastagPlazaCode String?
+fastagPlazaName String?
+fastagProcessingAt DateTime?
+fastagTagId String?
+fastagTransactionId String? @unique
 trip Trip @relation(fields: [tripId], references: [id])
 }
 
@@ -1666,7 +1696,6 @@ revenueMode RevenueMode @default(FIXED)
 loadType LoadType @default(EXTERNAL)
 mamool Float @default(0)
 billNumber String?
-gcNumber String?
 charges Float? @default(0)
 customerAdvance Float? @default(0)
 customerDiesel Float? @default(0)
@@ -1683,13 +1712,15 @@ transporterPayable Float?
 commissionPerTonne Float? @default(0)
 freightWeight Float?
 tripDistance Float?
+startOdometer Float?
+endOdometer Float?
+gcNumber String?
 customerPayments CustomerPayment[]
-
+expenses Expense[]
 transporterPayments TransporterPayment[]
 clientCompany Company? @relation("CustomerTrips", fields: [clientCompanyId], references: [id])
 transporterCompany Company? @relation("TransporterTrips", fields: [transporterCompanyId], references: [id])
 truck Truck @relation(fields: [truckId], references: [id])
-expenses Expense[]
 }
 
 model ImportSession {
@@ -1722,12 +1753,6 @@ DRIVER_PAYMENT
 }
 
 enum TruckExpenseCategory {
-FUEL
-TOLL
-LOADING
-POLICE
-DRIVER_PAYMENT
-
 TYRE
 REPAIR
 ELECTRICAL
@@ -1738,8 +1763,12 @@ NATIONAL_PERMIT
 FITNESS
 WASHING
 ADD_BLUE
-
 OTHER
+FUEL
+TOLL
+LOADING
+POLICE
+DRIVER_PAYMENT
 }
 
 enum PaymentMode {

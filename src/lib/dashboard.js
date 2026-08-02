@@ -2,28 +2,18 @@ import { prisma } from "@/lib/prisma";
 import {
   calculateExpenses,
   calculateOutstanding,
-  calculateEarningsPerDay,
   calculateTripDays,
-  calculateTruckMetrics,
   calculatePayments,
 } from "@/lib/finance";
 
+import { calculateTruckMetrics } from "@/lib/bi/truckMetrics";
+import { calculateTripMetrics } from "@/lib/bi/tripMetrics";
+import { getDashboardRawData } from "@/lib/bi/repositories/dashboardRepository";
+import { calculateFleetMetrics } from "@/lib/bi/fleetMetrics";
+
 export async function getDashboardData(monthParam) {
-  const now = monthParam ? new Date(`${monthParam}-01`) : new Date();
-
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-  const maintenance = await prisma.truckExpense.findMany({
-    where: {
-      month: now.getMonth() + 1,
-      year: now.getFullYear(),
-    },
-    include: {
-      truck: true,
-    },
-  });
+  const { now, startOfMonth, startOfNextMonth, maintenance } =
+    await getDashboardRawData(monthParam);
 
   const fixedCost = maintenance.reduce((sum, m) => sum + m.amount, 0);
 
@@ -83,19 +73,13 @@ export async function getDashboardData(monthParam) {
   });
 
   const lossTrips = rawLossTrips
-    .map((trip) => {
-      const earningsPerDay = calculateEarningsPerDay(trip);
-
-      return {
-        id: trip.id,
-        source: trip.source,
-        destination: trip.destination,
-        finalBalance: trip.finalBalance || 0,
-        earningsPerDay,
+    .map((trip) =>
+      calculateTripMetrics({
+        ...trip,
         tripDays: calculateTripDays(trip),
-      };
-    })
-    .filter((trip) => trip.finalBalance < 0 || trip.earningsPerDay < 2000)
+      })
+    )
+    .filter((trip) => trip.isLossMaking || trip.earningsPerDay < 2000)
     .sort((a, b) => a.earningsPerDay - b.earningsPerDay)
     .slice(0, 5);
 
@@ -131,7 +115,7 @@ export async function getDashboardData(monthParam) {
         trip.closedAt || trip.dischargeDate || trip.createdAt;
 
       const ageDays = Math.floor(
-        (Date.now() - new Date(referenceDate)) / (1000 * 60 * 60 * 24),
+        (Date.now() - new Date(referenceDate)) / (1000 * 60 * 60 * 24)
       );
 
       let risk = "NORMAL";
@@ -201,39 +185,30 @@ export async function getDashboardData(monthParam) {
     .sort((a, b) => b.totalExpense - a.totalExpense)
     .slice(0, 3);
 
-  const truckProfitMap = {};
+  const truckMap = {};
 
   closedTripsWithTruck.forEach((trip) => {
     const truckNumber = trip.truck.numberPlate;
 
-    if (!truckProfitMap[truckNumber]) {
-      truckProfitMap[truckNumber] = {
-        tripProfit: 0,
-        tripCount: 0,
-        totalDays: 0,
+    if (!truckMap[truckNumber]) {
+      truckMap[truckNumber] = {
+        truckNumber,
+        maintenanceCost: maintenanceMap[truckNumber] ?? 0,
+        trips: [],
       };
     }
 
-    truckProfitMap[truckNumber].tripProfit += trip.finalBalance || 0;
-    truckProfitMap[truckNumber].tripCount += 1;
-    truckProfitMap[truckNumber].totalDays += calculateTripDays(trip);
+    truckMap[truckNumber].trips.push({
+      ...trip,
+      tripDays: calculateTripDays(trip),
+    });
   });
 
-  const truckProfitability = Object.entries(truckProfitMap)
-    .map(([truckNumber]) => {
-      const maintenanceCost = maintenanceMap[truckNumber] || 0;
-
-      const truckTrips = closedTripsWithTruck.filter(
-        (trip) => trip.truck.numberPlate === truckNumber,
-      );
-
-      return calculateTruckMetrics({
-        truckNumber,
-        trips: truckTrips,
-        maintenanceCost,
-      });
-    })
+  const truckProfitability = Object.values(truckMap)
+    .map(calculateTruckMetrics)
     .sort((a, b) => b.netProfit - a.netProfit);
+
+  const fleetMetrics = calculateFleetMetrics(truckProfitability);
 
   const outstandingAmount = receivableTrips.reduce((sum, trip) => {
     const outstanding = calculateOutstanding(trip);
@@ -245,17 +220,15 @@ export async function getDashboardData(monthParam) {
     return sum + calculateExpenses(trip.expenses);
   }, 0);
 
-  const operationalProfit = closedTrips.reduce(
-    (sum, t) => sum + (t.finalBalance || 0),
-    0,
-  );
+  const operationalProfit = fleetMetrics.operationalProfit;
 
-  const trueNetProfit = operationalProfit - fixedCost;
+  const trueNetProfit = fleetMetrics.netProfit;
 
   return {
     operationalProfit,
     fixedCost,
     trueNetProfit,
+    fleetMetrics,
     truckProfitability,
     outstandingTrips,
     companyReceivables,

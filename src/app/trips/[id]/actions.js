@@ -17,13 +17,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-export async function startTrip(id, startDate) {
+export async function startTrip(id, startDate, startOdometer) {
   try {
     const result = await prisma.$transaction(async (tx) => {
       const freshTrip = await tx.trip.findUnique({
         where: { id },
         select: {
           status: true,
+          truckId: true,
         },
       });
 
@@ -39,14 +40,28 @@ export async function startTrip(id, startDate) {
         };
       }
 
+      if (!startOdometer || Number(startOdometer) <= 0) {
+        return {
+          error: "Please enter a valid starting odometer.",
+        };
+      }
+
       await tx.trip.update({
         where: { id },
         data: {
           status: "ACTIVE",
           startDate: new Date(startDate),
+          startOdometer: Number(startOdometer),
         },
       });
-
+      await tx.truck.update({
+        where: {
+          id: freshTrip.truckId,
+        },
+        data: {
+          currentOdometer: Number(startOdometer),
+        },
+      });
       return {
         success: true,
       };

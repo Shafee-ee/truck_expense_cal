@@ -196,3 +196,16 @@ Prevents duplicated financial data.
 Status
 
 Accepted
+
+## Odometer Tracking
+
+Decision:
+Store odometer readings both on the Truck and on each Trip.
+
+Reasoning:
+
+- Truck.currentOdometer represents the latest known vehicle state.
+- Trip.startOdometer and Trip.endOdometer preserve historical readings.
+- Historical trips remain compatible because odometer fields are optional.
+- Trip Distance is retained as a business/planning metric.
+- Odometer readings become the authoritative source for operational distance and future BI calculations.

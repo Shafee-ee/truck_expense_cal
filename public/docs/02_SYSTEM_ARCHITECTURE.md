@@ -278,3 +278,20 @@ Examples include:
 - Documents
 - Notifications
 - Business Intelligence
+
+Business Intelligence Architecture (Planned)
+
+All BI calculations will live under:
+
+src/lib/bi/
+
+Initial modules:
+
+- truckMetrics.js
+- financeMetrics.js
+- customerMetrics.js
+- routeMetrics.js
+- dashboardMetrics.js
+
+Rule:
+No business calculations should be performed inside React components. Components consume metrics produced by the BI layer.

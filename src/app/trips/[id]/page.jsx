@@ -296,7 +296,10 @@ export default async function TripDetailPage(props) {
         {/*Trip Lifecyle Action*/}
         {trip.status === "PLANNED" && (
           <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <StartTripButton tripId={id} />
+            <StartTripButton
+              tripId={id}
+              currentOdometer={trip.truck.currentOdometer}
+            />
           </div>
         )}
         {editingExpense && (
