@@ -64,3 +64,6 @@ Collections Risk
 Company Receivables
 
 Top Active Trips
+Migration Wizard: ✅ Complete
+Operational Modules: ✅ Complete
+Business Intelligence: ⏳ Ready to Begin

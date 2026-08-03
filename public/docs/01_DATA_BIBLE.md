@@ -1792,3 +1792,12 @@ enum LoadType {
 COMPANY
 EXTERNAL
 }
+
+Truck
+
+- currentOdometer
+
+Trip
+
+- startOdometer
+- endOdometer

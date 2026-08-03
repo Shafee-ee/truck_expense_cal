@@ -10,10 +10,17 @@ import { calculateTruckMetrics } from "@/lib/bi/truckMetrics";
 import { calculateTripMetrics } from "@/lib/bi/tripMetrics";
 import { getDashboardRawData } from "@/lib/bi/repositories/dashboardRepository";
 import { calculateFleetMetrics } from "@/lib/bi/fleetMetrics";
+import { calculateRouteMetrics } from "@/lib/bi/routeMetrics";
 
 export async function getDashboardData(monthParam) {
   const { now, startOfMonth, startOfNextMonth, maintenance } =
     await getDashboardRawData(monthParam);
+
+  console.log({
+    monthParam,
+    startOfMonth,
+    startOfNextMonth,
+  });
 
   const fixedCost = maintenance.reduce((sum, m) => sum + m.amount, 0);
 
@@ -41,6 +48,8 @@ export async function getDashboardData(monthParam) {
       finalBalance: true,
     },
   });
+
+  console.log("Closed trips found:", closedTrips.length);
 
   const closedTripsWithTruck = await prisma.trip.findMany({
     where: {
@@ -72,6 +81,8 @@ export async function getDashboardData(monthParam) {
     },
   });
 
+  const routeMetrics = calculateRouteMetrics(rawLossTrips);
+
   const lossTrips = rawLossTrips
     .map((trip) =>
       calculateTripMetrics({
@@ -102,6 +113,7 @@ export async function getDashboardData(monthParam) {
     include: {
       customerPayments: true,
       truck: true,
+      clientCompany: true,
     },
   });
 
@@ -144,8 +156,7 @@ export async function getDashboardData(monthParam) {
     .slice(0, 10);
 
   receivableTrips.forEach((trip) => {
-    const company = trip.clientName?.trim() || "Unknown";
-
+    const company = trip.clientCompany?.name ?? "Unknown";
     const receivable = trip.gcBalance || 0;
 
     const received = calculatePayments(trip.customerPayments || []);
@@ -168,8 +179,20 @@ export async function getDashboardData(monthParam) {
     companyReceivablesMap[company].tripCount += 1;
   });
 
-  const companyReceivables = Object.values(companyReceivablesMap)
-    .filter((company) => company.outstanding > 0)
+  const allCompanyReceivables = Object.values(companyReceivablesMap).filter(
+    (company) => company.outstanding > 0
+  );
+
+  const companyReceivableSummary = {
+    companyCount: allCompanyReceivables.length,
+
+    outstanding: allCompanyReceivables.reduce(
+      (sum, company) => sum + company.outstanding,
+      0
+    ),
+  };
+
+  const companyReceivables = allCompanyReceivables
     .sort((a, b) => b.outstanding - a.outstanding)
     .slice(0, 10);
 
@@ -204,11 +227,25 @@ export async function getDashboardData(monthParam) {
     });
   });
 
+  console.log("Closed trips:", closedTripsWithTruck.length);
+
+  console.log(
+    "Trips inside truckMap:",
+    Object.values(truckMap).reduce((sum, truck) => sum + truck.trips.length, 0)
+  );
+
   const truckProfitability = Object.values(truckMap)
     .map(calculateTruckMetrics)
     .sort((a, b) => b.netProfit - a.netProfit);
 
+  console.log(
+    "Truck profit total:",
+    truckProfitability.reduce((sum, truck) => sum + truck.profit, 0)
+  );
+
   const fleetMetrics = calculateFleetMetrics(truckProfitability);
+
+  console.log(fleetMetrics);
 
   const outstandingAmount = receivableTrips.reduce((sum, trip) => {
     const outstanding = calculateOutstanding(trip);
@@ -232,6 +269,7 @@ export async function getDashboardData(monthParam) {
     truckProfitability,
     outstandingTrips,
     companyReceivables,
+    routeMetrics,
 
     statusStrip: {
       activeTrips,
