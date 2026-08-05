@@ -20,13 +20,13 @@ export default function MaintenanceImportPage() {
 
         <input type="file" name="file" accept=".xlsx,.xls" required />
 
-        <SubmitButton>Import</SubmitButton>
+        <SubmitButton>Import Maintenance</SubmitButton>
       </form>
       {state?.error && <p className="mt-4 text-red-600">{state.error}</p>}
       {state?.success && (
         <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-5">
           <div className="rounded-xl border p-4">
-            <p className="text-sm text-gray-500">Total Rows</p>
+            <p className="text-sm text-gray-500">Processed</p>
             <p className="text-3xl font-bold">{state.total}</p>
           </div>
 

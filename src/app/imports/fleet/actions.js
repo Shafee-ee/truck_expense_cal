@@ -14,6 +14,7 @@ export async function importFleetRows(previousState, formData) {
   let created = 0;
   let updated = 0;
   let skipped = 0;
+  let errors = 0;
 
   for (const item of comparison) {
     switch (item.action) {
@@ -50,8 +51,11 @@ export async function importFleetRows(previousState, formData) {
   }
 
   return {
+    success: true,
+    total: created + updated + skipped + errors,
     created,
     updated,
     skipped,
+    errors,
   };
 }

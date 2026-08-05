@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { importTripRows } from "./actions";
 import SubmitButton from "@/components/ui/SubmitButton";
 import FormLoadingOverlay from "@/components/ui/FormLoadingOverlay";
+import ImportSummary from "@/components/imports/ImportSummary";
 
 export default function TripImportPage() {
   const [importState, importAction] = useActionState(importTripRows, null);
@@ -26,13 +27,23 @@ export default function TripImportPage() {
 
         <input type="file" name="file" accept=".xlsx,.xls" required />
 
-        <SubmitButton>Preview Import</SubmitButton>
+        <SubmitButton>Import Trips</SubmitButton>
       </form>
 
-      {importState?.comparison && (
-        <pre className="overflow-auto rounded bg-gray-100 p-4 text-sm">
-          {JSON.stringify(importState.comparison, null, 2)}
-        </pre>
+      {importState && !importState.error && (
+        <>
+          <ImportSummary
+            total={importState.total}
+            created={importState.created}
+            updated={importState.updated}
+            skipped={importState.skipped}
+            errors={importState.errors}
+          />
+
+          <pre className="overflow-auto rounded bg-gray-100 p-4 text-sm">
+            {JSON.stringify(importState.comparison, null, 2)}
+          </pre>
+        </>
       )}
     </main>
   );

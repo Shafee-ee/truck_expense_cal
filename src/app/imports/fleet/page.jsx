@@ -27,17 +27,16 @@ export default function FleetImportPage() {
 
         <input type="file" name="file" accept=".xlsx,.xls" required />
 
-        <SubmitButton>Import</SubmitButton>
+        <SubmitButton>Import Fleet</SubmitButton>
       </form>
 
       {importState && (
         <ImportSummary
-          total={
-            importState.created + importState.updated + importState.skipped
-          }
+          total={importState.total}
           created={importState.created}
           updated={importState.updated}
           skipped={importState.skipped}
+          errors={importState.errors}
         />
       )}
     </main>
