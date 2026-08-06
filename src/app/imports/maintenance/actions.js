@@ -1,4 +1,5 @@
 "use server";
+
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 
@@ -30,32 +31,12 @@ export async function importMaintenanceRows(previousState, formData) {
     cellDates: true,
   });
 
-  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-
-  const rawRows = XLSX.utils.sheet_to_json(worksheet, {
-    header: 1,
-    defval: null,
-  });
-
-  const period = rawRows[0].find(
-    (cell) => typeof cell === "string" && cell.includes(" TO ")
-  );
-
-  if (!period) {
-    return {
-      error: "Could not find the maintenance period in the first row.",
-    };
-  }
-
-  const startDate = period.split(" TO ")[0];
-
-  const [day, month, year] = startDate.split("/").map(Number);
-
-  const expenseDate = new Date(year, month - 1, day);
-
-  const truckNumbers = rawRows[0].slice(2);
-  const expenseRows = rawRows.slice(3);
   const expenses = [];
+
+  let created = 0;
+  let skipped = 0;
+  let errors = 0;
+
   const trucks = await prisma.truck.findMany({
     select: {
       id: true,
@@ -67,75 +48,112 @@ export async function importMaintenanceRows(previousState, formData) {
     trucks.map((truck) => [truck.numberPlate, truck.id])
   );
 
-  const existingExpenses = await prisma.truckExpense.findMany({
-    where: {
-      month,
-      year,
-    },
-    select: {
-      truckId: true,
-      month: true,
-      year: true,
-      category: true,
-      vendor: true,
-      amount: true,
-    },
-  });
+  for (const sheetName of workbook.SheetNames) {
+    const worksheet = workbook.Sheets[sheetName];
 
-  const existingKeys = new Set(
-    existingExpenses.map(
-      (expense) =>
-        `${expense.truckId}|${expense.month}|${expense.year}|${expense.category}|${expense.vendor}|${expense.amount}`
-    )
-  );
-  let created = 0;
-  let skipped = 0;
-  let errors = 0;
+    const rawRows = XLSX.utils.sheet_to_json(worksheet, {
+      header: 1,
+      defval: null,
+    });
 
-  for (const row of expenseRows) {
-    const label = row[0];
+    const period = rawRows[0].find(
+      (cell) => typeof cell === "string" && cell.includes(" TO ")
+    );
 
-    if (!label) continue;
+    if (!period) {
+      continue;
+    }
 
-    for (let i = 0; i < truckNumbers.length; i++) {
-      const truckNumber = truckNumbers[i];
-      const amount = row[i + 2];
+    const startDate = period.split(" TO ")[0];
 
-      if (!truckNumber || !amount) continue;
+    const [day, month, year] = startDate.split("/").map(Number);
 
-      const truckId = truckMap.get(truckNumber);
+    const expenseDate = new Date(year, month - 1, day);
 
-      if (!truckId) {
-        errors++;
-        console.warn(`Truck not found: ${truckNumber}`);
-        continue;
-      }
+    const truckNumbers = rawRows[0].slice(2);
+    const expenseRows = rawRows.slice(3);
 
-      const key = `${truckId}|${month}|${year}|${getCategory(label)}|${label}|${Number(amount)}`;
-      if (existingKeys.has(key)) {
-        skipped++;
-        continue;
-      }
-
-      existingKeys.add(key);
-
-      created++;
-
-      expenses.push({
-        truckId,
-        category: getCategory(label),
-        vendor: label,
-        amount: Number(amount),
-        expenseDate,
+    const existingExpenses = await prisma.truckExpense.findMany({
+      where: {
         month,
         year,
-      });
+      },
+      select: {
+        truckId: true,
+        month: true,
+        year: true,
+        category: true,
+        vendor: true,
+        amount: true,
+      },
+    });
+
+    const existingKeys = new Set(
+      existingExpenses.map(
+        (expense) =>
+          `${expense.truckId}|${expense.month}|${expense.year}|${expense.category}|${expense.vendor}|${expense.amount}`
+      )
+    );
+
+    for (const row of expenseRows) {
+      const label = row[0];
+
+      if (!label) continue;
+
+      for (let i = 0; i < truckNumbers.length; i++) {
+        const truckNumber = truckNumbers[i];
+        const amount = row[i + 2];
+
+        if (!truckNumber) continue;
+
+        const numericAmount = Number(amount);
+
+        if (!Number.isFinite(numericAmount)) {
+          continue;
+        }
+        const truckId = truckMap.get(truckNumber);
+
+        if (!truckId) {
+          errors++;
+          console.warn(`Truck not found: ${truckNumber}`);
+          continue;
+        }
+
+        const key = `${truckId}|${month}|${year}|${getCategory(
+          label
+        )}|${label}|${numericAmount}`;
+
+        if (existingKeys.has(key)) {
+          skipped++;
+          continue;
+        }
+
+        existingKeys.add(key);
+
+        created++;
+
+        expenses.push({
+          truckId,
+          category: getCategory(label),
+          vendor: label,
+          amount: numericAmount,
+          expenseDate,
+          month,
+          year,
+        });
+      }
     }
   }
+  const invalid = expenses.filter(
+    (e) => e.amount === undefined || e.amount === null || Number.isNaN(e.amount)
+  );
 
-  await prisma.truckExpense.createMany({
-    data: expenses,
-  });
+  if (expenses.length > 0) {
+    await prisma.truckExpense.createMany({
+      data: expenses,
+    });
+  }
+
   return {
     success: true,
     total: created + skipped + errors,

@@ -3,12 +3,13 @@ import { mapTripRows } from "@/lib/imports/trips";
 import { compareTripRows } from "@/lib/imports/trips/comparison";
 import { createOrUpdateTrip } from "./createOrUpdateTrip";
 import { prisma } from "@/lib/prisma";
-
+import { getTripRows } from "@/lib/imports/trips/getTripRows";
 export async function processTripImport(file) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const rows = readExcel(buffer);
+  const workbook = readExcel(buffer);
 
+  const rows = getTripRows(workbook);
   const mappedRows = mapTripRows(rows);
 
   const filteredRows = mappedRows.filter(
@@ -57,6 +58,7 @@ export async function processTripImport(file) {
         break;
 
       case "ERROR":
+        console.log(item);
         summary.errors++;
         break;
     }

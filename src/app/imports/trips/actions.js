@@ -9,35 +9,15 @@ export async function importTripRows(previousState, formData) {
     throw new Error("Please select a file.");
   }
 
-  const comparison = await processTripImport(file);
-
-  let created = 0;
-  let updated = 0;
-  let skipped = 0;
-
-  comparison.forEach((item) => {
-    switch (item.action) {
-      case "CREATE":
-        created++;
-        break;
-
-      case "UPDATE":
-        updated++;
-        break;
-
-      case "UNCHANGED":
-        skipped++;
-        break;
-    }
-  });
+  const summary = await processTripImport(file);
 
   return {
     success: true,
-    total: created + updated + skipped,
-    created,
-    updated,
-    skipped,
-    errors: 0,
-    comparison,
+    total:
+      summary.created + summary.updated + summary.unchanged + summary.errors,
+    created: summary.created,
+    updated: summary.updated,
+    skipped: summary.unchanged,
+    errors: summary.errors,
   };
 }

@@ -21,8 +21,7 @@ function parseExcelDate(value) {
   return date;
 }
 export function mapTripRows(rows) {
-  console.log(Object.keys(rows[0]));
-  return rows
+  const mappedRows = rows
     .filter((row) => row["GC No."] != null)
     .map((row) => {
       return {
@@ -46,6 +45,7 @@ export function mapTripRows(rows) {
             row["Date"] ??
             row["Date "]
         ),
+
         billedDetails: row["Billed Details"]?.toString().trim() || null,
         source: row["From"]?.toString().trim() || null,
         destination: row["Destination"]?.toString().trim() || null,
@@ -71,4 +71,6 @@ export function mapTripRows(rows) {
         damageAmount: Number(row["Damage Amount"]) || 0,
       };
     });
+
+  return mappedRows;
 }

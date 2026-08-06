@@ -13,7 +13,7 @@ function buildTripData(row, truckId, transporterCompanyId) {
     gcNumber: row.gcNumber,
     billNumber: row.billNumber,
 
-    source: row.source,
+    source: row.source || "Unknown",
     destination: row.destination,
 
     startDate: row.startDate,
@@ -72,14 +72,27 @@ export async function createOrUpdateTrip(item, transporterCompany) {
       disconnect: true,
     };
   }
+
   let trip;
 
   if (isUpdate) {
+    const updateData = {
+      gcNumber: tripData.gcNumber,
+      billNumber: tripData.billNumber,
+      destination: tripData.destination,
+      startDate: tripData.startDate,
+      endDate: tripData.endDate,
+    };
+
+    if (tripData.source !== null && tripData.source !== undefined) {
+      updateData.source = tripData.source;
+    }
+
     trip = await prisma.trip.update({
       where: {
         id: item.trip.id,
       },
-      data: tripData,
+      data: updateData,
     });
 
     await prisma.expense.deleteMany({
@@ -99,7 +112,10 @@ export async function createOrUpdateTrip(item, transporterCompany) {
     row: item.row,
   });
 
-  const finalRevenue = calculateRevenue(trip);
+  const finalRevenue =
+    trip.revenueMode === "FIXED"
+      ? trip.grossAmount || 0
+      : (trip.estimatedQty || 0) * (trip.ratePerUnit || 0);
 
   const finalExpenses = calculateExpenses(expenses);
 
