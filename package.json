@@ -8,7 +8,6 @@
     "start": "next start",
     "lint": "eslint"
   },
-  
   "dependencies": {
     "@headlessui/react": "^2.2.10",
     "@prisma/client": "^5.15.0",

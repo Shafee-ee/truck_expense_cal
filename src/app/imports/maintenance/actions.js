@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
+import { processMaintenanceImport } from "@/lib/imports/maintenance/processMaintenanceImport";
 
 function getCategory(label) {
   const text = label.toUpperCase();
@@ -25,12 +26,9 @@ export async function importMaintenanceRows(previousState, formData) {
   if (!file || file.size === 0) {
     return { error: "Please select a file." };
   }
+  const records = await processMaintenanceImport(file);
 
-  const workbook = XLSX.read(await file.arrayBuffer(), {
-    type: "buffer",
-    cellDates: true,
-  });
-
+  console.log(records);
   const expenses = [];
 
   let created = 0;
@@ -144,9 +142,6 @@ export async function importMaintenanceRows(previousState, formData) {
       }
     }
   }
-  const invalid = expenses.filter(
-    (e) => e.amount === undefined || e.amount === null || Number.isNaN(e.amount)
-  );
 
   if (expenses.length > 0) {
     await prisma.truckExpense.createMany({
