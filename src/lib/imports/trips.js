@@ -10,7 +10,6 @@ function parseExcelDate(value) {
   const parts = text.split(/[./-]/);
 
   if (parts.length !== 3) {
-    console.log("FAILED");
     return null;
   }
 
@@ -21,8 +20,28 @@ function parseExcelDate(value) {
   return date;
 }
 export function mapTripRows(rows) {
+  const discarded = rows.filter((row) => row["GC No."] == null);
+
+  console.log("Discarded:", discarded.length);
+
+  for (const [index, row] of discarded.entries()) {
+    console.log(`Discarded Row ${index + 1}`);
+    console.log(row);
+  }
+  for (const row of discarded) {
+    if (Object.values(row).every((v) => v == null)) {
+      console.log("EMPTY ROW");
+    } else {
+      console.log("UNKNOWN ROW");
+      console.log(row);
+    }
+  }
   const mappedRows = rows
-    .filter((row) => row["GC No."] != null)
+    .filter((row) => {
+      const gc = row["GC No."]?.toString().trim();
+
+      return gc && gc !== "GC No.";
+    })
     .map((row) => {
       return {
         gcNumber: row["GC No."]?.toString().trim() || null,

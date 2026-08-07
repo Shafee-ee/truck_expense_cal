@@ -24,7 +24,7 @@ function isTripSheet(worksheet) {
     const hasDestination = headers.includes("DESTINATION");
 
     if (hasGC && hasVehicle && hasDestination) {
-      return row + 1;
+      return row;
     }
   }
 
@@ -35,15 +35,19 @@ export function getTripRows(workbook) {
   const rows = [];
 
   for (const sheetName of workbook.SheetNames) {
+    if (sheetName === "Sheet1" || sheetName === "Sheet2") {
+      continue;
+    }
+
     const worksheet = workbook.Sheets[sheetName];
 
     const headerRow = isTripSheet(worksheet);
 
-    if (!headerRow) continue;
+    if (headerRow === null) continue;
 
     rows.push(
       ...XLSX.utils.sheet_to_json(worksheet, {
-        range: headerRow - 1,
+        range: headerRow,
         defval: null,
       })
     );

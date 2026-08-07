@@ -70,8 +70,7 @@ export async function compareTripRows(rows) {
       destination: (trip.destination ?? "") !== (row.destination ?? ""),
       startDate: !sameDate(trip.startDate, row.startDate),
       endDate: !sameDate(trip.endDate, row.endDate),
-      grossAmount:
-        Math.abs((trip.grossAmount ?? 0) - (row.grossAmount ?? 0)) > 0.01,
+      grossAmount: !sameNumber(trip.grossAmount, row.grossAmount),
     };
 
     const changed = Object.values(differences).some(Boolean);
