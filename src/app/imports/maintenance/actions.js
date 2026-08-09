@@ -13,12 +13,6 @@ export async function importMaintenanceRows(previousState, formData) {
   const records = await processMaintenanceImport(file);
 
   console.log("Maintenance records:", records.length);
-  console.log("First records:", records.slice(0, 10));
-
-  return {
-    success: true,
-    parsed: records.length,
-  };
 
   const trucks = await prisma.truck.findMany({
     select: {
@@ -32,46 +26,20 @@ export async function importMaintenanceRows(previousState, formData) {
   );
 
   let created = 0;
-  let skipped = 0;
   let errors = 0;
 
   const expenses = [];
-
-  const existingExpenses = await prisma.truckExpense.findMany({
-    select: {
-      truckId: true,
-      month: true,
-      year: true,
-      category: true,
-      vendor: true,
-      amount: true,
-    },
-  });
-
-  const existingKeys = new Set(
-    existingExpenses.map(
-      (expense) =>
-        `${expense.truckId}|${expense.month}|${expense.year}|${expense.category}|${expense.vendor}|${expense.amount}`
-    )
-  );
 
   for (const record of records) {
     const truckId = truckMap.get(record.truckNumber);
 
     if (!truckId) {
       errors++;
-      console.warn(`Truck not found: ${record.truckNumber}`);
+
+      console.warn(`Truck not found: ${record.truckNumber}`, record);
+
       continue;
     }
-
-    const key = `${truckId}|${record.month}|${record.year}|${record.category}|${record.vendor}|${record.amount}`;
-
-    if (existingKeys.has(key)) {
-      skipped++;
-      continue;
-    }
-
-    existingKeys.add(key);
 
     expenses.push({
       truckId,
@@ -94,10 +62,10 @@ export async function importMaintenanceRows(previousState, formData) {
 
   return {
     success: true,
-    total: created + skipped + errors,
+    total: records.length,
     created,
     updated: 0,
-    skipped,
+    skipped: 0,
     errors,
   };
 }

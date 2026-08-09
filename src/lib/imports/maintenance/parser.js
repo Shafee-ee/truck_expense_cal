@@ -1,30 +1,180 @@
 import * as XLSX from "xlsx";
 
-function getCategory(label) {
-  const text = String(label).trim().toUpperCase();
-
-  if (text.includes("TYRE")) return "TYRE";
-  if (text.includes("REPAIR")) return "REPAIR";
-  if (text.includes("ELECTRICAL")) return "ELECTRICAL";
-  if (text.includes("WASH")) return "WASHING";
-  if (text.includes("ADD BLUE")) return "ADD_BLUE";
-  if (text.includes("ROAD TAX")) return "ROAD_TAX";
-  if (text.includes("NATIONAL PERMIT")) return "NATIONAL_PERMIT";
-  if (text.includes("PERMIT")) return "PERMIT";
-  if (text.includes("INSURANCE")) return "INSURANCE";
-
-  return "OTHER";
+function normalize(value) {
+  return String(value ?? "")
+    .trim()
+    .toUpperCase();
 }
 
-function isTotalRow(row) {
+function getCategoryFromLabel(label) {
+  const text = normalize(label);
+
+  if (text.includes("TYRE")) return "TYRE";
+  if (text.includes("WASH")) return "WASHING";
+  if (text.includes("ADD BLUE")) return "ADD_BLUE";
+  if (text.includes("ELECTRICAL")) return "ELECTRICAL";
+  if (text.includes("REPAIR")) return "REPAIR";
+  if (text.includes("ROAD TAX")) return "ROAD_TAX";
+  if (text.includes("INSURANCE")) return "INSURANCE";
+  if (text.includes("PERMIT")) return "PERMIT";
+
+  return null;
+}
+
+function isTruckNumber(value) {
   return (
-    String(row[0] ?? "")
-      .trim()
-      .toUpperCase() === "TOTAL" ||
-    String(row[1] ?? "")
-      .trim()
-      .toUpperCase() === "TOTAL"
+    typeof value === "string" &&
+    /^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/.test(value.trim())
   );
+}
+
+function isTotal(value) {
+  return normalize(value) === "TOTAL";
+}
+
+function getPeriod(rawRows) {
+  return rawRows[0]?.find(
+    (cell) => typeof cell === "string" && cell.includes(" TO ")
+  );
+}
+
+function parseDate(period) {
+  const startDate = period.split(" TO ")[0];
+  const [day, month, year] = startDate.split("/").map(Number);
+
+  return {
+    expenseDate: new Date(year, month - 1, day),
+    month,
+    year,
+  };
+}
+
+function parseApril(rows, truckStartIndex, truckNumbers, dateInfo) {
+  const records = [];
+
+  let currentCategory = "OTHER";
+
+  for (const row of rows.slice(3)) {
+    const section = row[0];
+    const vendor = row[1];
+
+    if (isTotal(vendor)) {
+      break;
+    }
+
+    if (!vendor) {
+      continue;
+    }
+
+    const explicitCategory = getCategoryFromLabel(vendor);
+
+    if (explicitCategory) {
+      currentCategory = explicitCategory;
+    } else if (section) {
+      const sectionCategory = getCategoryFromLabel(section);
+
+      if (sectionCategory) {
+        currentCategory = sectionCategory;
+      }
+    }
+
+    for (let i = 0; i < truckNumbers.length; i++) {
+      const truckNumber = truckNumbers[i];
+
+      if (!truckNumber) {
+        continue;
+      }
+
+      const amount = row[truckStartIndex + i];
+
+      if (amount === null || amount === undefined || amount === "") {
+        continue;
+      }
+
+      const numericAmount = Number(amount);
+
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+        continue;
+      }
+
+      records.push({
+        truckNumber: truckNumber.trim(),
+        category: currentCategory,
+        vendor: String(vendor).trim(),
+        amount: numericAmount,
+        ...dateInfo,
+      });
+    }
+  }
+
+  return records;
+}
+
+function parseStandardSheet(rows, truckStartIndex, truckNumbers, dateInfo) {
+  const records = [];
+
+  let currentCategory = "OTHER";
+
+  for (const row of rows.slice(3)) {
+    const vendor = row[0];
+
+    if (isTotal(vendor)) {
+      break;
+    }
+
+    if (!vendor) {
+      continue;
+    }
+
+    const label = String(vendor).trim();
+    const explicitCategory = getCategoryFromLabel(label);
+
+    if (explicitCategory) {
+      currentCategory = explicitCategory;
+    }
+
+    if (normalize(label) === "SALARY") {
+      currentCategory = "OTHER";
+    }
+
+    if (normalize(label).includes("TOLL PAID IN CASH")) {
+      currentCategory = "OTHER";
+    }
+
+    if (normalize(label).includes("OTHER EXPENSES")) {
+      currentCategory = "OTHER";
+    }
+
+    for (let i = 0; i < truckNumbers.length; i++) {
+      const truckNumber = truckNumbers[i];
+
+      if (!truckNumber) {
+        continue;
+      }
+
+      const amount = row[truckStartIndex + i];
+
+      if (amount === null || amount === undefined || amount === "") {
+        continue;
+      }
+
+      const numericAmount = Number(amount);
+
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+        continue;
+      }
+
+      records.push({
+        truckNumber: truckNumber.trim(),
+        category: currentCategory,
+        vendor: label,
+        amount: numericAmount,
+        ...dateInfo,
+      });
+    }
+  }
+
+  return records;
 }
 
 export function parseMaintenanceWorkbook(workbook) {
@@ -39,24 +189,17 @@ export function parseMaintenanceWorkbook(workbook) {
       blankrows: false,
     });
 
+    const period = getPeriod(rawRows);
+
+    if (!period) {
+      continue;
+    }
+
+    const dateInfo = parseDate(period);
+
     const headerRow = rawRows[0];
 
-    const period = headerRow?.find(
-      (cell) => typeof cell === "string" && cell.includes(" TO ")
-    );
-
-    if (!period) continue;
-
-    const startDate = period.split(" TO ")[0];
-    const [day, month, year] = startDate.split("/").map(Number);
-
-    const expenseDate = new Date(year, month - 1, day);
-
-    const truckStartIndex = headerRow.findIndex(
-      (cell) =>
-        typeof cell === "string" &&
-        /^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/.test(cell.trim())
-    );
+    const truckStartIndex = headerRow.findIndex(isTruckNumber);
 
     if (truckStartIndex === -1) {
       console.warn(`No truck columns found in ${sheetName}`);
@@ -67,73 +210,29 @@ export function parseMaintenanceWorkbook(workbook) {
       .slice(truckStartIndex)
       .map((value) => (typeof value === "string" ? value.trim() : null));
 
-    let currentCategory = "OTHER";
+    let sheetRecords;
 
-    for (const row of rawRows.slice(3)) {
-      if (isTotalRow(row)) {
-        break;
-      }
-
-      const firstCell = String(row[0] ?? "").trim();
-      const secondCell = String(row[1] ?? "").trim();
-
-      let vendor;
-      let amountStartIndex;
-
-      if (truckStartIndex === 2) {
-        // April: column A contains category headings,
-        // column B contains vendors.
-        if (firstCell) {
-          currentCategory = getCategory(firstCell);
-        }
-
-        console.log("APRIL ROW:", row.slice(0, 3));
-        vendor = secondCell;
-        amountStartIndex = 2;
-      } else {
-        // May onward: column A contains the vendor/category label.
-        vendor = firstCell;
-        amountStartIndex = truckStartIndex;
-
-        if (vendor) {
-          currentCategory = getCategory(vendor);
-        }
-      }
-
-      if (!vendor) continue;
-
-      for (let i = 0; i < truckNumbers.length; i++) {
-        const truckNumber = truckNumbers[i];
-
-        if (!truckNumber) continue;
-
-        const amount = row[amountStartIndex + i];
-
-        if (amount === null || amount === undefined || amount === "") {
-          continue;
-        }
-
-        const numericAmount = Number(amount);
-
-        if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-          continue;
-        }
-
-        records.push({
-          truckNumber,
-          category: currentCategory,
-          vendor,
-          amount: numericAmount,
-          expenseDate,
-          month,
-          year,
-        });
-      }
+    if (sheetName === "APRIL") {
+      sheetRecords = parseApril(
+        rawRows,
+        truckStartIndex,
+        truckNumbers,
+        dateInfo
+      );
+    } else {
+      sheetRecords = parseStandardSheet(
+        rawRows,
+        truckStartIndex,
+        truckNumbers,
+        dateInfo
+      );
     }
 
-    console.log(`${sheetName}: parsed ${records.length} total records`);
-    console.log(records.slice(-10));
+    records.push(...sheetRecords);
+
+    console.log(`${sheetName}: ${sheetRecords.length} records`);
   }
+
   console.log(
     "By category:",
     records.reduce((acc, record) => {
@@ -146,9 +245,15 @@ export function parseMaintenanceWorkbook(workbook) {
     "By month:",
     records.reduce((acc, record) => {
       const key = `${record.year}-${record.month}`;
+
       acc[key] = (acc[key] || 0) + 1;
+
       return acc;
     }, {})
   );
+
+  console.log("Maintenance records:", records.length);
+  console.log("First records:", records.slice(0, 10));
+
   return records;
 }
