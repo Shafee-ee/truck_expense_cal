@@ -98,7 +98,7 @@ export default function ExpenseSummary({
                             (a, b) =>
                               new Date(b.expenseDate) - new Date(a.expenseDate)
                           )
-                          .map((expense) => (expense) => (
+                          .map((expense) => (
                             <tr
                               key={expense.id}
                               className="border-t border-zinc-200 hover:bg-white"

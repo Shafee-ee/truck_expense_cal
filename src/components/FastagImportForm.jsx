@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import {
   previewFastagImport,
   importFastagImport,
@@ -18,6 +18,12 @@ export default function FastagImportForm({ tripId, truckNumberPlate }) {
     importFastagImport,
     initialState
   );
+
+  useEffect(() => {
+    if (importState?.success) {
+      window.location.reload();
+    }
+  }, [importState]);
   const readyRows =
     state?.preview?.filter((row) => row.action === "IMPORT") ?? [];
 

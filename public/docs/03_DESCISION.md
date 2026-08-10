@@ -209,3 +209,290 @@ Reasoning:
 - Historical trips remain compatible because odometer fields are optional.
 - Trip Distance is retained as a business/planning metric.
 - Odometer readings become the authoritative source for operational distance and future BI calculations.
+
+####
+
+# ADR-011
+
+## Transporter Payments are removed from the product direction
+
+Decision
+
+The Transporter Payments section is to be discarded from the active
+product.
+
+Reason
+
+Jeevan has confirmed that this section is not required.
+
+Impact
+
+- Remove the Transporter Payments UI.
+- Remove transporter-payment workflow dependencies.
+- Audit settlement, accounts, trip detail, calculations and reports
+  before removing schema fields or records.
+- Do not blindly delete existing database fields or historical
+  records.
+
+Status
+
+Accepted --- implementation pending.
+
+---
+
+# ADR-012
+
+## Import data integrity takes priority over further BI expansion
+
+Decision
+
+Reported mismatches between source Excel records and imported records
+must be investigated before treating the import system as complete.
+
+Reason
+
+The system's reporting and BI are only useful if the underlying imported
+data matches the source.
+
+Impact
+
+- Compare source workbook records against parsed records.
+- Identify whether the mismatch originates in parsing, mapping,
+  validation, duplicate detection or persistence.
+- Do not assume the importer is correct simply because an upload
+  succeeds.
+
+Status
+
+Accepted.
+
+---
+
+# ADR-013
+
+## Maintenance page requirements require business confirmation
+
+Decision
+
+No new business behavior will be assumed for the Maintenance page until
+Jeevan confirms the requirement.
+
+Reason
+
+The maintenance importer has been technically tested, but the desired
+final page behavior still needs confirmation.
+
+Impact
+
+- Preserve the current working importer.
+- Capture Jeevan's requirement before modifying the Maintenance UI or
+  data model.
+
+Status
+
+Pending confirmation.
+
+---
+
+# HH Trucks - Architecture Decisions
+
+This document records important architectural and business decisions
+made during the development of HH Trucks.
+
+---
+
+# ADR-001
+
+## Trips are the central business entity
+
+Decision
+
+The Trip is the core entity around which the system is built.
+
+Reason
+
+Everything in the business revolves around transporting a load.
+
+Impact
+
+- Expenses belong to Trips.
+- Payments belong to Trips.
+- Settlements belong to Trips.
+- Accounts are derived from Trips.
+
+Status
+
+Accepted
+
+---
+
+# ADR-002
+
+## Customers and Transporters are both Companies
+
+Decision
+
+Customers and Transporters are stored in the same Company table.
+
+Reason
+
+Many businesses play multiple roles.
+
+Impact
+
+- No duplicate records.
+- Easier reporting.
+- Simpler maintenance.
+
+Status
+
+Accepted
+
+---
+
+# ADR-003
+
+## Truck ownership uses Companies
+
+Decision
+
+A Truck owner is always a Company.
+
+Reason
+
+Internal and external trucks are handled uniformly.
+
+Status
+
+Accepted
+
+---
+
+# ADR-004
+
+## Operational expenses and maintenance expenses are separate
+
+Decision
+
+Trip expenses and Truck expenses are different entities.
+
+Reason
+
+Operational costs belong to a single trip.
+
+Maintenance costs belong to the vehicle regardless of trips.
+
+Status
+
+Accepted
+
+---
+
+# ADR-005
+
+## Payments are never stored as balances
+
+Decision
+
+Outstanding amounts are always calculated.
+
+Reason
+
+Derived values cannot become inconsistent.
+
+Status
+
+Accepted
+
+---
+
+# ADR-006
+
+## Reports never own data
+
+Decision
+
+Reports only aggregate existing business data.
+
+Reason
+
+Avoid duplicate sources of truth.
+
+Status
+
+Accepted
+
+---
+
+# ADR-007
+
+## Historical records are preserved
+
+Decision
+
+Trips, expenses and payments are not physically deleted after they
+become business records.
+
+Reason
+
+Maintain audit history and financial integrity.
+
+Status
+
+Accepted
+
+---
+
+# ADR-008
+
+## Imports are traceable
+
+Decision
+
+Every historical import is recorded using an Import Session.
+
+Reason
+
+Allows auditing, troubleshooting and future re-imports.
+
+Status
+
+Accepted
+
+---
+
+# ADR-009
+
+## Business rules are implemented in code, not stored as data
+
+Decision
+
+Business logic is enforced by the application.
+
+Reason
+
+Keeps the database focused on business data while maintaining consistent
+behavior.
+
+Status
+
+Accepted
+
+---
+
+# ADR-010
+
+## Financial values are derived
+
+Decision
+
+Profit, outstanding balances and totals are calculated from existing
+records.
+
+Reason
+
+Prevents duplicated financial data.
+
+Status
+
+Accepted
