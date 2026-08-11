@@ -1,8 +1,12 @@
 function parseExcelDate(value) {
-  if (!value) return null;
+  if (value == null || value === "") {
+    return null;
+  }
 
-  if (value instanceof Date) {
-    return value;
+  if (typeof value === "number") {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+
+    return new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000);
   }
 
   const text = value.toString().trim();
@@ -15,27 +19,11 @@ function parseExcelDate(value) {
 
   const [day, month, year] = parts;
 
-  const date = new Date(Number(year), Number(month) - 1, Number(day));
-
-  return date;
+  return new Date(
+    Date.UTC(Number(year), Number(month) - 1, Number(day), 12, 0, 0)
+  );
 }
 export function mapTripRows(rows) {
-  const discarded = rows.filter((row) => row["GC No."] == null);
-
-  console.log("Discarded:", discarded.length);
-
-  for (const [index, row] of discarded.entries()) {
-    console.log(`Discarded Row ${index + 1}`);
-    console.log(row);
-  }
-  for (const row of discarded) {
-    if (Object.values(row).every((v) => v == null)) {
-      console.log("EMPTY ROW");
-    } else {
-      console.log("UNKNOWN ROW");
-      console.log(row);
-    }
-  }
   const mappedRows = rows
     .filter((row) => {
       const gc = row["GC No."]?.toString().trim();
@@ -43,7 +31,18 @@ export function mapTripRows(rows) {
       return gc && gc !== "GC No.";
     })
     .map((row) => {
+      const importSource =
+        row["TOLL"] !== undefined ||
+        row["Load & Unload"] !== undefined ||
+        row["RTO EXPENSES"] !== undefined ||
+        row["POLICE"] !== undefined ||
+        row["Driver Balance"] !== undefined ||
+        row["Other Expenses"] !== undefined
+          ? "AS"
+          : "LOGISCO";
+
       return {
+        importSource,
         gcNumber: row["GC No."]?.toString().trim() || null,
         billNumber: row["Bill No"]?.toString().trim() || null,
 
@@ -75,7 +74,7 @@ export function mapTripRows(rows) {
 
         transporter: row["Transporter"]?.toString().trim() || null,
 
-        diesel: Number(row["Diesel"]) || 0,
+        diesel: Number(row[" Diesel "] ?? row["Diesel"]) || 0,
         advance: Number(row["Advance"]) || 0,
 
         toll: Number(row["TOLL"]) || 0,

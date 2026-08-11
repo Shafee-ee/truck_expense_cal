@@ -7,7 +7,9 @@ import { getTripRows } from "@/lib/imports/trips/getTripRows";
 export async function processTripImport(file) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const workbook = readExcel(buffer);
+  const workbook = readExcel(buffer, {
+    cellDates: false,
+  });
 
   const rows = getTripRows(workbook);
   const mappedRows = mapTripRows(rows);

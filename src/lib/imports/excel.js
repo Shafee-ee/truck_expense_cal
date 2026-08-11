@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 export function readExcel(buffer, options = {}) {
   const workbook = XLSX.read(buffer, {
     type: "buffer",
-    cellDates: true,
+    cellDates: options.cellDates ?? true,
   });
 
   if (workbook.SheetNames.length === 0) {

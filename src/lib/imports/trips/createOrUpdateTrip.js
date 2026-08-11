@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { calculateRevenue, calculateExpenses } from "@/lib/finance";
+import { calculateExpenses } from "@/lib/finance";
 import { createTripExpenses } from "./createTripExpenses";
 
 function buildTripData(row, truckId, transporterCompanyId) {
@@ -80,12 +80,27 @@ export async function createOrUpdateTrip(item, transporterCompany) {
       gcNumber: tripData.gcNumber,
       billNumber: tripData.billNumber,
       destination: tripData.destination,
-      startDate: tripData.startDate,
-      endDate: tripData.endDate,
+      freightWeight: tripData.freightWeight,
+      estimatedQty: tripData.estimatedQty,
+      ratePerUnit: tripData.ratePerUnit,
+      grossAmount: tripData.grossAmount,
+      loadType: tripData.loadType,
+      revenueMode: tripData.revenueMode,
     };
 
-    if (tripData.source !== null && tripData.source !== undefined) {
-      updateData.source = tripData.source;
+    if (item.row.importSource === "AS") {
+      updateData.startDate = tripData.startDate;
+      updateData.endDate = tripData.endDate;
+      updateData.customerDiesel = tripData.customerDiesel;
+      updateData.customerAdvance = tripData.customerAdvance;
+      updateData.tds = tripData.tds;
+      updateData.charges = tripData.charges;
+      updateData.damageAmount = tripData.damageAmount;
+      updateData.gcBalance = tripData.gcBalance;
+
+      if (tripData.source !== null && tripData.source !== undefined) {
+        updateData.source = tripData.source;
+      }
     }
 
     trip = await prisma.trip.update({
@@ -95,29 +110,43 @@ export async function createOrUpdateTrip(item, transporterCompany) {
       data: updateData,
     });
 
-    await prisma.expense.deleteMany({
-      where: {
-        tripId: trip.id,
-      },
-    });
+    if (item.row.importSource === "AS") {
+      await prisma.expense.deleteMany({
+        where: {
+          tripId: trip.id,
+        },
+      });
+    }
   } else {
     trip = await prisma.trip.create({
       data: tripData,
     });
   }
 
-  const expenses = await createTripExpenses({
-    tripId: trip.id,
-    expenseDate: trip.startDate ?? new Date(),
-    row: item.row,
-  });
+  let finalExpenses;
+
+  if (item.row.importSource === "AS") {
+    const expenses = await createTripExpenses({
+      tripId: trip.id,
+      expenseDate: trip.startDate ?? new Date(),
+      row: item.row,
+    });
+
+    finalExpenses = calculateExpenses(expenses);
+  } else {
+    const existingExpenses = await prisma.expense.findMany({
+      where: {
+        tripId: trip.id,
+      },
+    });
+
+    finalExpenses = calculateExpenses(existingExpenses);
+  }
 
   const finalRevenue =
     trip.revenueMode === "FIXED"
       ? trip.grossAmount || 0
       : (trip.estimatedQty || 0) * (trip.ratePerUnit || 0);
-
-  const finalExpenses = calculateExpenses(expenses);
 
   await prisma.trip.update({
     where: {

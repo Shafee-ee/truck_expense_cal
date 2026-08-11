@@ -45,6 +45,8 @@ export async function compareTripRows(rows) {
       trip = await prisma.trip.findFirst({
         where: {
           gcNumber: row.gcNumber,
+          grossAmount: row.grossAmount,
+          truckId: truck.id,
         },
       });
     }
@@ -71,6 +73,12 @@ export async function compareTripRows(rows) {
       startDate: !sameDate(trip.startDate, row.startDate),
       endDate: !sameDate(trip.endDate, row.endDate),
       grossAmount: !sameNumber(trip.grossAmount, row.grossAmount),
+
+      customerDiesel: !sameNumber(trip.customerDiesel, row.diesel),
+      customerAdvance: !sameNumber(trip.customerAdvance, row.advance),
+      tds: !sameNumber(trip.tds, row.tds),
+      charges: !sameNumber(trip.charges, row.charges),
+      damageAmount: !sameNumber(trip.damageAmount, row.damageAmount),
     };
 
     const changed = Object.values(differences).some(Boolean);
