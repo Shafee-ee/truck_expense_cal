@@ -16,6 +16,10 @@ export async function compareFleetRows(rows) {
   const comparison = [];
 
   for (const [index, row] of rows.entries()) {
+    if (!row.numberPlate) {
+      continue;
+    }
+
     const truck = await prisma.truck.findUnique({
       where: {
         numberPlate: row.numberPlate,
@@ -38,6 +42,7 @@ export async function compareFleetRows(rows) {
         }
       }
     }
+
     comparison.push({
       rowNumber: index + 1,
       action: !truck ? "CREATE" : changes.length > 0 ? "UPDATE" : "UNCHANGED",

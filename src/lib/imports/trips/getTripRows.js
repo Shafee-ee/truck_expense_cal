@@ -51,7 +51,7 @@ export function getTripRows(workbook) {
         defval: null,
       })
     );
-  }
+  }cat src/lib/imports/trips.js
 
   return rows;
 }
