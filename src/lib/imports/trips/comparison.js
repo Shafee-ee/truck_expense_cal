@@ -127,50 +127,57 @@ export async function compareTripRows(rows) {
         action: "CREATE",
         changes: [],
         truck,
-        trip,
+        trip: null,
         row,
       });
 
       continue;
     }
 
+    const expenses = getExpenseTotals(trip.expenses);
+
+    const expectedOtherExpenses = (row.rto ?? 0) + (row.other ?? 0);
+
     const differences = {
       truckId: trip.truckId !== truck.id,
       gcNumber: trip.gcNumber !== row.gcNumber,
       billNumber: trip.billNumber !== row.billNumber,
+
       source: (trip.source ?? "") !== (row.source ?? ""),
       destination: (trip.destination ?? "") !== (row.destination ?? ""),
+
       startDate: !sameDate(trip.startDate, row.startDate),
       endDate: !sameDate(trip.endDate, row.endDate),
+
+      freightWeight: !sameNumber(trip.freightWeight, row.freightWeight),
+
+      ratePerUnit: !sameNumber(trip.ratePerUnit, row.ratePerUnit),
+
       grossAmount: !sameNumber(trip.grossAmount, row.grossAmount),
 
-      customerDiesel: !sameNumber(trip.customerDiesel, row.diesel),
-      customerAdvance: !sameNumber(trip.customerAdvance, row.advance),
+      customerDiesel: !sameNumber(trip.customerDiesel, row.customerDiesel),
+
+      customerAdvance: !sameNumber(trip.customerAdvance, row.customerAdvance),
+
       tds: !sameNumber(trip.tds, row.tds),
+
       charges: !sameNumber(trip.charges, row.charges),
+
       damageAmount: !sameNumber(trip.damageAmount, row.damageAmount),
+      gcBalance: !sameNumber(trip.gcBalance, row.gcBalance),
+
+      expenseDiesel: !sameNumber(expenses.diesel, row.expenseDiesel),
+
+      expenseToll: !sameNumber(expenses.toll, row.toll),
+
+      expenseLoading: !sameNumber(expenses.loading, row.loading),
+
+      expensePolice: !sameNumber(expenses.police, row.police),
+
+      expenseDriver: !sameNumber(expenses.driver, row.driver),
+
+      expenseOther: !sameNumber(expenses.other, expectedOtherExpenses),
     };
-
-    // Only AS / Transport Record imports contain the
-    // expense columns that need to be compared.
-    if (row.importSource === "AS") {
-      const expenses = getExpenseTotals(trip.expenses);
-
-      differences.expenseDiesel = !sameNumber(expenses.diesel, row.diesel);
-
-      differences.expenseToll = !sameNumber(expenses.toll, row.toll);
-
-      differences.expenseLoading = !sameNumber(expenses.loading, row.loading);
-
-      differences.expensePolice = !sameNumber(expenses.police, row.police);
-
-      differences.expenseDriver = !sameNumber(expenses.driver, row.driver);
-
-      differences.expenseOther = !sameNumber(
-        expenses.other,
-        row.rto + row.other
-      );
-    }
 
     const changed = Object.values(differences).some(Boolean);
 

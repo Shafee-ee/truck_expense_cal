@@ -2,27 +2,49 @@ import { prisma } from "@/lib/prisma";
 
 export async function createTripExpenses({ tripId, expenseDate, row }) {
   const expenses = [];
+
   const mappings = [
-    { field: "diesel", category: "FUEL" },
-    { field: "toll", category: "TOLL" },
-    { field: "loading", category: "LOADING" },
-    { field: "police", category: "POLICE" },
-    { field: "driver", category: "DRIVER_PAYMENT" },
-    { field: "rto", category: "OTHER" },
-    { field: "other", category: "OTHER" },
+    {
+      amount: row.expenseDiesel,
+      category: "FUEL",
+    },
+    {
+      amount: row.toll,
+      category: "TOLL",
+    },
+    {
+      amount: row.loading,
+      category: "LOADING",
+    },
+    {
+      amount: row.rto,
+      category: "OTHER",
+    },
+    {
+      amount: row.police,
+      category: "POLICE",
+    },
+    {
+      amount: row.driver,
+      category: "DRIVER_PAYMENT",
+    },
+    {
+      amount: row.other,
+      category: "OTHER",
+    },
   ];
 
-  for (const { field, category } of mappings) {
-    const amount = Number(row[field] || 0);
+  for (const { amount, category } of mappings) {
+    const value = Number(amount || 0);
 
-    if (amount <= 0) continue;
+    if (value <= 0) continue;
 
     expenses.push({
       tripId,
       category,
-      amount,
+      amount: value,
       expenseDate,
-      note: "Imported from AS Transport",
+      note: row.notes || "Imported from Master File",
     });
   }
 
@@ -30,7 +52,7 @@ export async function createTripExpenses({ tripId, expenseDate, row }) {
     return [];
   }
 
-  const result = await prisma.expense.createMany({
+  await prisma.expense.createMany({
     data: expenses,
   });
 

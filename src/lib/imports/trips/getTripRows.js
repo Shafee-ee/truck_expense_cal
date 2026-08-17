@@ -23,7 +23,11 @@ function isTripSheet(worksheet) {
 
     const hasDestination = headers.includes("DESTINATION");
 
-    if (hasGC && hasVehicle && hasDestination) {
+    const hasQty = headers.includes("QTY");
+
+    const hasCustomer = headers.includes("CUSTOMER / CLIENT");
+
+    if (hasGC && hasVehicle && hasDestination && hasQty && hasCustomer) {
       return row;
     }
   }
@@ -35,10 +39,6 @@ export function getTripRows(workbook) {
   const rows = [];
 
   for (const sheetName of workbook.SheetNames) {
-    if (sheetName === "Sheet1" || sheetName === "Sheet2") {
-      continue;
-    }
-
     const worksheet = workbook.Sheets[sheetName];
 
     const headerRow = isTripSheet(worksheet);
@@ -50,6 +50,12 @@ export function getTripRows(workbook) {
         range: headerRow,
         defval: null,
       })
+    );
+  }
+
+  if (rows.length === 0) {
+    throw new Error(
+      "No trip worksheet found. Expected columns: GC No., Vehicle No., Destination, Qty, Customer / Client."
     );
   }
 

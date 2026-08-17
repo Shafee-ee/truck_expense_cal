@@ -33,24 +33,33 @@ export async function processTripImport(file) {
   };
 
   for (const item of comparison) {
-    const transporterCompany = item.row.transporter
-      ? await prisma.company.findFirst({
-          where: {
-            name: item.row.transporter,
+    let clientCompany = null;
+
+    if (item.row.customer) {
+      clientCompany = await prisma.company.findFirst({
+        where: {
+          name: item.row.customer,
+        },
+      });
+
+      if (!clientCompany) {
+        clientCompany = await prisma.company.create({
+          data: {
+            name: item.row.customer,
           },
-        })
-      : null;
+        });
+      }
+    }
     switch (item.action) {
       case "CREATE": {
-        await createOrUpdateTrip(item, transporterCompany);
+        await createOrUpdateTrip(item, clientCompany);
 
         summary.created++;
         break;
       }
 
       case "UPDATE": {
-        await createOrUpdateTrip(item, transporterCompany);
-
+        await createOrUpdateTrip(item, clientCompany);
         summary.updated++;
         break;
       }

@@ -2,7 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { calculateExpenses } from "@/lib/finance";
 import { createTripExpenses } from "./createTripExpenses";
 
-function buildTripData(row, truckId, transporterCompanyId) {
+function buildTripData(row, truckId, clientCompanyId) {
+  const customerDiesel = row.customerDiesel ?? 0;
+  const customerAdvance = row.customerAdvance ?? 0;
+  const tds = row.tds ?? 0;
+  const charges = row.charges ?? 0;
+  const damageAmount = row.damageAmount ?? 0;
+
   const data = {
     truck: {
       connect: {
@@ -30,48 +36,30 @@ function buildTripData(row, truckId, transporterCompanyId) {
 
     revenueMode: row.freightWeight && row.ratePerUnit ? "VARIABLE" : "FIXED",
 
-    customerDiesel: row.diesel,
-    customerAdvance: row.advance,
-    tds: row.tds,
-    charges: row.charges,
-    damageAmount: row.damageAmount,
+    customerDiesel,
+    customerAdvance,
+    tds,
+    charges,
+    damageAmount,
 
-    gcBalance:
-      row.grossAmount -
-      row.diesel -
-      row.advance -
-      row.tds -
-      row.charges -
-      row.damageAmount,
+    gcBalance: row.gcBalance,
 
     mamool: 0,
   };
-
-  if (transporterCompanyId) {
-    data.transporterCompany = {
+  if (clientCompanyId) {
+    data.clientCompany = {
       connect: {
-        id: transporterCompanyId,
+        id: clientCompanyId,
       },
     };
   }
-
   return data;
 }
 
-export async function createOrUpdateTrip(item, transporterCompany) {
+export async function createOrUpdateTrip(item, clientCompany) {
   const isUpdate = item.action === "UPDATE";
 
-  const tripData = buildTripData(
-    item.row,
-    item.truck.id,
-    transporterCompany?.id
-  );
-
-  if (isUpdate && !transporterCompany && item.trip.transporterCompanyId) {
-    tripData.transporterCompany = {
-      disconnect: true,
-    };
-  }
+  const tripData = buildTripData(item.row, item.truck.id, clientCompany?.id);
 
   let trip;
 
@@ -79,29 +67,34 @@ export async function createOrUpdateTrip(item, transporterCompany) {
     const updateData = {
       gcNumber: tripData.gcNumber,
       billNumber: tripData.billNumber,
+      source: tripData.source,
       destination: tripData.destination,
+      startDate: tripData.startDate,
+      endDate: tripData.endDate,
       freightWeight: tripData.freightWeight,
       estimatedQty: tripData.estimatedQty,
       ratePerUnit: tripData.ratePerUnit,
-      grossAmount: tripData.grossAmount,
-      loadType: tripData.loadType,
+      grossAmount:
+        tripData.grossAmount != null
+          ? tripData.grossAmount
+          : item.trip.grossAmount,
       revenueMode: tripData.revenueMode,
+      customerDiesel: tripData.customerDiesel,
+      customerAdvance: tripData.customerAdvance,
+      tds: tripData.tds,
+      charges: tripData.charges,
+      damageAmount: tripData.damageAmount,
+      clientCompany: clientCompany
+        ? {
+            connect: {
+              id: clientCompany.id,
+            },
+          }
+        : {
+            disconnect: true,
+          },
+      gcBalance: tripData.gcBalance,
     };
-
-    if (item.row.importSource === "AS") {
-      updateData.startDate = tripData.startDate;
-      updateData.endDate = tripData.endDate;
-      updateData.customerDiesel = tripData.customerDiesel;
-      updateData.customerAdvance = tripData.customerAdvance;
-      updateData.tds = tripData.tds;
-      updateData.charges = tripData.charges;
-      updateData.damageAmount = tripData.damageAmount;
-      updateData.gcBalance = tripData.gcBalance;
-
-      if (tripData.source !== null && tripData.source !== undefined) {
-        updateData.source = tripData.source;
-      }
-    }
 
     trip = await prisma.trip.update({
       where: {
@@ -110,38 +103,24 @@ export async function createOrUpdateTrip(item, transporterCompany) {
       data: updateData,
     });
 
-    if (item.row.importSource === "AS") {
-      await prisma.expense.deleteMany({
-        where: {
-          tripId: trip.id,
-        },
-      });
-    }
+    await prisma.expense.deleteMany({
+      where: {
+        tripId: trip.id,
+      },
+    });
   } else {
     trip = await prisma.trip.create({
       data: tripData,
     });
   }
 
-  let finalExpenses;
+  const expenses = await createTripExpenses({
+    tripId: trip.id,
+    expenseDate: trip.startDate ?? new Date(),
+    row: item.row,
+  });
 
-  if (item.row.importSource === "AS") {
-    const expenses = await createTripExpenses({
-      tripId: trip.id,
-      expenseDate: trip.startDate ?? new Date(),
-      row: item.row,
-    });
-
-    finalExpenses = calculateExpenses(expenses);
-  } else {
-    const existingExpenses = await prisma.expense.findMany({
-      where: {
-        tripId: trip.id,
-      },
-    });
-
-    finalExpenses = calculateExpenses(existingExpenses);
-  }
+  const finalExpenses = calculateExpenses(expenses);
 
   const finalRevenue =
     trip.revenueMode === "FIXED"
